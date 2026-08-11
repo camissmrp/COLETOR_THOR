@@ -2,95 +2,67 @@
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Coletor THOR</title>
 
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="style.css">
 
+    <!-- Biblioteca para leitura de código de barras -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 
 <body>
 
-
-<!-- ==================================================
-     TELA INICIAL
-     ================================================== -->
+<!-- ============================= -->
+<!-- TELA INICIAL -->
+<!-- ============================= -->
 
 <div id="login" class="container">
 
-    <div class="logo-area">
-
-        <img
-            src="./logo-thor.png"
-            alt="THOR Natural Stones"
-            class="logo"
-        >
-
-    </div>
-
+    <img
+        src="logo-thor.png"
+        alt="THOR Natural Stones"
+        class="logo"
+    >
 
     <h1>COLETOR THOR</h1>
 
-    <p class="subtitulo">
-        Controle de Inventário
-    </p>
-
-
     <div class="card">
 
-        <label for="usuario">
-            Usuário
-        </label>
+        <label for="usuario">Usuário</label>
 
         <select id="usuario">
-
-            <option>
-                Carregando...
-            </option>
-
+            <option>Carregando...</option>
         </select>
 
 
-        <label for="inventario">
-            Inventário
-        </label>
+        <label for="inventario">Inventário</label>
 
         <input
             id="inventario"
             type="text"
-            placeholder="Digite o inventário"
             autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
+            autocapitalize="characters"
             spellcheck="false"
+            placeholder="Digite o inventário"
         >
 
 
-        <label for="endereco">
-            Endereço
-        </label>
+        <label for="endereco">Endereço</label>
 
         <input
             id="endereco"
             type="text"
-            placeholder="Digite o endereço"
             autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
+            autocapitalize="characters"
             spellcheck="false"
+            placeholder="Digite o endereço"
         >
 
 
-        <button
-            id="btnEntrar"
-            class="btn-principal"
-            type="button"
-        >
+        <button id="btnEntrar">
             INICIAR COLETA
         </button>
 
@@ -99,10 +71,9 @@
 </div>
 
 
-
-<!-- ==================================================
-     TELA DE COLETA
-     ================================================== -->
+<!-- ============================= -->
+<!-- TELA DE COLETA -->
+<!-- ============================= -->
 
 <div
     id="coleta"
@@ -110,144 +81,77 @@
     style="display:none;"
 >
 
+    <img
+        src="logo-thor.png"
+        alt="THOR Natural Stones"
+        class="logo"
+    >
 
-    <div class="logo-area logo-coleta">
-
-        <img
-            src="./logo-thor.png"
-            alt="THOR Natural Stones"
-            class="logo"
-        >
-
-    </div>
-
-
-    <h1>
-        COLETA
-    </h1>
+    <h1>COLETA</h1>
 
 
     <div class="card">
 
-
-        <!-- USUÁRIO -->
-
-        <div class="informacao">
-
-            <span>
-                Usuário:
-            </span>
-
-            <strong id="lblUsuario">
-            </strong>
-
-        </div>
+        <p><b>Usuário:</b></p>
+        <h2 id="lblUsuario"></h2>
 
 
-        <!-- INVENTÁRIO -->
-
-        <div class="informacao">
-
-            <span>
-                Inventário:
-            </span>
-
-            <strong id="lblInventario">
-            </strong>
-
-        </div>
+        <p><b>Inventário:</b></p>
+        <h2 id="lblInventario"></h2>
 
 
-        <!-- ENDEREÇO -->
-
-        <div class="informacao">
-
-            <span>
-                Endereço:
-            </span>
-
-            <strong id="lblEndereco">
-            </strong>
-
-        </div>
+        <p><b>Endereço:</b></p>
+        <h2 id="lblEndereco"></h2>
 
 
         <hr>
 
 
-        <!-- CONTADOR DO ENDEREÇO -->
+        <p>Produtos neste endereço</p>
 
-        <div class="contador-box">
-
-            <p>
-                Produtos neste endereço
-            </p>
-
-            <h2 id="contadorEndereco">
-                0
-            </h2>
-
-        </div>
+        <h1 id="contadorEndereco">0</h1>
 
 
-        <!-- CONTADOR TOTAL -->
+        <p>Total coletado</p>
 
-        <div class="contador-box">
-
-            <p>
-                Total coletado
-            </p>
-
-            <h2 id="contadorTotal">
-                0
-            </h2>
-
-        </div>
+        <h1 id="contadorTotal">0</h1>
 
 
         <hr>
 
 
-        <!-- CÓDIGO DE BARRAS -->
+        <!-- ============================= -->
+        <!-- LEITOR DE CÓDIGO DE BARRAS -->
+        <!-- ============================= -->
 
-        <input
-            id="codigo"
-            type="text"
-            placeholder="Leia um código de barras"
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-        >
+        <div id="leitor">
 
-
-        <div class="ultima-leitura">
-
-            <strong>
-                Última leitura
-            </strong>
-
-            <h2 id="ultimaLeitura">
-                -
-            </h2>
+            <div id="reader"></div>
 
         </div>
 
+
+        <p class="texto-camera">
+            Aponte a câmera para o código de barras
+        </p>
+
+
+        <strong>Última leitura</strong>
+
+        <h2 id="ultimaLeitura">-</h2>
 
     </div>
 
 </div>
 
 
+<!-- ============================= -->
+<!-- SCRIPTS -->
+<!-- ============================= -->
 
-<!-- ==================================================
-     JAVASCRIPT
-     ================================================== -->
+<script src="config.js"></script>
 
-<script src="./config.js"></script>
-
-<script src="./script.js"></script>
-
+<script src="script.js"></script>
 
 </body>
 
