@@ -3,7 +3,7 @@ window.onload = carregarConfiguracao;
 let configuracao = {};
 
 let sessao = {
-    usuario: "",
+    usuario: null,
     nomeUsuario: "",
     inventario: "",
     endereco: "",
@@ -11,25 +11,24 @@ let sessao = {
     totalColeta: 0
 };
 
-const codigosProcessados = new Set();
-
-let cameraStream = null;
-let cameraAtiva = false;
-let ultimoCodigoCamera = "";
-let ultimoTempoCamera = 0;
+let scanner = null;
+let processandoLeitura = false;
+let produtosLidos = new Set();
 
 
-// ==================================================
-// CONFIGURAÇÃO
-// ==================================================
+// =====================================================
+// CARREGAR CONFIGURAÇÃO
+// =====================================================
 
 async function carregarConfiguracao() {
 
     try {
 
-        const resposta = await fetch(
-            API + "?acao=config&t=" + Date.now()
-        );
+        const resposta = await fetch(API + "?acao=config");
+
+        if (!resposta.ok) {
+            throw new Error("Erro HTTP " + resposta.status);
+        }
 
         const dados = await resposta.json();
 
@@ -41,22 +40,19 @@ async function carregarConfiguracao() {
 
         console.error(erro);
 
-        alert(
-            "Erro ao carregar a configuração."
-        );
+        alert("Erro ao carregar a configuração do coletor.");
 
     }
 }
 
 
-// ==================================================
-// USUÁRIOS
-// ==================================================
+// =====================================================
+// CARREGAR USUÁRIOS
+// =====================================================
 
 function carregarUsuarios() {
 
-    const select =
-        document.getElementById("usuario");
+    const select = document.getElementById("usuario");
 
     select.innerHTML = "";
 
@@ -65,62 +61,59 @@ function carregarUsuarios() {
         configuracao.Usuarios.length === 0
     ) {
 
-        select.innerHTML =
-            "<option>Nenhum usuário</option>";
+        const option = document.createElement("option");
+
+        option.textContent = "Nenhum usuário";
+
+        select.appendChild(option);
 
         return;
     }
 
+
     configuracao.Usuarios.forEach(usuario => {
 
-        const option =
-            document.createElement("option");
+        const option = document.createElement("option");
 
         option.value = usuario.id;
 
         option.textContent = usuario.nome;
 
-        option.dataset.nome =
-            usuario.nome;
-
         select.appendChild(option);
 
     });
+
 }
 
 
-// ==================================================
+// =====================================================
 // INICIAR COLETA
-// ==================================================
+// =====================================================
 
 document
     .getElementById("btnEntrar")
-    .addEventListener(
-        "click",
-        iniciarColeta
-    );
+    .addEventListener("click", iniciarColeta);
 
 
 function iniciarColeta() {
 
-    const select =
+    const selectUsuario =
         document.getElementById("usuario");
 
     const inventario =
-        document
-            .getElementById("inventario")
+        document.getElementById("inventario")
             .value
-            .trim();
+            .trim()
+            .toUpperCase();
 
     const endereco =
-        document
-            .getElementById("endereco")
+        document.getElementById("endereco")
             .value
             .trim()
             .toUpperCase();
 
 
-    if (!select.value) {
+    if (!selectUsuario.value) {
 
         alert("Selecione o usuário.");
 
@@ -130,7 +123,11 @@ function iniciarColeta() {
 
     if (!inventario) {
 
-        alert("Informe o inventário.");
+        alert("Digite o inventário.");
+
+        document
+            .getElementById("inventario")
+            .focus();
 
         return;
     }
@@ -138,244 +135,304 @@ function iniciarColeta() {
 
     if (!endereco) {
 
-        alert("Informe o endereço.");
+        alert("Digite o endereço.");
+
+        document
+            .getElementById("endereco")
+            .focus();
 
         return;
     }
 
 
-    const opcao =
-        select.options[
-            select.selectedIndex
-        ];
+    const usuarioSelecionado =
+        configuracao.Usuarios.find(
+            u => String(u.id) === String(selectUsuario.value)
+        );
 
 
-    sessao.usuario =
-        select.value;
+    sessao.usuario = selectUsuario.value;
 
     sessao.nomeUsuario =
-        opcao.dataset.nome ||
-        opcao.textContent;
+        usuarioSelecionado
+            ? usuarioSelecionado.nome
+            : "";
 
-    sessao.inventario =
-        inventario;
+    sessao.inventario = inventario;
 
-    sessao.endereco =
-        endereco;
+    sessao.endereco = endereco;
 
     sessao.totalEndereco = 0;
 
     sessao.totalColeta = 0;
 
-    codigosProcessados.clear();
+    produtosLidos.clear();
 
 
-    atualizarTela();
+    document.getElementById("lblUsuario").textContent =
+        sessao.nomeUsuario;
+
+    document.getElementById("lblInventario").textContent =
+        sessao.inventario;
+
+    document.getElementById("lblEndereco").textContent =
+        sessao.endereco;
+
+    document.getElementById("contadorEndereco").textContent =
+        "0";
+
+    document.getElementById("contadorTotal").textContent =
+        "0";
+
+    document.getElementById("ultimaLeitura").textContent =
+        "-";
 
 
-    document
-        .getElementById("login")
-        .style.display = "none";
+    document.getElementById("login").style.display =
+        "none";
 
-    document
-        .getElementById("coleta")
-        .style.display = "flex";
-
-
-    atualizarEndereco();
-
-
-    setTimeout(() => {
-
-        document
-            .getElementById("codigo")
-            .focus();
-
-    }, 200);
+    document.getElementById("coleta").style.display =
+        "flex";
 
 
     iniciarCamera();
-
 }
 
 
-// ==================================================
-// ATUALIZAR TELA
-// ==================================================
+// =====================================================
+// INICIAR CÂMERA
+// =====================================================
 
-function atualizarTela() {
+async function iniciarCamera() {
 
-    document
-        .getElementById("lblUsuario")
-        .textContent =
-        sessao.nomeUsuario;
+    try {
 
-    document
-        .getElementById("lblInventario")
-        .textContent =
-        sessao.inventario;
+        if (scanner) {
 
-    document
-        .getElementById("lblEndereco")
-        .textContent =
-        sessao.endereco;
+            try {
+                await scanner.stop();
+            } catch (e) {}
 
-    document
-        .getElementById("contadorEndereco")
-        .textContent =
-        sessao.totalEndereco;
+            scanner.clear();
 
-    document
-        .getElementById("contadorTotal")
-        .textContent =
-        sessao.totalColeta;
-
-}
+        }
 
 
-// ==================================================
-// IDENTIFICAR CÓDIGO
-// ==================================================
-
-function identificarTipoCodigo(codigo) {
-
-    codigo =
-        String(codigo || "").trim();
+        scanner = new Html5Qrcode("reader");
 
 
-    if (!codigo) {
-        return "";
-    }
+        const cameras =
+            await Html5Qrcode.getCameras();
 
 
-    // LETRA = ENDEREÇO
+        if (!cameras || cameras.length === 0) {
 
-    if (/^[A-Za-z]/.test(codigo)) {
+            alert("Nenhuma câmera encontrada.");
 
-        return "ENDERECO";
-    }
-
-
-    // NÚMERO = PRODUTO
-
-    if (/^[0-9]/.test(codigo)) {
-
-        return "PRODUTO";
-    }
+            return;
+        }
 
 
-    return "";
-}
+        // Preferir câmera traseira
+        let cameraId = cameras[0].id;
+
+        const cameraTraseira =
+            cameras.find(camera =>
+                /back|rear|traseira|environment/i
+                    .test(camera.label)
+            );
 
 
-// ==================================================
-// PROCESSAR LEITURA
-// ==================================================
+        if (cameraTraseira) {
 
-function processarLeitura(codigo) {
+            cameraId =
+                cameraTraseira.id;
 
-    codigo =
-        String(codigo || "")
-            .trim();
+        }
 
 
-    if (!codigo) {
-        return;
-    }
+        scanner.start(
+
+            cameraId,
+
+            {
+                fps: 15,
+
+                qrbox: {
+                    width: 280,
+                    height: 140
+                },
+
+                aspectRatio: 1.777778
+
+            },
+
+            codigo => {
+
+                processarCodigo(codigo);
+
+            },
+
+            erro => {
+
+                // Não fazer nada.
+                // Erros normais de leitura são ignorados.
+
+            }
+
+        ).catch(erro => {
+
+            console.error(
+                "Erro ao iniciar câmera:",
+                erro
+            );
+
+            alert(
+                "Não foi possível iniciar a câmera.\n\n" +
+                "Verifique se o navegador possui permissão para usar a câmera."
+            );
+
+        });
 
 
-    const tipo =
-        identificarTipoCodigo(codigo);
+    } catch (erro) {
 
+        console.error(erro);
 
-    if (tipo === "ENDERECO") {
-
-        processarEndereco(
-            codigo.toUpperCase()
+        alert(
+            "Não foi possível acessar a câmera."
         );
 
-        return;
-    }
-
-
-    if (tipo === "PRODUTO") {
-
-        processarProduto(codigo);
-
-        return;
     }
 
 }
 
 
-// ==================================================
-// ENDEREÇO
-// ==================================================
+// =====================================================
+// PROCESSAR CÓDIGO LIDO
+// =====================================================
 
-function processarEndereco(endereco) {
+function processarCodigo(codigo) {
 
-    endereco =
-        endereco
+    if (processandoLeitura) {
+        return;
+    }
+
+
+    codigo =
+        String(codigo)
             .trim()
             .toUpperCase();
 
 
-    if (
-        endereco ===
-        sessao.endereco
-    ) {
+    if (!codigo) {
+        return;
+    }
 
-        mostrarUltimaLeitura(
-            endereco
-        );
+
+    processandoLeitura = true;
+
+
+    document
+        .getElementById("ultimaLeitura")
+        .textContent = codigo;
+
+
+    // =================================================
+    // REGRA:
+    //
+    // COMEÇA COM LETRA = ENDEREÇO
+    //
+    // COMEÇA COM NÚMERO = PRODUTO
+    // =================================================
+
+
+    const primeiroCaractere =
+        codigo.charAt(0);
+
+
+    const ehEndereco =
+        /^[A-Z]/.test(primeiroCaractere);
+
+
+    const ehProduto =
+        /^[0-9]/.test(primeiroCaractere);
+
+
+    if (ehEndereco) {
+
+        alterarEndereco(codigo);
+
+        liberarLeitura();
 
         return;
     }
 
 
-    sessao.endereco =
-        endereco;
+    if (ehProduto) {
 
-    sessao.totalEndereco = 0;
+        registrarProduto(codigo);
+
+        return;
+    }
+
+
+    liberarLeitura();
+
+}
+
+
+// =====================================================
+// ALTERAR ENDEREÇO
+// =====================================================
+
+function alterarEndereco(novoEndereco) {
+
+    sessao.endereco =
+        novoEndereco;
 
 
     document
         .getElementById("lblEndereco")
         .textContent =
-        endereco;
+        novoEndereco;
+
+
+    sessao.totalEndereco = 0;
+
 
     document
         .getElementById("contadorEndereco")
         .textContent =
         "0";
 
-    mostrarUltimaLeitura(
-        endereco
-    );
 
-
-    atualizarEndereco();
+    produtosLidos.clear();
 
 }
 
 
-// ==================================================
-// PRODUTO
-// ==================================================
+// =====================================================
+// REGISTRAR PRODUTO
+// =====================================================
 
-function processarProduto(codigo) {
+function registrarProduto(codigo) {
 
-    if (
-        codigosProcessados.has(codigo)
-    ) {
+    // Bloqueia produto duplicado
+    if (produtosLidos.has(codigo)) {
 
-        mostrarDuplicado(codigo);
+        document
+            .getElementById("ultimaLeitura")
+            .textContent =
+            codigo + " - JÁ COLETADO";
+
+        liberarLeitura();
 
         return;
     }
 
 
-    codigosProcessados.add(codigo);
+    produtosLidos.add(codigo);
 
 
     sessao.totalEndereco++;
@@ -388,37 +445,28 @@ function processarProduto(codigo) {
         .textContent =
         sessao.totalEndereco;
 
+
     document
         .getElementById("contadorTotal")
         .textContent =
         sessao.totalColeta;
 
 
-    mostrarUltimaLeitura(
-        codigo
-    );
-
-
-    enviarColeta(codigo);
+    // Registrar no servidor
+    registrarNoServidor(codigo);
 
 }
 
 
-// ==================================================
-// ENVIAR COLETA
-// ==================================================
+// =====================================================
+// REGISTRAR NO GOOGLE SHEETS
+// =====================================================
 
-async function enviarColeta(codigo) {
+function registrarNoServidor(codigo) {
 
     const dados = {
 
         acao: "coleta",
-
-        usuario:
-            sessao.usuario,
-
-        nomeUsuario:
-            sessao.nomeUsuario,
 
         inventario:
             sessao.inventario,
@@ -426,508 +474,87 @@ async function enviarColeta(codigo) {
         endereco:
             sessao.endereco,
 
-        codigo:
-            codigo,
-
-        tipoLeitura:
-            "PRODUTO"
-
-    };
-
-
-    try {
-
-        const resposta =
-            await fetch(API, {
-
-                method: "POST",
-
-                body:
-                    JSON.stringify(dados)
-
-            });
-
-
-        const resultado =
-            await resposta.json();
-
-
-        console.log(
-            "COLETA:",
-            resultado
-        );
-
-
-        if (
-            resultado.duplicado
-        ) {
-
-            sessao.totalEndereco--;
-
-            sessao.totalColeta--;
-
-            atualizarTela();
-
-            mostrarDuplicado(codigo);
-
-            return;
-        }
-
-
-        if (
-            !resultado.sucesso
-        ) {
-
-            sessao.totalEndereco--;
-
-            sessao.totalColeta--;
-
-            codigosProcessados.delete(
-                codigo
-            );
-
-            atualizarTela();
-
-            console.error(
-                resultado
-            );
-
-        }
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao registrar:",
-            erro
-        );
-
-    }
-
-}
-
-
-// ==================================================
-// ATUALIZAR ENDEREÇO
-// ==================================================
-
-function atualizarEndereco() {
-
-    const dados = {
-
-        acao: "novoEndereco",
-
         usuario:
             sessao.usuario,
 
-        inventario:
-            sessao.inventario,
+        codigoBarras:
+            codigo,
 
-        endereco:
-            sessao.endereco
+        tipoLeitura:
+            "PRODUTO",
+
+        nomeUsuario:
+            sessao.nomeUsuario
 
     };
 
+
+    // Usa no-cors para não bloquear
+    // a leitura por causa do CORS.
+    //
+    // O aplicativo atualiza a tela imediatamente.
+    // O envio acontece em segundo plano.
 
     fetch(API, {
 
         method: "POST",
 
+        mode: "no-cors",
+
+        headers: {
+            "Content-Type":
+                "text/plain;charset=utf-8"
+        },
+
         body:
             JSON.stringify(dados)
 
-    })
-    .catch(erro => {
+    }).catch(erro => {
 
         console.error(
-            "Erro endereço:",
+            "Erro ao registrar coleta:",
             erro
         );
 
     });
 
-}
 
-
-// ==================================================
-// CÂMERA
-// ==================================================
-
-async function iniciarCamera() {
-
-    const video =
-        document.getElementById("camera");
-
-    const mensagem =
-        document.getElementById(
-            "cameraMensagem"
-        );
-
-
-    if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-    ) {
-
-        mensagem.textContent =
-            "Câmera não disponível neste navegador.";
-
-        return;
-    }
-
-
-    try {
-
-        cameraStream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video: {
-
-                    facingMode: {
-                        ideal: "environment"
-                    },
-
-                    width: {
-                        ideal: 1280
-                    },
-
-                    height: {
-                        ideal: 720
-                    }
-
-                },
-
-                audio: false
-
-            });
-
-
-        video.srcObject =
-            cameraStream;
-
-
-        await video.play();
-
-
-        cameraAtiva = true;
-
-
-        mensagem.textContent =
-            "Aponte para o código de barras";
-
-
-        iniciarLeituraCamera();
-
-    } catch (erro) {
-
-        console.error(
-            "Erro câmera:",
-            erro
-        );
-
-
-        mensagem.textContent =
-            "Não foi possível acessar a câmera.";
-
-    }
+    // Liberar imediatamente para a próxima leitura
+    liberarLeitura();
 
 }
 
 
-// ==================================================
-// LEITURA CONTÍNUA DA CÂMERA
-// ==================================================
+// =====================================================
+// LIBERAR PARA PRÓXIMA LEITURA
+// =====================================================
 
-async function iniciarLeituraCamera() {
+function liberarLeitura() {
 
-    if (!cameraAtiva) {
-        return;
-    }
+    setTimeout(() => {
 
+        processandoLeitura = false;
 
-    const video =
-        document.getElementById("camera");
+    }, 250);
 
-
-    // BarcodeDetector
-
-    if (
-        "BarcodeDetector" in window
-    ) {
-
-        try {
-
-            const detector =
-                new BarcodeDetector({
-
-                    formats: [
-                        "code_128",
-                        "code_39",
-                        "ean_13",
-                        "ean_8",
-                        "upc_a",
-                        "upc_e",
-                        "itf",
-                        "codabar"
-                    ]
-
-                });
+}
 
 
-            detectarComBarcodeDetector(
-                detector,
-                video
-            );
+// =====================================================
+// AO SAIR DA PÁGINA
+// =====================================================
 
+window.addEventListener(
+    "beforeunload",
+    () => {
 
-            return;
+        if (scanner) {
 
-        } catch (erro) {
-
-            console.error(
-                erro
-            );
+            try {
+                scanner.stop();
+            } catch (e) {}
 
         }
 
     }
-
-
-    document
-        .getElementById(
-            "cameraMensagem"
-        )
-        .textContent =
-        "Leitura por câmera não suportada neste navegador. Use o leitor ou digite o código.";
-
-}
-
-
-// ==================================================
-// DETECTOR
-// ==================================================
-
-async function detectarComBarcodeDetector(
-    detector,
-    video
-) {
-
-    if (!cameraAtiva) {
-        return;
-    }
-
-
-    try {
-
-        if (
-            video.readyState >= 2
-        ) {
-
-            const codigos =
-                await detector.detect(
-                    video
-                );
-
-
-            if (
-                codigos &&
-                codigos.length > 0
-            ) {
-
-                const codigo =
-                    codigos[0].rawValue;
-
-
-                if (codigo) {
-
-                    processarLeituraCamera(
-                        codigo
-                    );
-
-                }
-
-            }
-
-        }
-
-    } catch (erro) {
-
-        console.error(
-            "Erro detector:",
-            erro
-        );
-
-    }
-
-
-    requestAnimationFrame(
-        () =>
-            detectarComBarcodeDetector(
-                detector,
-                video
-            )
-    );
-
-}
-
-
-// ==================================================
-// EVITAR VÁRIAS LEITURAS DA MESMA IMAGEM
-// ==================================================
-
-function processarLeituraCamera(
-    codigo
-) {
-
-    const agora =
-        Date.now();
-
-
-    if (
-        codigo === ultimoCodigoCamera &&
-        agora - ultimoTempoCamera < 1500
-    ) {
-
-        return;
-    }
-
-
-    ultimoCodigoCamera =
-        codigo;
-
-    ultimoTempoCamera =
-        agora;
-
-
-    processarLeitura(
-        codigo
-    );
-
-}
-
-
-// ==================================================
-// CAMPO FÍSICO / MANUAL
-// ==================================================
-
-document
-    .getElementById("codigo")
-    .addEventListener(
-        "keydown",
-        function(event) {
-
-            if (
-                event.key === "Enter"
-            ) {
-
-                event.preventDefault();
-
-                const codigo =
-                    this.value.trim();
-
-                this.value = "";
-
-                processarLeitura(
-                    codigo
-                );
-
-            }
-
-        }
-    );
-
-
-// ==================================================
-// ÚLTIMA LEITURA
-// ==================================================
-
-function mostrarUltimaLeitura(
-    codigo
-) {
-
-    document
-        .getElementById(
-            "ultimaLeitura"
-        )
-        .textContent =
-        codigo;
-
-}
-
-
-// ==================================================
-// DUPLICADO
-// ==================================================
-
-function mostrarDuplicado(
-    codigo
-) {
-
-    document
-        .getElementById(
-            "ultimaLeitura"
-        )
-        .textContent =
-        "DUPLICADO: " + codigo;
-
-}
-
-
-// ==================================================
-// PARAR CÂMERA
-// ==================================================
-
-function pararCamera() {
-
-    cameraAtiva = false;
-
-
-    if (cameraStream) {
-
-        cameraStream
-            .getTracks()
-            .forEach(track => {
-
-                track.stop();
-
-            });
-
-        cameraStream = null;
-
-    }
-
-}
-
-
-// ==================================================
-// VOLTAR PARA INÍCIO
-// ==================================================
-
-function voltarInicio() {
-
-    pararCamera();
-
-
-    document
-        .getElementById("coleta")
-        .style.display =
-        "none";
-
-
-    document
-        .getElementById("login")
-        .style.display =
-        "flex";
-
-
-    document
-        .getElementById("inventario")
-        .value =
-        sessao.inventario;
-
-
-    document
-        .getElementById("endereco")
-        .value =
-        sessao.endereco;
-
-}
+);
