@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Coletor THOR</title>
+
+    <link rel="stylesheet" href="./style.css">
+
+</head>
+
+<body>
+
+
+<!-- ==================================================
+     TELA INICIAL
+     ================================================== -->
+
+<div id="login" class="container">
+
+    <div class="logo-area">
+
+        <img
+            src="./logo-thor.png"
+            alt="THOR Natural Stones"
+            class="logo"
+        >
+
+    </div>
+
+
+    <h1>COLETOR THOR</h1>
+
+    <p class="subtitulo">
+        Controle de Inventário
+    </p>
+
+
+    <div class="card">
+
+        <label for="usuario">
+            Usuário
+        </label>
+
+        <select id="usuario">
+
+            <option>
+                Carregando...
+            </option>
+
+        </select>
+
+
+        <label for="inventario">
+            Inventário
+        </label>
+
+        <input
+            id="inventario"
+            type="text"
+            placeholder="Digite o inventário"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+        >
+
+
+        <label for="endereco">
+            Endereço
+        </label>
+
+        <input
+            id="endereco"
+            type="text"
+            placeholder="Digite o endereço"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+        >
+
+
+        <button
+            id="btnEntrar"
+            class="btn-principal"
+            type="button"
+        >
+            INICIAR COLETA
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- ==================================================
+     TELA DE COLETA
+     ================================================== -->
+
+<div
+    id="coleta"
+    class="container"
+    style="display:none;"
+>
+
+
+    <div class="logo-area logo-coleta">
+
+        <img
+            src="./logo-thor.png"
+            alt="THOR Natural Stones"
+            class="logo"
+        >
+
+    </div>
+
+
+    <h1>
+        COLETA
+    </h1>
+
+
+    <div class="card">
+
+
+        <!-- USUÁRIO -->
+
+        <div class="informacao">
+
+            <span>
+                Usuário:
+            </span>
+
+            <strong id="lblUsuario">
+            </strong>
+
+        </div>
+
+
+        <!-- INVENTÁRIO -->
+
+        <div class="informacao">
+
+            <span>
+                Inventário:
+            </span>
+
+            <strong id="lblInventario">
+            </strong>
+
+        </div>
+
+
+        <!-- ENDEREÇO -->
+
+        <div class="informacao">
+
+            <span>
+                Endereço:
+            </span>
+
+            <strong id="lblEndereco">
+            </strong>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- CONTADOR DO ENDEREÇO -->
+
+        <div class="contador-box">
+
+            <p>
+                Produtos neste endereço
+            </p>
+
+            <h2 id="contadorEndereco">
+                0
+            </h2>
+
+        </div>
+
+
+        <!-- CONTADOR TOTAL -->
+
+        <div class="contador-box">
+
+            <p>
+                Total coletado
+            </p>
+
+            <h2 id="contadorTotal">
+                0
+            </h2>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- CÓDIGO DE BARRAS -->
+
+        <input
+            id="codigo"
+            type="text"
+            placeholder="Leia um código de barras"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+        >
+
+
+        <div class="ultima-leitura">
+
+            <strong>
+                Última leitura
+            </strong>
+
+            <h2 id="ultimaLeitura">
+                -
+            </h2>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+
+<!-- ==================================================
+     JAVASCRIPT
+     ================================================== -->
+
+<script src="./config.js"></script>
+
+<script src="./script.js"></script>
+
+
+</body>
+
+</html>
