@@ -1,1231 +1,936 @@
-let configuracao = {};
-let cameraStream = null;
-let scannerControls = null;
-let codeReader = null;
-let cameraAtiva = false;
-let processandoCodigo = false;
-let ultimoCodigoLido = "";
-let ultimoCodigoTempo = 0;
-let audioContext = null;
-
-const sessao = {
-    usuario: null,
-    nomeUsuario: "",
-    inventario: "",
-    endereco: "",
-    totalEndereco: 0,
-    totalColeta: 0
-};
+const ss = SpreadsheetApp.getActiveSpreadsheet();
 
 
-/* =========================
-   INICIALIZAÇÃO
-========================= */
+// ==================================================
+// GET
+// ==================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+function doGet(e) {
 
-    mostrarTelaLogin();
+  try {
 
-    document
-        .getElementById("btnEntrar")
-        ?.addEventListener("click", iniciarColeta);
+    const p = e && e.parameter ? e.parameter : {};
+    const acao = p.acao || "";
 
-    document
-        .getElementById("btnRegistrar")
-        ?.addEventListener("click", processarCodigoDigitado);
+    switch (acao) {
 
-    document
-        .getElementById("codigo")
-        ?.addEventListener("keydown", e => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                processarCodigoDigitado();
-            }
+      case "config":
+        return getConfig();
+
+      case "verificar":
+        return verificarDuplicidade(
+          p.inventario,
+          p.endereco,
+          p.codigo
+        );
+
+      case "registrar":
+        return registrarColeta({
+          usuario: p.usuario,
+          nomeUsuario: p.nomeUsuario,
+          inventario: p.inventario,
+          endereco: p.endereco,
+          codigo: p.codigo,
+          tipoLeitura: p.tipoLeitura || "PRODUTO"
         });
 
-    document
-        .getElementById("usuario")
-        ?.addEventListener("change", e => {
-            atualizarConfiguracaoUsuario(e.target.value);
+      case "novoEndereco":
+        return alterarEndereco(
+          p.usuario,
+          p.inventario,
+          p.endereco
+        );
+
+      default:
+        return respostaJSON({
+          sucesso: true,
+          mensagem: "API OK"
         });
-
-    carregarConfiguracao();
-});
-
-
-/* =========================
-   ÁUDIO
-========================= */
-
-async function prepararAudio() {
-
-    try {
-
-        const AC =
-            window.AudioContext ||
-            window.webkitAudioContext;
-
-        if (!AC) return false;
-
-        if (!audioContext) {
-            audioContext = new AC();
-        }
-
-        await audioContext.resume();
-
-        const osc = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-
-        const tempo = audioContext.currentTime;
-
-        gain.gain.setValueAtTime(
-            0,
-            tempo
-        );
-
-        osc.connect(gain);
-        gain.connect(audioContext.destination);
-
-        osc.start();
-
-        osc.stop(
-            tempo + 0.01
-        );
-
-        return true;
-
-    } catch (e) {
-
-        console.warn(
-            "Erro preparando áudio:",
-            e
-        );
-
-        return false;
     }
+
+  } catch (erro) {
+
+    return respostaJSON({
+      sucesso: false,
+      erro: erro.toString()
+    });
+  }
 }
 
 
-function emitirBip() {
+// ==================================================
+// POST
+// Mantido para compatibilidade
+// ==================================================
 
-    try {
+function doPost(e) {
 
-        const AC =
-            window.AudioContext ||
-            window.webkitAudioContext;
+  try {
 
-        if (!AC) return;
+    const dados =
+      JSON.parse(e.postData.contents);
 
-        if (!audioContext) {
-            audioContext = new AC();
-        }
+    if (dados.acao === "novoEndereco") {
 
-        if (
-            audioContext.state ===
-            "suspended"
-        ) {
-            audioContext.resume();
-        }
-
-        const tempo =
-            audioContext.currentTime;
-
-        const osc =
-            audioContext.createOscillator();
-
-        const gain =
-            audioContext.createGain();
-
-        osc.type = "sine";
-
-        osc.frequency.setValueAtTime(
-            1800,
-            tempo
-        );
-
-        gain.gain.setValueAtTime(
-            0.0001,
-            tempo
-        );
-
-        gain.gain.exponentialRampToValueAtTime(
-            0.30,
-            tempo + 0.01
-        );
-
-        gain.gain.exponentialRampToValueAtTime(
-            0.0001,
-            tempo + 0.15
-        );
-
-        osc.connect(gain);
-
-        gain.connect(
-            audioContext.destination
-        );
-
-        osc.start(tempo);
-
-        osc.stop(
-            tempo + 0.15
-        );
-
-    } catch (e) {
-
-        console.warn(
-            "Erro no bip:",
-            e
-        );
+      return alterarEndereco(
+        dados.usuario,
+        dados.inventario,
+        dados.endereco
+      );
     }
+
+    return registrarColeta(dados);
+
+  } catch (erro) {
+
+    return respostaJSON({
+      sucesso: false,
+      erro: erro.toString()
+    });
+  }
 }
 
 
-/* =========================
-   TELAS
-========================= */
+// ==================================================
+// ALTERAR ENDEREÇO
+// ==================================================
 
-function mostrarTelaLogin() {
-
-    document
-        .getElementById("login")
-        ?.classList.remove("hidden");
-
-    document
-        .getElementById("coleta")
-        ?.classList.add("hidden");
-
-    pararCamera();
-
-    sessao.usuario = null;
-    sessao.nomeUsuario = "";
-    sessao.inventario = "";
-    sessao.endereco = "";
-    sessao.totalEndereco = 0;
-    sessao.totalColeta = 0;
-}
-
-
-function mostrarTelaColeta() {
-
-    document
-        .getElementById("login")
-        ?.classList.add("hidden");
-
-    document
-        .getElementById("coleta")
-        ?.classList.remove("hidden");
-}
-
-
-function mostrarLoginStatus(
-    mensagem,
-    tipo = ""
+function alterarEndereco(
+  usuario,
+  inventario,
+  endereco
 ) {
 
-    const el =
-        document.getElementById(
-            "loginStatus"
-        );
+  const lock =
+    LockService.getScriptLock();
 
-    if (!el) return;
+  try {
 
-    el.textContent =
-        mensagem || "";
+    lock.waitLock(10000);
 
-    el.className =
-        "status" +
-        (tipo ? ` ${tipo}` : "");
-}
+    const config =
+      ss.getSheetByName("TB_CONFIG");
 
+    if (!config)
+      throw new Error(
+        "Aba TB_CONFIG não encontrada."
+      );
 
-function mostrarCollectionStatus(
-    mensagem,
-    tipo = ""
-) {
+    const dados =
+      config.getDataRange().getValues();
 
-    const el =
-        document.getElementById(
-            "collectionStatus"
-        );
+    if (!dados.length)
+      throw new Error(
+        "TB_CONFIG está vazia."
+      );
 
-    if (!el) return;
+    const cab = dados[0];
 
-    el.textContent =
-        mensagem || "";
+    const colID =
+      cab.indexOf("ID");
 
-    el.className =
-        "status" +
-        (tipo ? ` ${tipo}` : "");
-}
+    const colUsuario =
+      cab.indexOf("Usuario");
 
+    const colInventario =
+      cab.indexOf("Inventario");
 
-function mostrarCameraStatus(
-    mensagem
-) {
+    const colEndereco =
+      cab.indexOf("EnderecoAtual");
 
-    const el =
-        document.getElementById(
-            "cameraMessage"
-        );
-
-    if (el) {
-        el.textContent =
-            mensagem;
-    }
-}
-
-
-/* =========================
-   CONFIGURAÇÃO
-========================= */
-
-async function carregarConfiguracao() {
-
-    try {
-
-        mostrarLoginStatus(
-            "Carregando configuração..."
-        );
-
-        const resposta =
-            await fetch(
-                API +
-                "?acao=config&ts=" +
-                Date.now(),
-                {
-                    cache: "no-store"
-                }
-            );
-
-        if (!resposta.ok) {
-            throw new Error(
-                "HTTP " +
-                resposta.status
-            );
-        }
-
-        configuracao =
-            await resposta.json();
-
-        const select =
-            document.getElementById(
-                "usuario"
-            );
-
-        const inventario =
-            document.getElementById(
-                "inventario"
-            );
-
-        const endereco =
-            document.getElementById(
-                "endereco"
-            );
-
-        select.innerHTML = "";
-
-        const usuarios =
-            Array.isArray(
-                configuracao.Usuarios
-            )
-                ? configuracao.Usuarios
-                : [];
-
-        if (!usuarios.length) {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value = "";
-            option.textContent =
-                "Nenhum usuário disponível";
-
-            select.appendChild(
-                option
-            );
-
-            inventario.value = "";
-            endereco.value = "";
-
-            document
-                .getElementById(
-                    "btnEntrar"
-                )
-                .disabled = true;
-
-            mostrarLoginStatus(
-                "Nenhum usuário ativo foi encontrado.",
-                "error"
-            );
-
-            return;
-        }
-
-        usuarios.forEach(usuario => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value =
-                usuario.id;
-
-            option.textContent =
-                usuario.nome;
-
-            select.appendChild(
-                option
-            );
-        });
-
-        atualizarConfiguracaoUsuario(
-            usuarios[0].id
-        );
-
-        document
-            .getElementById(
-                "btnEntrar"
-            )
-            .disabled = false;
-
-        mostrarLoginStatus("");
-
-    } catch (erro) {
-
-        console.error(
-            "Erro carregando configuração:",
-            erro
-        );
-
-        mostrarLoginStatus(
-            "Não foi possível carregar a configuração.",
-            "error"
-        );
-
-        document
-            .getElementById(
-                "btnEntrar"
-            )
-            .disabled = true;
-    }
-}
-
-
-function atualizarConfiguracaoUsuario(
-    usuarioId
-) {
-
-    const inventario =
-        document.getElementById(
-            "inventario"
-        );
-
-    const endereco =
-        document.getElementById(
-            "endereco"
-        );
-
-    let configUsuario = null;
+    const colData =
+      cab.indexOf("DataUltimaAtualizacao");
 
     if (
-        Array.isArray(
-            configuracao.Configuracoes
+      colUsuario === -1 ||
+      colInventario === -1 ||
+      colEndereco === -1
+    ) {
+
+      throw new Error(
+        "TB_CONFIG precisa ter: Usuario, Inventario e EnderecoAtual."
+      );
+    }
+
+    let linhaUsuario = -1;
+
+    for (
+      let i = 1;
+      i < dados.length;
+      i++
+    ) {
+
+      if (
+        String(
+          dados[i][colUsuario]
+        ).trim() ===
+        String(usuario).trim()
+      ) {
+
+        linhaUsuario = i + 1;
+        break;
+      }
+    }
+
+
+    // CRIA USUÁRIO SE NÃO EXISTIR
+
+    if (linhaUsuario === -1) {
+
+      const novaLinha =
+        new Array(cab.length).fill("");
+
+      if (colID !== -1)
+        novaLinha[colID] =
+          Utilities.getUuid();
+
+      novaLinha[colUsuario] =
+        usuario;
+
+      novaLinha[colInventario] =
+        inventario;
+
+      novaLinha[colEndereco] =
+        endereco;
+
+      if (colData !== -1)
+        novaLinha[colData] =
+          new Date();
+
+      config.appendRow(
+        novaLinha
+      );
+
+    } else {
+
+      config
+        .getRange(
+          linhaUsuario,
+          colInventario + 1
         )
-    ) {
+        .setValue(inventario);
 
-        configUsuario =
-            configuracao.Configuracoes.find(
-                config =>
-                    String(
-                        config.usuario
-                    ).trim() ===
-                    String(
-                        usuarioId
-                    ).trim()
-            );
+      config
+        .getRange(
+          linhaUsuario,
+          colEndereco + 1
+        )
+        .setValue(endereco);
+
+      if (colData !== -1) {
+
+        config
+          .getRange(
+            linhaUsuario,
+            colData + 1
+          )
+          .setValue(new Date());
+      }
     }
 
-    if (
-        !configUsuario &&
-        configuracao.Inventario !==
-            undefined
-    ) {
+    return respostaJSON({
+      sucesso: true,
+      usuario: usuario,
+      inventario: inventario,
+      endereco: endereco
+    });
 
-        inventario.value =
-            configuracao.Inventario || "";
+  } catch (erro) {
 
-        endereco.value =
-            configuracao.EnderecoAtual || "";
+    return respostaJSON({
+      sucesso: false,
+      erro: erro.toString()
+    });
 
-        return;
-    }
+  } finally {
 
-    inventario.value =
-        configUsuario?.inventario || "";
-
-    endereco.value =
-        configUsuario?.enderecoAtual || "";
+    try {
+      lock.releaseLock();
+    } catch (e) {}
+  }
 }
 
 
-/* =========================
-   INICIAR COLETA
-========================= */
+// ==================================================
+// REGISTRAR COLETA
+// ==================================================
 
-async function iniciarColeta() {
+function registrarColeta(dados) {
 
-    const btn =
-        document.getElementById(
-            "btnEntrar"
-        );
+  const lock =
+    LockService.getScriptLock();
+
+  try {
+
+    lock.waitLock(10000);
+
+    const coleta =
+      ss.getSheetByName("TB_COLETA");
+
+    if (!coleta)
+      throw new Error(
+        "Aba TB_COLETA não encontrada."
+      );
+
+
+    // ----------------------------------------------
+    // VALIDAÇÃO
+    // ----------------------------------------------
 
     const usuario =
-        document.getElementById(
-            "usuario"
-        );
+      String(
+        dados.usuario || ""
+      ).trim();
 
     const inventario =
-        document.getElementById(
-            "inventario"
-        );
+      String(
+        dados.inventario || ""
+      ).trim();
 
     const endereco =
-        document.getElementById(
-            "endereco"
-        );
-
-    await prepararAudio();
-
-    const option =
-        usuario.options[
-            usuario.selectedIndex
-        ];
-
-    sessao.usuario =
-        String(
-            usuario.value || ""
-        ).trim();
-
-    sessao.nomeUsuario =
-        option
-            ? option.textContent.trim()
-            : "";
-
-    sessao.inventario =
-        String(
-            inventario.value || ""
-        ).trim();
-
-    sessao.endereco =
-        String(
-            endereco.value || ""
-        )
-            .trim()
-            .toUpperCase();
-
-    if (!sessao.usuario) {
-
-        mostrarLoginStatus(
-            "Selecione um usuário.",
-            "error"
-        );
-
-        return;
-    }
-
-    if (!sessao.inventario) {
-
-        mostrarLoginStatus(
-            "Informe o inventário.",
-            "error"
-        );
-
-        inventario.focus();
-
-        return;
-    }
-
-    if (!sessao.endereco) {
-
-        mostrarLoginStatus(
-            "Informe o endereço.",
-            "error"
-        );
-
-        endereco.focus();
-
-        return;
-    }
-
-    btn.disabled = true;
-
-    sessao.totalEndereco = 0;
-    sessao.totalColeta = 0;
-
-    document.getElementById(
-        "lblUsuario"
-    ).textContent =
-        sessao.nomeUsuario;
-
-    document.getElementById(
-        "lblInventario"
-    ).textContent =
-        sessao.inventario;
-
-    document.getElementById(
-        "lblEndereco"
-    ).textContent =
-        sessao.endereco;
-
-    document.getElementById(
-        "contadorEndereco"
-    ).textContent = "0";
-
-    document.getElementById(
-        "contadorTotal"
-    ).textContent = "0";
-
-    document.getElementById(
-        "ultimaLeitura"
-    ).textContent = "-";
-
-    mostrarCollectionStatus("");
-
-    mostrarTelaColeta();
-
-    await iniciarCamera();
-}
-
-
-/* =========================
-   CÂMERA
-========================= */
-
-async function iniciarCamera() {
-
-    if (cameraAtiva) return;
-
-    const video =
-        document.getElementById(
-            "camera"
-        );
-
-    if (!video) return;
-
-    if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices
-            .getUserMedia
-    ) {
-
-        mostrarCameraStatus(
-            "Câmera não disponível neste navegador."
-        );
-
-        return;
-    }
-
-    mostrarCameraStatus(
-        "Abrindo câmera..."
-    );
-
-    video.autoplay = true;
-    video.muted = true;
-    video.playsInline = true;
-
-    video.setAttribute(
-        "playsinline",
-        "true"
-    );
-
-    video.setAttribute(
-        "webkit-playsinline",
-        "true"
-    );
-
-    try {
-
-        cameraStream =
-            await navigator.mediaDevices
-                .getUserMedia({
-                    audio: false,
-                    video: {
-                        facingMode: {
-                            ideal: "environment"
-                        },
-                        width: {
-                            ideal: 1280
-                        },
-                        height: {
-                            ideal: 720
-                        }
-                    }
-                });
-
-        video.srcObject =
-            cameraStream;
-
-        await new Promise(resolve => {
-
-            if (
-                video.readyState >= 2 &&
-                video.videoWidth > 0
-            ) {
-
-                resolve();
-                return;
-            }
-
-            const finalizar =
-                () => {
-
-                    video.removeEventListener(
-                        "loadedmetadata",
-                        finalizar
-                    );
-
-                    resolve();
-                };
-
-            video.addEventListener(
-                "loadedmetadata",
-                finalizar
-            );
-        });
-
-        await video.play()
-            .catch(() => {});
-
-        cameraAtiva = true;
-
-        mostrarCameraStatus(
-            "Aponte a câmera para o código de barras"
-        );
-
-        iniciarLeitorZXing(video);
-
-    } catch (erro) {
-
-        console.error(
-            "Erro câmera:",
-            erro
-        );
-
-        cameraAtiva = false;
-
-        if (
-            erro.name ===
-            "NotAllowedError"
-        ) {
-
-            mostrarCameraStatus(
-                "Acesso à câmera bloqueado. Permita a câmera no navegador."
-            );
-
-        } else if (
-            erro.name ===
-            "NotFoundError"
-        ) {
-
-            mostrarCameraStatus(
-                "Câmera traseira não encontrada."
-            );
-
-        } else {
-
-            mostrarCameraStatus(
-                "Não foi possível abrir a câmera."
-            );
-        }
-    }
-}
-
-
-function iniciarLeitorZXing(
-    video
-) {
-
-    if (!window.ZXingBrowser) {
-
-        mostrarCameraStatus(
-            "Leitor não carregado. Use a digitação manual."
-        );
-
-        return;
-    }
-
-    try {
-
-        codeReader =
-            new ZXingBrowser
-                .BrowserMultiFormatReader();
-
-        codeReader
-            .decodeFromVideoElement(
-                video,
-                resultado => {
-
-                    if (!resultado)
-                        return;
-
-                    const codigo =
-                        resultado.getText
-                            ? resultado.getText()
-                            : String(
-                                resultado.text ||
-                                ""
-                            );
-
-                    if (codigo) {
-                        receberCodigoDaCamera(
-                            codigo
-                        );
-                    }
-                }
-            )
-            .then(
-                controls => {
-                    scannerControls =
-                        controls;
-                }
-            )
-            .catch(
-                erro => {
-
-                    console.error(
-                        "Erro ZXing:",
-                        erro
-                    );
-
-                    mostrarCameraStatus(
-                        "Leitor não iniciou. Use a digitação manual."
-                    );
-                }
-            );
-
-    } catch (erro) {
-
-        console.error(
-            "Erro criando ZXing:",
-            erro
-        );
-    }
-}
-
-
-/* =========================
-   CÓDIGO
-========================= */
-
-function receberCodigoDaCamera(
-    codigo
-) {
-
-    const agora =
-        Date.now();
-
-    const valor =
-        normalizarCodigo(
-            codigo
-        );
-
-    if (!valor) return;
-
-    if (
-        valor === ultimoCodigoLido &&
-        agora - ultimoCodigoTempo <
-            900
-    ) {
-        return;
-    }
-
-    ultimoCodigoLido = valor;
-    ultimoCodigoTempo = agora;
-
-    document.getElementById(
-        "codigo"
-    ).value = valor;
-
-    processarCodigo(valor);
-}
-
-
-function processarCodigoDigitado() {
-
-    const input =
-        document.getElementById(
-            "codigo"
-        );
+      String(
+        dados.endereco || ""
+      ).trim()
+      .toUpperCase();
 
     const codigo =
-        normalizarCodigo(
-            input.value
-        );
+      String(
+        dados.codigo || ""
+      ).trim()
+      .toUpperCase();
 
-    if (codigo) {
-        processarCodigo(codigo);
-    }
-}
+    const nomeUsuario =
+      String(
+        dados.nomeUsuario || ""
+      ).trim();
+
+    const tipoLeitura =
+      String(
+        dados.tipoLeitura ||
+        "PRODUTO"
+      ).trim();
 
 
-async function processarCodigo(
-    codigoRecebido
-) {
+    if (!usuario)
+      return respostaJSON({
+        sucesso: false,
+        erro: "USUÁRIO NÃO INFORMADO"
+      });
 
-    if (processandoCodigo)
-        return;
+    if (!inventario)
+      return respostaJSON({
+        sucesso: false,
+        erro: "INVENTÁRIO NÃO INFORMADO"
+      });
 
-    const codigo =
-        normalizarCodigo(
-            codigoRecebido
-        );
+    if (!endereco)
+      return respostaJSON({
+        sucesso: false,
+        erro: "ENDEREÇO NÃO INFORMADO"
+      });
 
-    if (!codigo) return;
+    if (!codigo)
+      return respostaJSON({
+        sucesso: false,
+        erro: "CÓDIGO NÃO INFORMADO"
+      });
 
-    if (
-        !sessao.usuario ||
-        !sessao.inventario ||
-        !sessao.endereco
+
+    // ----------------------------------------------
+    // VERIFICA DUPLICIDADE
+    // ----------------------------------------------
+
+    const linhas =
+      coleta.getDataRange().getValues();
+
+    for (
+      let i = 1;
+      i < linhas.length;
+      i++
     ) {
 
-        mostrarCollectionStatus(
-            "Sessão inválida. Volte e inicie a coleta novamente.",
-            "error"
-        );
+      const inventarioExistente =
+        String(
+          linhas[i][1] || ""
+        ).trim();
 
-        return;
-    }
-
-    processandoCodigo = true;
-
-    document.getElementById(
-        "codigo"
-    ).value = "";
-
-    try {
-
-        /*
-         * ENDEREÇO
-         */
-
-        if (/^[A-Za-z]/.test(codigo)) {
-
-            await processarNovoEndereco(
-                codigo
-            );
-
-            emitirBip();
-
-            return;
-        }
-
-        /*
-         * PRODUTO
-         */
-
-        if (!/^\d/.test(codigo)) {
-
-            document.getElementById(
-                "ultimaLeitura"
-            ).textContent =
-                codigo +
-                " - INVÁLIDO";
-
-            mostrarCollectionStatus(
-                "Código inválido.",
-                "error"
-            );
-
-            return;
-        }
-
-        await registrarProduto(
-            codigo
-        );
-
-    } finally {
-
-        processandoCodigo = false;
-
-        focarCampoCodigo();
-    }
-}
-
-
-function normalizarCodigo(
-    valor
-) {
-
-    return String(
-        valor || ""
-    )
-        .replace(
-            /[\r\n\t]/g,
-            ""
-        )
-        .trim()
+      const enderecoExistente =
+        String(
+          linhas[i][2] || ""
+        ).trim()
         .toUpperCase();
-}
+
+      const codigoExistente =
+        String(
+          linhas[i][5] || ""
+        ).trim()
+        .toUpperCase();
 
 
-/* =========================
-   NOVO ENDEREÇO
-========================= */
+      if (
+        inventarioExistente ===
+          inventario &&
 
-async function processarNovoEndereco(
-    novoEndereco
-) {
+        enderecoExistente ===
+          endereco &&
 
-    novoEndereco =
-        normalizarCodigo(
-            novoEndereco
-        );
+        codigoExistente ===
+          codigo
+      ) {
 
-    sessao.endereco =
-        novoEndereco;
+        return respostaJSON({
 
-    sessao.totalEndereco = 0;
+          sucesso: false,
 
-    document.getElementById(
-        "lblEndereco"
-    ).textContent =
-        novoEndereco;
+          duplicado: true,
 
-    document.getElementById(
-        "contadorEndereco"
-    ).textContent = "0";
+          mensagem:
+            "PRODUTO JÁ COLETADO NESTE ENDEREÇO",
 
-    document.getElementById(
-        "ultimaLeitura"
-    ).textContent =
-        novoEndereco;
+          codigo: codigo,
 
-    mostrarCollectionStatus(
-        "Endereço alterado.",
-        "success"
+          inventario: inventario,
+
+          endereco: endereco
+        });
+      }
+    }
+
+
+    // ----------------------------------------------
+    // GRAVA NA TB_COLETA
+    // ----------------------------------------------
+
+    coleta.appendRow([
+
+      Utilities.getUuid(),
+
+      inventario,
+
+      endereco,
+
+      new Date(),
+
+      usuario,
+
+      codigo,
+
+      tipoLeitura,
+
+      nomeUsuario
+
+    ]);
+
+
+    // ----------------------------------------------
+    // ATUALIZA ÚLTIMA LEITURA
+    // ----------------------------------------------
+
+    atualizarUltimaLeitura(
+      usuario,
+      inventario,
+      codigo
     );
 
+
+    // ----------------------------------------------
+    // RETORNO
+    // ----------------------------------------------
+
+    SpreadsheetApp.flush();
+
+    return respostaJSON({
+
+      sucesso: true,
+
+      duplicado: false,
+
+      mensagem:
+        "COLETA REGISTRADA",
+
+      usuario: usuario,
+
+      nomeUsuario: nomeUsuario,
+
+      inventario: inventario,
+
+      endereco: endereco,
+
+      codigo: codigo
+    });
+
+
+  } catch (erro) {
+
+    return respostaJSON({
+
+      sucesso: false,
+
+      duplicado: false,
+
+      erro: erro.toString()
+    });
+
+  } finally {
+
     try {
-
-        await fetch(API, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-                "Content-Type":
-                    "text/plain;charset=utf-8"
-            },
-            body: JSON.stringify({
-                acao:
-                    "novoEndereco",
-                usuario:
-                    sessao.usuario,
-                inventario:
-                    sessao.inventario,
-                endereco:
-                    novoEndereco
-            })
-        });
-
-    } catch (erro) {
-
-        console.error(
-            "Erro endereço:",
-            erro
-        );
-    }
+      lock.releaseLock();
+    } catch (e) {}
+  }
 }
 
 
-/* =========================
-   REGISTRAR PRODUTO
-========================= */
+// ==================================================
+// VERIFICAR DUPLICIDADE
+// ==================================================
 
-async function registrarProduto(
-    codigo
+function verificarDuplicidade(
+  inventario,
+  endereco,
+  codigo
 ) {
 
-    const ultima =
-        document.getElementById(
-            "ultimaLeitura"
-        );
+  try {
 
-    /*
-     * ENVIA A COLETA DIRETAMENTE
-     *
-     * O Apps Script já verifica
-     * duplicidade ANTES de gravar.
-     */
+    const coleta =
+      ss.getSheetByName("TB_COLETA");
 
-    try {
+    if (!coleta)
+      throw new Error(
+        "Aba TB_COLETA não encontrada."
+      );
 
-        const resposta =
-            await fetch(API, {
-                method: "POST",
-                mode: "no-cors",
-                headers: {
-                    "Content-Type":
-                        "text/plain;charset=utf-8"
-                },
-                body: JSON.stringify({
+    const inv =
+      String(
+        inventario || ""
+      ).trim();
 
-                    usuario:
-                        sessao.usuario,
+    const end =
+      String(
+        endereco || ""
+      ).trim()
+      .toUpperCase();
 
-                    nomeUsuario:
-                        sessao.nomeUsuario,
+    const cod =
+      String(
+        codigo || ""
+      ).trim()
+      .toUpperCase();
 
-                    inventario:
-                        sessao.inventario,
+    const linhas =
+      coleta.getDataRange().getValues();
 
-                    endereco:
-                        sessao.endereco,
+    for (
+      let i = 1;
+      i < linhas.length;
+      i++
+    ) {
 
-                    codigo:
-                        codigo,
+      if (
 
-                    tipoLeitura:
-                        "PRODUTO"
+        String(
+          linhas[i][1] || ""
+        ).trim() === inv &&
 
-                })
-            });
+        String(
+          linhas[i][2] || ""
+        ).trim()
+        .toUpperCase() === end &&
 
-        /*
-         * Como usamos no-cors,
-         * não conseguimos ler a resposta
-         * do Apps Script.
-         *
-         * O Apps Script, entretanto,
-         * já faz a verificação e só grava
-         * se não for duplicado.
-         */
+        String(
+          linhas[i][5] || ""
+        ).trim()
+        .toUpperCase() === cod
 
-        sessao.totalEndereco++;
-        sessao.totalColeta++;
+      ) {
 
-        document.getElementById(
-            "contadorEndereco"
-        ).textContent =
-            sessao.totalEndereco;
-
-        document.getElementById(
-            "contadorTotal"
-        ).textContent =
-            sessao.totalColeta;
-
-        ultima.textContent =
-            codigo;
-
-        mostrarCollectionStatus(
-            "Coleta registrada.",
-            "success"
-        );
-
-        emitirBip();
-
-    } catch (erro) {
-
-        console.error(
-            "Erro enviando coleta:",
-            erro
-        );
-
-        ultima.textContent =
-            codigo +
-            " - ERRO";
-
-        mostrarCollectionStatus(
-            "Não foi possível enviar a coleta.",
-            "error"
-        );
+        return respostaJSON({
+          existe: true,
+          duplicado: true
+        });
+      }
     }
+
+    return respostaJSON({
+      existe: false,
+      duplicado: false
+    });
+
+  } catch (erro) {
+
+    return respostaJSON({
+      existe: false,
+      erro: erro.toString()
+    });
+  }
 }
 
 
-/* =========================
-   AUXILIARES
-========================= */
+// ==================================================
+// ATUALIZAR ÚLTIMA LEITURA
+// ==================================================
 
-function focarCampoCodigo() {
+function atualizarUltimaLeitura(
+  usuario,
+  inventario,
+  codigo
+) {
 
-    const input =
-        document.getElementById(
-            "codigo"
-        );
+  const config =
+    ss.getSheetByName("TB_CONFIG");
 
-    if (input) {
-        input.value = "";
+  if (!config) return;
+
+  const dados =
+    config.getDataRange().getValues();
+
+  if (!dados.length) return;
+
+  const cab =
+    dados[0];
+
+  const colUsuario =
+    cab.indexOf("Usuario");
+
+  const colInventario =
+    cab.indexOf("Inventario");
+
+  const colUltima =
+    cab.indexOf("UltimaLeitura");
+
+  const colData =
+    cab.indexOf("DataUltimaAtualizacao");
+
+  if (
+    colUsuario === -1 ||
+    colInventario === -1
+  ) return;
+
+
+  for (
+    let i = 1;
+    i < dados.length;
+    i++
+  ) {
+
+    if (
+      String(
+        dados[i][colUsuario]
+      ).trim() ===
+      String(usuario).trim()
+    ) {
+
+      const linha = i + 1;
+
+      config
+        .getRange(
+          linha,
+          colInventario + 1
+        )
+        .setValue(inventario);
+
+      if (colUltima !== -1) {
+
+        config
+          .getRange(
+            linha,
+            colUltima + 1
+          )
+          .setValue(codigo);
+      }
+
+      if (colData !== -1) {
+
+        config
+          .getRange(
+            linha,
+            colData + 1
+          )
+          .setValue(new Date());
+      }
+
+      return;
     }
+  }
 }
 
 
-function pararCamera() {
+// ==================================================
+// CONFIGURAÇÃO
+// ==================================================
 
-    try {
+function getConfig() {
 
-        if (
-            scannerControls &&
-            typeof scannerControls.stop ===
-                "function"
-        ) {
-            scannerControls.stop();
-        }
+  const config =
+    ss.getSheetByName("TB_CONFIG");
 
-    } catch (e) {}
+  const usuarios =
+    ss.getSheetByName("TB_USUARIOS");
 
-    scannerControls = null;
+  if (!config)
+    throw new Error(
+      "Aba TB_CONFIG não encontrada."
+    );
 
-    try {
+  if (!usuarios)
+    throw new Error(
+      "Aba TB_USUARIOS não encontrada."
+    );
 
-        if (
-            codeReader &&
-            typeof codeReader.reset ===
-                "function"
-        ) {
-            codeReader.reset();
-        }
 
-    } catch (e) {}
+  criarConfiguracoesUsuarios();
 
-    codeReader = null;
 
-    if (cameraStream) {
+  const dadosConfig =
+    config.getDataRange().getValues();
 
-        cameraStream
-            .getTracks()
-            .forEach(track => {
+  const cabConfig =
+    dadosConfig[0];
 
-                try {
-                    track.stop();
-                } catch (e) {}
+  const configuracoes = [];
 
-            });
+
+  for (
+    let i = 1;
+    i < dadosConfig.length;
+    i++
+  ) {
+
+    if (!dadosConfig[i][0])
+      continue;
+
+    const obj = {};
+
+    for (
+      let j = 0;
+      j < cabConfig.length;
+      j++
+    ) {
+
+      obj[
+        cabConfig[j]
+      ] =
+        dadosConfig[i][j];
     }
 
-    cameraStream = null;
-    cameraAtiva = false;
+    configuracoes.push({
 
-    const video =
-        document.getElementById(
-            "camera"
-        );
+      id:
+        String(
+          obj.ID || ""
+        ),
 
-    if (video) {
+      usuario:
+        String(
+          obj.Usuario || ""
+        ),
 
-        video.pause();
-        video.srcObject = null;
+      inventario:
+        obj.Inventario || "",
+
+      enderecoAtual:
+        obj.EnderecoAtual || "",
+
+      dataUltimaAtualizacao:
+        obj.DataUltimaAtualizacao || "",
+
+      ultimaLeitura:
+        obj.UltimaLeitura || ""
+    });
+  }
+
+
+  const dadosUsuarios =
+    usuarios.getDataRange().getValues();
+
+  const listaUsuarios = [];
+
+
+  for (
+    let i = 1;
+    i < dadosUsuarios.length;
+    i++
+  ) {
+
+    if (
+      dadosUsuarios[i][2] === true
+    ) {
+
+      listaUsuarios.push({
+
+        id:
+          String(
+            dadosUsuarios[i][0]
+          ),
+
+        nome:
+          dadosUsuarios[i][1]
+      });
     }
+  }
+
+
+  return respostaJSON({
+
+    Usuarios:
+      listaUsuarios,
+
+    Configuracoes:
+      configuracoes
+  });
 }
 
 
-window.addEventListener(
-    "pagehide",
-    pararCamera
-);
+// ==================================================
+// CRIAR CONFIGURAÇÕES DOS USUÁRIOS
+// ==================================================
 
-window.addEventListener(
-    "beforeunload",
-    pararCamera
-);
+function criarConfiguracoesUsuarios() {
+
+  const config =
+    ss.getSheetByName("TB_CONFIG");
+
+  const usuarios =
+    ss.getSheetByName("TB_USUARIOS");
+
+  const dadosUsuarios =
+    usuarios.getDataRange().getValues();
+
+  const dadosConfig =
+    config.getDataRange().getValues();
+
+  if (!dadosConfig.length)
+    throw new Error(
+      "TB_CONFIG está sem cabeçalho."
+    );
+
+  const cab =
+    dadosConfig[0];
+
+  const colID =
+    cab.indexOf("ID");
+
+  const colUsuario =
+    cab.indexOf("Usuario");
+
+  const colInventario =
+    cab.indexOf("Inventario");
+
+  const colEndereco =
+    cab.indexOf("EnderecoAtual");
+
+  const colData =
+    cab.indexOf(
+      "DataUltimaAtualizacao"
+    );
+
+  const colUltima =
+    cab.indexOf("UltimaLeitura");
+
+
+  if (colUsuario === -1)
+    throw new Error(
+      "A coluna Usuario não existe na TB_CONFIG."
+    );
+
+
+  const usuariosConfigurados = {};
+
+
+  for (
+    let i = 1;
+    i < dadosConfig.length;
+    i++
+  ) {
+
+    const usuario =
+      String(
+        dadosConfig[i][colUsuario] ||
+        ""
+      ).trim();
+
+    if (usuario)
+      usuariosConfigurados[
+        usuario
+      ] = true;
+  }
+
+
+  for (
+    let i = 1;
+    i < dadosUsuarios.length;
+    i++
+  ) {
+
+    const ativo =
+      dadosUsuarios[i][2];
+
+    const usuario =
+      String(
+        dadosUsuarios[i][0] ||
+        ""
+      ).trim();
+
+
+    if (
+      ativo === true &&
+      usuario &&
+      !usuariosConfigurados[
+        usuario
+      ]
+    ) {
+
+      const novaLinha =
+        new Array(
+          cab.length
+        ).fill("");
+
+      if (colID !== -1)
+        novaLinha[colID] =
+          Utilities.getUuid();
+
+      novaLinha[colUsuario] =
+        usuario;
+
+      if (colInventario !== -1)
+        novaLinha[colInventario] =
+          "";
+
+      if (colEndereco !== -1)
+        novaLinha[colEndereco] =
+          "";
+
+      if (colData !== -1)
+        novaLinha[colData] =
+          "";
+
+      if (colUltima !== -1)
+        novaLinha[colUltima] =
+          "";
+
+      config.appendRow(
+        novaLinha
+      );
+
+      usuariosConfigurados[
+        usuario
+      ] = true;
+    }
+  }
+}
+
+
+// ==================================================
+// RESPOSTA JSON
+// ==================================================
+
+function respostaJSON(obj) {
+
+  return ContentService
+    .createTextOutput(
+      JSON.stringify(obj)
+    )
+    .setMimeType(
+      ContentService.MimeType.JSON
+    );
+}
