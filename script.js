@@ -24,48 +24,36 @@ const sessao = {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    mostrarTelaLogin();
-
     document
         .getElementById("btnEntrar")
-        ?.addEventListener(
-            "click",
-            iniciarColeta
-        );
+        ?.addEventListener("click", iniciarColeta);
 
     document
         .getElementById("btnRegistrar")
-        ?.addEventListener(
-            "click",
-            processarCodigoDigitado
-        );
+        ?.addEventListener("click", processarCodigoDigitado);
 
     document
         .getElementById("codigo")
-        ?.addEventListener(
-            "keydown",
-            e => {
+        ?.addEventListener("keydown", e => {
 
-                if (e.key === "Enter") {
-
-                    e.preventDefault();
-
-                    processarCodigoDigitado();
-                }
+            if (e.key === "Enter") {
+                e.preventDefault();
+                processarCodigoDigitado();
             }
-        );
+
+        });
 
     document
         .getElementById("usuario")
-        ?.addEventListener(
-            "change",
-            e => {
+        ?.addEventListener("change", e => {
 
-                atualizarConfiguracaoUsuario(
-                    e.target.value
-                );
-            }
-        );
+            atualizarConfiguracaoUsuario(
+                e.target.value
+            );
+
+        });
+
+    mostrarTelaLogin();
 
     carregarConfiguracao();
 });
@@ -83,28 +71,22 @@ async function prepararAudio() {
             window.AudioContext ||
             window.webkitAudioContext;
 
-        if (!AC) return false;
+        if (!AC) return;
 
-        if (!audioContext)
+        if (!audioContext) {
             audioContext = new AC();
+        }
 
         if (
-            audioContext.state ===
-            "suspended"
+            audioContext.state === "suspended"
         ) {
             await audioContext.resume();
         }
 
-        return true;
-
     } catch (erro) {
 
-        console.warn(
-            "Erro preparando áudio:",
-            erro
-        );
+        console.warn("Áudio:", erro);
 
-        return false;
     }
 }
 
@@ -119,12 +101,12 @@ function emitirBip() {
 
         if (!AC) return;
 
-        if (!audioContext)
+        if (!audioContext) {
             audioContext = new AC();
+        }
 
         if (
-            audioContext.state ===
-            "suspended"
+            audioContext.state === "suspended"
         ) {
             audioContext.resume();
         }
@@ -161,23 +143,17 @@ function emitirBip() {
         );
 
         oscilador.connect(ganho);
-
         ganho.connect(
             audioContext.destination
         );
 
         oscilador.start(agora);
-
-        oscilador.stop(
-            agora + 0.15
-        );
+        oscilador.stop(agora + 0.15);
 
     } catch (erro) {
 
-        console.warn(
-            "Erro no bip:",
-            erro
-        );
+        console.warn("Bip:", erro);
+
     }
 }
 
@@ -197,13 +173,6 @@ function mostrarTelaLogin() {
         ?.classList.add("hidden");
 
     pararCamera();
-
-    sessao.usuario = "";
-    sessao.nomeUsuario = "";
-    sessao.inventario = "";
-    sessao.endereco = "";
-    sessao.totalEndereco = 0;
-    sessao.totalColeta = 0;
 }
 
 
@@ -235,16 +204,11 @@ function mostrarLoginStatus(
 
     if (!el) return;
 
-    el.textContent =
-        mensagem || "";
+    el.textContent = mensagem || "";
 
     el.className =
         "status" +
-        (
-            tipo
-                ? " " + tipo
-                : ""
-        );
+        (tipo ? " " + tipo : "");
 }
 
 
@@ -260,16 +224,11 @@ function mostrarCollectionStatus(
 
     if (!el) return;
 
-    el.textContent =
-        mensagem || "";
+    el.textContent = mensagem || "";
 
     el.className =
         "status" +
-        (
-            tipo
-                ? " " + tipo
-                : ""
-        );
+        (tipo ? " " + tipo : "");
 }
 
 
@@ -282,9 +241,9 @@ function mostrarCameraStatus(
             "cameraMessage"
         );
 
-    if (el)
-        el.textContent =
-            mensagem;
+    if (el) {
+        el.textContent = mensagem;
+    }
 }
 
 
@@ -311,7 +270,6 @@ async function carregarConfiguracao() {
             );
 
         if (!resposta.ok) {
-
             throw new Error(
                 "HTTP " +
                 resposta.status
@@ -343,13 +301,10 @@ async function carregarConfiguracao() {
                 );
 
             option.value = "";
-
             option.textContent =
                 "Nenhum usuário disponível";
 
-            select.appendChild(
-                option
-            );
+            select.appendChild(option);
 
             document.getElementById(
                 "btnEntrar"
@@ -363,25 +318,18 @@ async function carregarConfiguracao() {
             return;
         }
 
-        usuarios.forEach(
-            usuario => {
+        usuarios.forEach(usuario => {
 
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    usuario.id;
-
-                option.textContent =
-                    usuario.nome;
-
-                select.appendChild(
-                    option
+            const option =
+                document.createElement(
+                    "option"
                 );
-            }
-        );
+
+            option.value = usuario.id;
+            option.textContent = usuario.nome;
+
+            select.appendChild(option);
+        });
 
         atualizarConfiguracaoUsuario(
             usuarios[0].id
@@ -437,12 +385,8 @@ function atualizarConfiguracaoUsuario(
         configUsuario =
             configuracao.Configuracoes.find(
                 item =>
-                    String(
-                        item.usuario
-                    ).trim() ===
-                    String(
-                        usuarioId
-                    ).trim()
+                    String(item.usuario).trim() ===
+                    String(usuarioId).trim()
             );
     }
 
@@ -461,23 +405,17 @@ function atualizarConfiguracaoUsuario(
 async function iniciarColeta() {
 
     const usuario =
-        document.getElementById(
-            "usuario"
-        );
+        document.getElementById("usuario");
 
     const inventario =
-        document.getElementById(
-            "inventario"
-        );
+        document.getElementById("inventario");
 
     const endereco =
-        document.getElementById(
-            "endereco"
-        );
+        document.getElementById("endereco");
 
     await prepararAudio();
 
-    const option =
+    const opcao =
         usuario.options[
             usuario.selectedIndex
         ];
@@ -488,8 +426,8 @@ async function iniciarColeta() {
         ).trim();
 
     sessao.nomeUsuario =
-        option
-            ? option.textContent.trim()
+        opcao
+            ? opcao.textContent.trim()
             : "";
 
     sessao.inventario =
@@ -582,16 +520,14 @@ async function iniciarColeta() {
 
 async function iniciarCamera() {
 
-    if (cameraAtiva)
-        return;
+    if (cameraAtiva) return;
 
     const video =
         document.getElementById(
             "camera"
         );
 
-    if (!video)
-        return;
+    if (!video) return;
 
     if (
         !navigator.mediaDevices ||
@@ -618,10 +554,8 @@ async function iniciarCamera() {
                     audio: false,
 
                     video: {
-
                         facingMode: {
-                            ideal:
-                                "environment"
+                            ideal: "environment"
                         },
 
                         width: {
@@ -659,9 +593,7 @@ async function iniciarCamera() {
             "Aponte a câmera para o código de barras"
         );
 
-        iniciarLeitorZXing(
-            video
-        );
+        iniciarLeitorZXing(video);
 
     } catch (erro) {
 
@@ -685,23 +617,33 @@ async function iniciarCamera() {
 
 
 /* =========================================================
-   LEITOR ZXING
+   LEITOR DE CÓDIGO
 ========================================================= */
 
-function iniciarLeitorZXing(
-    video
-) {
+function iniciarLeitorZXing(video) {
 
-    if (!window.ZXingBrowser) {
+    if (
+        typeof ZXingBrowser ===
+        "undefined"
+    ) {
 
         mostrarCameraStatus(
-            "Leitor não carregado. Use a digitação manual."
+            "Leitor não carregado."
+        );
+
+        console.error(
+            "ZXingBrowser não encontrado."
         );
 
         return;
     }
 
     try {
+
+        /*
+         * MANTIDO O MESMO LEITOR QUE
+         * ESTAVA FUNCIONANDO.
+         */
 
         codeReader =
             new ZXingBrowser
@@ -715,55 +657,76 @@ function iniciarLeitorZXing(
                     if (!resultado)
                         return;
 
-                    const codigo =
-                        resultado.getText
-                            ? resultado.getText()
-                            : String(
-                                resultado.text ||
-                                ""
-                            );
+                    let codigo = "";
 
-                    if (codigo) {
+                    try {
 
-                        receberCodigoDaCamera(
+                        codigo =
+                            resultado.getText
+                                ? resultado.getText()
+                                : resultado.text || "";
+
+                    } catch (e) {
+
+                        console.warn(
+                            "Erro obtendo código:",
+                            e
+                        );
+
+                        return;
+                    }
+
+                    codigo =
+                        normalizarCodigo(
                             codigo
                         );
-                    }
-                }
-            )
-            .then(
-                controles => {
 
-                    scannerControls =
-                        controles;
-                }
-            )
-            .catch(
-                erro => {
+                    if (!codigo)
+                        return;
 
-                    console.error(
-                        "Erro ZXing:",
-                        erro
-                    );
-
-                    mostrarCameraStatus(
-                        "Leitor não iniciou. Use a digitação manual."
+                    receberCodigoDaCamera(
+                        codigo
                     );
                 }
-            );
+            )
+            .then(controles => {
+
+                scannerControls =
+                    controles;
+
+                console.log(
+                    "Scanner iniciado."
+                );
+
+            })
+            .catch(erro => {
+
+                console.error(
+                    "Erro ZXing:",
+                    erro
+                );
+
+                mostrarCameraStatus(
+                    "Erro no leitor de código."
+                );
+            });
 
     } catch (erro) {
 
         console.error(
-            "Erro criando ZXing:",
+            "Erro criando leitor:",
             erro
+        );
+
+        mostrarCameraStatus(
+            "Erro ao iniciar leitor."
         );
     }
 }
 
 
 /* =========================================================
-   RECEBER CÓDIGO DA CÂMERA
+   RECEBER LEITURA
 ========================================================= */
 
 function receberCodigoDaCamera(
@@ -773,44 +736,47 @@ function receberCodigoDaCamera(
     const agora =
         Date.now();
 
-    const valor =
+    codigo =
         normalizarCodigo(
             codigo
         );
 
-    if (!valor)
+    if (!codigo)
         return;
 
     /*
-     * Evita que o mesmo código seja
-     * disparado dezenas de vezes pelos
-     * frames consecutivos da câmera.
+     * ISSO NÃO É DUPLICIDADE.
      *
-     * Isso NÃO é verificação de duplicidade.
-     * É apenas controle do mesmo frame.
+     * Apenas impede o ZXing de enviar
+     * dezenas de vezes o MESMO FRAME
+     * enquanto a etiqueta continua diante
+     * da câmera.
      */
 
     if (
-        valor === ultimoCodigoLido &&
-        agora - ultimoCodigoTempo <
-            600
+        codigo === ultimoCodigoLido &&
+        agora - ultimoCodigoTempo < 800
     ) {
         return;
     }
 
     ultimoCodigoLido =
-        valor;
+        codigo;
 
     ultimoCodigoTempo =
         agora;
 
-    document.getElementById(
-        "codigo"
-    ).value =
-        valor;
+    const campo =
+        document.getElementById(
+            "codigo"
+        );
+
+    if (campo) {
+        campo.value = codigo;
+    }
 
     processarCodigo(
-        valor
+        codigo
     );
 }
 
@@ -821,25 +787,30 @@ function receberCodigoDaCamera(
 
 function processarCodigoDigitado() {
 
-    const input =
+    const campo =
         document.getElementById(
             "codigo"
         );
 
+    if (!campo)
+        return;
+
     const codigo =
         normalizarCodigo(
-            input.value
+            campo.value
         );
 
-    if (codigo)
-        processarCodigo(
-            codigo
-        );
+    if (!codigo)
+        return;
+
+    processarCodigo(
+        codigo
+    );
 }
 
 
 /* =========================================================
-   NORMALIZAR CÓDIGO
+   NORMALIZAR
 ========================================================= */
 
 function normalizarCodigo(
@@ -862,17 +833,9 @@ function normalizarCodigo(
    PROCESSAR CÓDIGO
 ========================================================= */
 
-async function processarCodigo(
-    codigoRecebido
+function processarCodigo(
+    codigo
 ) {
-
-    if (processandoCodigo)
-        return;
-
-    const codigo =
-        normalizarCodigo(
-            codigoRecebido
-        );
 
     if (!codigo)
         return;
@@ -884,34 +847,27 @@ async function processarCodigo(
     ) {
 
         mostrarCollectionStatus(
-            "Sessão inválida. Inicie a coleta novamente.",
+            "Sessão inválida.",
             "error"
         );
 
         return;
     }
 
-    processandoCodigo = true;
-
-    document.getElementById(
-        "codigo"
-    ).value = "";
-
 
     /*
      * ENDEREÇO
      */
 
-    if (/^[A-Za-z]/.test(codigo)) {
+    if (
+        /^[A-Za-z]/.test(codigo)
+    ) {
 
-        await processarNovoEndereco(
+        processarNovoEndereco(
             codigo
         );
 
         emitirBip();
-
-        processandoCodigo =
-            false;
 
         return;
     }
@@ -921,7 +877,9 @@ async function processarCodigo(
      * PRODUTO
      */
 
-    if (!/^\d/.test(codigo)) {
+    if (
+        !/^\d/.test(codigo)
+    ) {
 
         document.getElementById(
             "ultimaLeitura"
@@ -934,28 +892,21 @@ async function processarCodigo(
             "error"
         );
 
-        processandoCodigo =
-            false;
-
         return;
     }
 
 
     /*
-     * ENVIA PRODUTO
+     * LEU:
+     * BIP IMEDIATO
+     * ENVIO ASSÍNCRONO
      */
+
+    emitirBip();
 
     registrarProduto(
         codigo
     );
-
-    /*
-     * Libera imediatamente
-     * para a próxima leitura.
-     */
-
-    processandoCodigo =
-        false;
 }
 
 
@@ -963,30 +914,17 @@ async function processarCodigo(
    REGISTRAR PRODUTO
 ========================================================= */
 
-async function registrarProduto(
+function registrarProduto(
     codigo
 ) {
 
-    const ultima =
-        document.getElementById(
-            "ultimaLeitura"
-        );
-
-
     /*
-     * BIP IMEDIATO
-     *
-     * Não espera Google Sheets.
+     * MOSTRA IMEDIATAMENTE
      */
 
-    emitirBip();
-
-
-    /*
-     * ATUALIZA TELA IMEDIATAMENTE
-     */
-
-    ultima.textContent =
+    document.getElementById(
+        "ultimaLeitura"
+    ).textContent =
         codigo;
 
     mostrarCollectionStatus(
@@ -996,7 +934,7 @@ async function registrarProduto(
 
 
     /*
-     * CONTADORES IMEDIATOS
+     * CONTADORES
      */
 
     sessao.totalEndereco++;
@@ -1014,63 +952,61 @@ async function registrarProduto(
 
 
     /*
-     * ENVIO PARA O GOOGLE
+     * ENVIA PARA O APPS SCRIPT
      *
-     * Não espera resposta.
-     * Isso deixa a coleta muito mais rápida.
+     * NÃO ESPERA RESPOSTA.
      */
 
-    try {
+    fetch(
+        API,
+        {
+            method: "POST",
 
-        await fetch(
-            API,
-            {
-                method: "POST",
+            mode: "no-cors",
 
-                mode: "no-cors",
+            headers: {
+                "Content-Type":
+                    "text/plain;charset=utf-8"
+            },
 
-                headers: {
-                    "Content-Type":
-                        "text/plain;charset=utf-8"
-                },
+            body:
+                JSON.stringify({
 
-                body:
-                    JSON.stringify({
+                    usuario:
+                        sessao.usuario,
 
-                        usuario:
-                            sessao.usuario,
+                    nomeUsuario:
+                        sessao.nomeUsuario,
 
-                        nomeUsuario:
-                            sessao.nomeUsuario,
+                    inventario:
+                        sessao.inventario,
 
-                        inventario:
-                            sessao.inventario,
+                    endereco:
+                        sessao.endereco,
 
-                        endereco:
-                            sessao.endereco,
+                    codigo:
+                        codigo,
 
-                        codigo:
-                            codigo,
+                    tipoLeitura:
+                        "PRODUTO"
+                })
+        }
+    )
+    .then(() => {
 
-                        tipoLeitura:
-                            "PRODUTO"
-                    })
-            }
+        console.log(
+            "Coleta enviada:",
+            codigo
         );
 
-    } catch (erro) {
+    })
+    .catch(erro => {
 
         console.error(
-            "Erro enviando coleta:",
+            "Erro enviando:",
             erro
         );
-
-        /*
-         * Não interrompe o coletor.
-         * A operação continua para a próxima etiqueta.
-         */
-
-    }
+    });
 }
 
 
@@ -1078,7 +1014,7 @@ async function registrarProduto(
    NOVO ENDEREÇO
 ========================================================= */
 
-async function processarNovoEndereco(
+function processarNovoEndereco(
     novoEndereco
 ) {
 
@@ -1115,49 +1051,45 @@ async function processarNovoEndereco(
 
 
     /*
-     * Atualiza endereço no Google
-     * sem travar a coleta.
+     * ATUALIZA ENDEREÇO
      */
 
-    try {
+    fetch(
+        API,
+        {
+            method: "POST",
 
-        fetch(
-            API,
-            {
-                method: "POST",
+            mode: "no-cors",
 
-                mode: "no-cors",
+            headers: {
+                "Content-Type":
+                    "text/plain;charset=utf-8"
+            },
 
-                headers: {
-                    "Content-Type":
-                        "text/plain;charset=utf-8"
-                },
+            body:
+                JSON.stringify({
 
-                body:
-                    JSON.stringify({
+                    acao:
+                        "novoEndereco",
 
-                        acao:
-                            "novoEndereco",
+                    usuario:
+                        sessao.usuario,
 
-                        usuario:
-                            sessao.usuario,
+                    inventario:
+                        sessao.inventario,
 
-                        inventario:
-                            sessao.inventario,
-
-                        endereco:
-                            novoEndereco
-                    })
-            }
-        );
-
-    } catch (erro) {
+                    endereco:
+                        novoEndereco
+                })
+        }
+    )
+    .catch(erro => {
 
         console.error(
             "Erro endereço:",
             erro
         );
-    }
+    });
 }
 
 
@@ -1209,25 +1141,16 @@ function pararCamera() {
 
         cameraStream
             .getTracks()
-            .forEach(
-                track => {
+            .forEach(track => {
 
-                    try {
-
-                        track.stop();
-
-                    } catch (erro) {
-
-                        console.warn(erro);
-                    }
-                }
-            );
+                try {
+                    track.stop();
+                } catch (erro) {}
+            });
     }
 
     cameraStream = null;
-
     cameraAtiva = false;
-
 
     const video =
         document.getElementById(
@@ -1236,10 +1159,11 @@ function pararCamera() {
 
     if (video) {
 
-        video.pause();
+        try {
+            video.pause();
+        } catch (e) {}
 
-        video.srcObject =
-            null;
+        video.srcObject = null;
     }
 }
 
