@@ -1,75 +1,103 @@
-/* ============================================================
-   COLETOR THOR
-   STYLE.CSS
-   ============================================================ */
+:root {
 
+    --thor-beige: #A89483;
 
-/* ============================================================
-   CONFIGURAÇÕES GERAIS
-   ============================================================ */
+    --thor-beige-light: #EDE6DF;
+
+    --thor-black: #111111;
+
+    --thor-white: #FFFFFF;
+
+    --background: #F5F2EF;
+
+    --border: #D9D1CA;
+
+    --success: #2E7D32;
+
+    --error: #B3261E;
+
+}
+
 
 * {
+
     box-sizing: border-box;
+
 }
 
 
 html,
 body {
+
     margin: 0;
+
     padding: 0;
 
     width: 100%;
+
     min-height: 100%;
+
+    background:
+        var(--background);
+
+    color:
+        var(--thor-black);
 
     font-family:
         Arial,
         Helvetica,
         sans-serif;
 
-    background: #f4f2ef;
-
-    color: #111;
-
-    -webkit-text-size-adjust: 100%;
 }
 
-
-/* ============================================================
-   BODY
-   ============================================================ */
 
 body {
 
     min-height: 100vh;
+
+    min-height: 100dvh;
 
     overflow-x: hidden;
 
 }
 
 
+button,
+input,
+select {
+
+    font: inherit;
+
+}
+
+
+.hidden {
+
+    display: none !important;
+
+}
+
+
 /* ============================================================
-   CONTAINER
+   TELAS
    ============================================================ */
 
-.container {
+.screen {
 
     width: 100%;
 
     min-height: 100vh;
+
+    min-height: 100dvh;
+
+    padding:
+        25px 14px 40px;
 
     display: flex;
 
     flex-direction: column;
 
     align-items: center;
-
-    padding:
-
-        max(20px, env(safe-area-inset-top))
-
-        16px
-
-        max(30px, env(safe-area-inset-bottom));
 
 }
 
@@ -78,147 +106,171 @@ body {
    LOGO
    ============================================================ */
 
-.logo-area {
+.brand {
 
     width: 100%;
 
+    max-width: 760px;
+
     display: flex;
 
-    justify-content: center;
+    flex-direction: column;
 
     align-items: center;
 
-    margin-top: 10px;
-
-    margin-bottom: 8px;
+    margin-bottom: 18px;
 
 }
 
 
 .logo {
 
-    width: min(280px, 80vw);
+    display: block;
 
-    max-height: 115px;
+    width:
+        min(330px, 75vw);
+
+    height: auto;
+
+    max-height: 105px;
 
     object-fit: contain;
 
 }
 
 
-/* ============================================================
-   TÍTULO
-   ============================================================ */
-
-h1 {
+.brand h1 {
 
     margin:
+        10px 0 0;
 
-        4px
+    font-size:
+        clamp(30px, 5vw, 46px);
 
-        0
-
-        20px;
-
-    font-size: 32px;
+    line-height: 1;
 
     font-weight: 800;
 
     letter-spacing: 1px;
 
-    text-align: center;
-
 }
 
 
 /* ============================================================
-   CARD
+   CARDS
    ============================================================ */
 
 .card {
 
-    width: min(
-        100%,
-        520px
-    );
+    width:
+        min(100%, 760px);
 
-    background: #ffffff;
+    background:
+        var(--thor-white);
 
-    border-radius: 18px;
+    border:
+        1px solid
+        rgba(168, 148, 131, .20);
 
-    padding: 28px;
+    border-radius:
+        18px;
 
     box-shadow:
+        0 12px 35px
+        rgba(0, 0, 0, .10);
 
-        0 8px 30px
-        rgba(
-            0,
-            0,
-            0,
-            0.10
-        );
+}
+
+
+.login-card {
+
+    width:
+        min(100%, 520px);
+
+    padding:
+        28px;
+
+}
+
+
+.collection-card {
+
+    padding:
+        28px;
 
 }
 
 
 /* ============================================================
-   LOGIN
+   CAMPOS
    ============================================================ */
 
-.login-card {
+label {
 
-    display: flex;
+    display: block;
 
-    flex-direction: column;
+    margin:
+        18px 0 7px;
 
-}
-
-
-.login-card label {
-
-    margin-top: 14px;
-
-    margin-bottom: 7px;
-
-    font-size: 16px;
+    font-size: 17px;
 
     font-weight: 700;
 
 }
 
 
-.login-card select,
-.login-card input {
+label:first-child {
 
-    width: 100%;
-
-    height: 52px;
-
-    border:
-
-        1px solid
-        #cfcfcf;
-
-    border-radius: 10px;
-
-    padding:
-
-        0
-
-        14px;
-
-    font-size: 18px;
-
-    background: #fafafa;
-
-    color: #111;
+    margin-top: 0;
 
 }
 
 
-.login-card input:read-only {
+input,
+select {
 
-    background: #f1f1f1;
+    width: 100%;
+
+    min-height: 52px;
+
+    padding:
+        12px 15px;
+
+    border:
+        2px solid
+        var(--border);
+
+    border-radius: 10px;
+
+    background: #fff;
+
+    color:
+        var(--thor-black);
+
+    font-size: 19px;
+
+    outline: none;
+
+}
+
+
+input:focus,
+select:focus {
+
+    border-color:
+        var(--thor-beige);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(168, 148, 131, .16);
+
+}
+
+
+input[readonly] {
+
+    background:
+        #F7F5F3;
 
 }
 
@@ -229,58 +281,54 @@ h1 {
 
 button {
 
-    border: none;
+    border: 0;
+
+    border-radius: 10px;
 
     cursor: pointer;
 
-    font-family: inherit;
-
-    transition:
-
-        transform 0.1s ease,
-
-        opacity 0.1s ease;
+    -webkit-tap-highlight-color:
+        transparent;
 
 }
 
 
-button:active {
-
-    transform: scale(
-        0.98
-    );
-
-}
-
-
-#btnEntrar,
-#btnRegistrar {
+.btn-primary {
 
     width: 100%;
 
-    min-height: 56px;
+    min-height: 58px;
 
     margin-top: 22px;
 
-    border-radius: 11px;
+    padding:
+        12px 18px;
 
-    background: #a99786;
+    background:
+        var(--thor-beige);
 
     color: white;
 
-    font-size: 18px;
+    font-size: 20px;
 
     font-weight: 800;
 
-    letter-spacing: 0.5px;
+    letter-spacing: .5px;
 
 }
 
 
-#btnEntrar:disabled,
-#btnRegistrar:disabled {
+.btn-primary:active {
 
-    opacity: 0.55;
+    transform:
+        scale(.99);
+
+}
+
+
+.btn-primary:disabled {
+
+    opacity: .55;
 
     cursor: default;
 
@@ -288,67 +336,92 @@ button:active {
 
 
 /* ============================================================
-   DADOS DA SESSÃO
+   STATUS
    ============================================================ */
 
-.dados-sessao {
+.status {
 
-    display: flex;
+    min-height: 22px;
 
-    flex-direction: column;
+    margin-top: 12px;
 
-    gap: 18px;
+    text-align: center;
 
-}
-
-
-.campo-info {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 5px;
-
-}
-
-
-.titulo-info {
-
-    font-size: 15px;
+    font-size: 14px;
 
     font-weight: 700;
 
 }
 
 
-.campo-info strong {
+.status.success {
 
-    font-size: 25px;
+    color:
+        var(--success);
 
-    line-height: 1.1;
+}
+
+
+.status.error {
+
+    color:
+        var(--error);
 
 }
 
 
 /* ============================================================
-   LINHAS
+   INFORMAÇÕES
    ============================================================ */
+
+.session-info {
+
+    display: grid;
+
+    gap: 14px;
+
+}
+
+
+.session-info div {
+
+    display: grid;
+
+    gap: 3px;
+
+}
+
+
+.session-info span {
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+}
+
+
+.session-info strong {
+
+    font-size: 28px;
+
+    line-height: 1.15;
+
+}
+
 
 hr {
 
-    border: none;
-
-    border-top:
-
-        1px solid
-        #dedbd7;
+    width: 100%;
 
     margin:
+        26px 0;
 
-        22px
+    border: 0;
 
-        0;
+    border-top:
+        1px solid
+        #E4DFDA;
 
 }
 
@@ -357,7 +430,19 @@ hr {
    CONTADORES
    ============================================================ */
 
-.contador-bloco {
+.counter-row {
+
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 20px;
+
+}
+
+
+.counter-box {
 
     display: flex;
 
@@ -365,27 +450,31 @@ hr {
 
     gap: 8px;
 
-    margin-bottom: 20px;
+}
+
+
+.counter-box span {
+
+    font-size: 17px;
 
 }
 
 
-.contador-bloco span {
-
-    font-size: 16px;
-
-}
-
-
-.contador-bloco strong {
+.counter-box strong {
 
     text-align: center;
 
-    font-size: 44px;
+    font-size: 54px;
 
     line-height: 1;
 
-    color: #a99786;
+}
+
+
+.counter-box:first-child strong {
+
+    color:
+        var(--thor-beige);
 
 }
 
@@ -394,91 +483,113 @@ hr {
    CÂMERA
    ============================================================ */
 
+.camera-area {
+
+    width: 100%;
+
+}
+
+
 .camera-container {
 
     position: relative;
 
     width: 100%;
 
-    height: 300px;
+    height:
+        min(56vw, 390px);
 
-    max-height: 300px;
+    min-height: 250px;
 
     overflow: hidden;
 
     border-radius: 14px;
 
-    background: #111;
+    background: #000;
 
 }
 
 
-/*
- * IMPORTANTE:
- * impede o vídeo de aumentar a página.
- */
-
 .camera-container video {
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 1;
 
     display: block;
 
-    width: 100%;
+    width: 100% !important;
 
-    height: 100%;
-
-    max-width: 100%;
-
-    max-height: 100%;
+    height: 100% !important;
 
     object-fit: cover;
 
-    background: #111;
+    background: #000;
+
+    border: 0;
+
+    margin: 0;
+
+    padding: 0;
 
 }
 
 
 /* ============================================================
-   MOLDURA DO LEITOR
+   MOLDURA
    ============================================================ */
 
-.scanner-frame {
+.scanner-overlay {
 
     position: absolute;
 
-    top: 50%;
+    inset: 0;
 
-    left: 50%;
-
-    width: 82%;
-
-    height: 38%;
-
-    transform:
-        translate(
-            -50%,
-            -50%
-        );
+    z-index: 5;
 
     pointer-events: none;
 
 }
 
 
-/* ============================================================
-   CANTOS DA MOLDURA
-   ============================================================ */
+.scanner-frame {
+
+    position: absolute;
+
+    left: 50%;
+
+    top: 50%;
+
+    width:
+        min(82%, 560px);
+
+    height: 32%;
+
+    transform:
+        translate(-50%, -50%);
+
+}
+
 
 .corner {
 
     position: absolute;
 
-    width: 38px;
+    width: 42px;
 
-    height: 38px;
+    height: 42px;
 
-    border-color: white;
+    border-color: #fff;
 
     border-style: solid;
+
+    filter:
+        drop-shadow(
+            0 1px 2px
+            rgba(0,0,0,.65)
+        );
 
 }
 
@@ -490,13 +601,7 @@ hr {
     left: 0;
 
     border-width:
-        4px
-
-        0
-
-        0
-
-        4px;
+        4px 0 0 4px;
 
 }
 
@@ -508,13 +613,7 @@ hr {
     right: 0;
 
     border-width:
-        4px
-
-        4px
-
-        0
-
-        0;
+        4px 4px 0 0;
 
 }
 
@@ -526,13 +625,7 @@ hr {
     left: 0;
 
     border-width:
-        0
-
-        0
-
-        4px
-
-        4px;
+        0 0 4px 4px;
 
 }
 
@@ -544,30 +637,58 @@ hr {
     right: 0;
 
     border-width:
-        0
-
-        4px
-
-        4px
-
-        0;
+        0 4px 4px 0;
 
 }
 
 
 /* ============================================================
-   INSTRUÇÃO
+   MENSAGEM DA CÂMERA
    ============================================================ */
 
-.camera-instrucao {
+.camera-message {
+
+    position: absolute;
+
+    z-index: 8;
+
+    left: 50%;
+
+    bottom: 12px;
+
+    transform:
+        translateX(-50%);
+
+    width:
+        calc(100% - 24px);
+
+    padding:
+        8px 12px;
+
+    border-radius: 8px;
+
+    background:
+        rgba(0,0,0,.55);
+
+    color: #fff;
 
     text-align: center;
 
-    margin-top: 12px;
+    font-size: 14px;
 
-    font-size: 16px;
+    font-weight: 700;
 
-    line-height: 1.4;
+}
+
+
+.camera-help {
+
+    margin:
+        12px 0 0;
+
+    text-align: center;
+
+    font-size: 17px;
 
 }
 
@@ -585,102 +706,35 @@ hr {
 
 .manual-area label {
 
-    display: block;
+    margin-top: 0;
 
-    margin-bottom: 8px;
-
-    font-size: 17px;
-
-    font-weight: 700;
+    font-size: 19px;
 
 }
 
 
-#codigoManual {
+#codigo {
 
-    width: 100%;
-
-    height: 58px;
-
-    border:
-
-        2px solid
-        #a99786;
-
-    border-radius: 11px;
-
-    padding:
-
-        0
-
-        15px;
-
-    font-size: 20px;
-
-    font-weight: 600;
+    min-height: 64px;
 
     text-align: center;
 
-    outline: none;
-
-}
-
-
-#codigoManual:focus {
-
-    border-color: #8d7966;
-
-    box-shadow:
-
-        0 0 0 3px
-        rgba(
-            169,
-            151,
-            134,
-            0.18
-        );
-
-}
-
-
-#codigoManual::placeholder {
-
-    color: #999;
+    font-size: 24px;
 
     font-weight: 700;
 
+    letter-spacing: .7px;
+
+    text-transform: uppercase;
+
 }
 
 
-/* ============================================================
-   STATUS
-   ============================================================ */
+#codigo::placeholder {
 
-.status {
-
-    min-height: 24px;
-
-    margin-top: 10px;
-
-    text-align: center;
-
-    font-size: 15px;
+    color: #9A9A9A;
 
     font-weight: 700;
-
-}
-
-
-.status.sucesso {
-
-    color: #39833b;
-
-}
-
-
-.status.erro {
-
-    color: #c0392b;
 
 }
 
@@ -689,233 +743,157 @@ hr {
    ÚLTIMA LEITURA
    ============================================================ */
 
-.ultima-area {
+.last-reading {
+
+    margin-top: 28px;
+
+    padding-top: 22px;
+
+    border-top:
+        1px solid
+        #E4DFDA;
 
     display: flex;
 
     flex-direction: column;
-
-    align-items: center;
 
     gap: 10px;
 
 }
 
 
-.ultima-area span {
+.last-reading span {
 
-    width: 100%;
-
-    font-size: 17px;
+    font-size: 18px;
 
     font-weight: 700;
 
 }
 
 
-.ultima-area strong {
+.last-reading strong {
 
-    width: 100%;
-
-    min-height: 45px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
+    min-height: 32px;
 
     text-align: center;
 
-    font-size: 27px;
+    font-size: 25px;
 
-    color: #a99786;
+    color:
+        var(--thor-beige);
 
-    word-break: break-all;
-
-}
-
-
-/* ============================================================
-   BOTÃO VOLTAR
-   ============================================================ */
-
-.btn-voltar {
-
-    width: 100%;
-
-    min-height: 48px;
-
-    margin-top: 20px;
-
-    border-radius: 10px;
-
-    background: transparent;
-
-    border:
-
-        1px solid
-        #a99786;
-
-    color: #8d7966;
-
-    font-size: 15px;
-
-    font-weight: 700;
+    overflow-wrap:
+        anywhere;
 
 }
 
 
 /* ============================================================
-   DESKTOP
-   ============================================================ */
-
-@media (
-    min-width: 768px
-) {
-
-    .container {
-
-        padding-top: 30px;
-
-    }
-
-
-    .logo {
-
-        width: 300px;
-
-    }
-
-
-    h1 {
-
-        font-size: 34px;
-
-    }
-
-
-    .card {
-
-        padding: 30px;
-
-    }
-
-
-    .camera-container {
-
-        height: 320px;
-
-        max-height: 320px;
-
-    }
-
-}
-
-
-/* ============================================================
-   CELULAR
+   RESPONSIVO
    ============================================================ */
 
 @media (
     max-width: 600px
 ) {
 
-    .container {
+    .screen {
 
-        padding-left: 12px;
-
-        padding-right: 12px;
+        padding:
+            20px 12px 28px;
 
     }
 
 
     .logo {
 
-        width: min(
-            250px,
-            75vw
-        );
-
-        max-height: 95px;
+        width:
+            min(300px, 78vw);
 
     }
 
 
-    h1 {
+    .brand h1 {
 
-        font-size: 28px;
-
-        margin-bottom: 15px;
+        font-size: 34px;
 
     }
 
 
-    .card {
+    .login-card,
+    .collection-card {
 
-        padding: 20px;
+        padding:
+            22px 18px;
 
-        border-radius: 16px;
-
-    }
-
-
-    .campo-info strong {
-
-        font-size: 23px;
+        border-radius:
+            16px;
 
     }
 
 
-    .contador-bloco strong {
+    .session-info strong {
 
-        font-size: 40px;
-
-    }
-
-
-    /*
-     * No celular:
-     * câmera limitada a 280 px.
-     */
-
-    .camera-container {
-
-        height: 280px;
-
-        max-height: 280px;
+        font-size: 25px;
 
     }
 
 
-    .camera-instrucao {
+    .counter-row {
+
+        gap: 12px;
+
+    }
+
+
+    .counter-box span {
 
         font-size: 15px;
 
     }
 
 
-    #codigoManual {
+    .counter-box strong {
 
-        height: 58px;
-
-        font-size: 18px;
+        font-size: 48px;
 
     }
 
 
-    #btnRegistrar {
+    .camera-container {
 
-        min-height: 56px;
+        height: 300px;
+
+        min-height: 300px;
+
+    }
+
+
+    .scanner-frame {
+
+        width: 84%;
+
+        height: 30%;
+
+    }
+
+
+    .corner {
+
+        width: 36px;
+
+        height: 36px;
+
+    }
+
+
+    .camera-help {
+
+        font-size: 16px;
 
     }
 
 }
 
-
-/* ============================================================
-   CELULARES MUITO PEQUENOS
-   ============================================================ */
 
 @media (
     max-width: 380px
@@ -923,23 +901,16 @@ hr {
 
     .camera-container {
 
-        height: 250px;
+        height: 270px;
 
-        max-height: 250px;
-
-    }
-
-
-    .card {
-
-        padding: 16px;
+        min-height: 270px;
 
     }
 
 
-    .logo {
+    .counter-box strong {
 
-        width: 220px;
+        font-size: 42px;
 
     }
 
