@@ -2,414 +2,137 @@
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <title>Coletor THOR</title>
 
     <link rel="stylesheet" href="style.css">
 
+    <!-- ZXing -->
+    <script src="https://unpkg.com/@zxing/browser@latest"></script>
+
 </head>
 
 <body>
 
-    <div class="container">
+    <div class="app">
 
-        <!-- =====================================================
-             TELA INICIAL
-        ====================================================== -->
-
-        <div id="login" class="card">
-
-            <div class="logo-area">
-                <img
-                    src="logo-thor.png"
-                    alt="THOR Natural Stones"
-                    class="logo"
-                >
-            </div>
-
-            <h1>COLETA</h1>
-
-            <label for="usuario">
-                Usuário:
-            </label>
-
-            <select id="usuario">
-                <option value="">
-                    Carregando...
-                </option>
-            </select>
-
-
-            <label for="inventario">
-                Inventário:
-            </label>
-
-            <input
-                type="text"
-                id="inventario"
-                autocomplete="off"
-                autocapitalize="characters"
-                spellcheck="false"
-                placeholder="Digite o inventário"
-            >
-
-
-            <label for="endereco">
-                Endereço:
-            </label>
-
-            <input
-                type="text"
-                id="endereco"
-                autocomplete="off"
-                autocapitalize="characters"
-                spellcheck="false"
-                placeholder="Digite o endereço"
-            >
-
-
-            <button
-                type="button"
-                id="btnEntrar"
-            >
-                INICIAR COLETA
-            </button>
-
+        <!-- LOGO -->
+        <div class="logo-container">
+            <img src="logo-thor.png" class="logo" alt="THOR Natural Stones">
         </div>
 
+        <h1>COLETA</h1>
 
-        <!-- =====================================================
-             TELA DE COLETA
-        ====================================================== -->
+        <div class="card">
 
-        <div
-            id="coleta"
-            class="card"
-            style="display:none;"
-        >
+            <div class="info">
 
-            <div class="logo-area">
-                <img
-                    src="logo-thor.png"
-                    alt="THOR Natural Stones"
-                    class="logo"
-                >
+                <div class="campo">
+                    <span>Usuário:</span>
+                    <strong id="usuario">-</strong>
+                </div>
+
+                <div class="campo">
+                    <span>Inventário:</span>
+                    <strong id="inventario">-</strong>
+                </div>
+
+                <div class="campo">
+                    <span>Endereço:</span>
+                    <strong id="endereco">-</strong>
+                </div>
+
             </div>
-
-            <h1>COLETA</h1>
-
-
-            <!-- USUÁRIO -->
-
-            <label>
-                Usuário:
-            </label>
-
-            <h2 id="lblUsuario">
-                -
-            </h2>
-
-
-            <!-- INVENTÁRIO -->
-
-            <label>
-                Inventário:
-            </label>
-
-            <h2 id="lblInventario">
-                -
-            </h2>
-
-
-            <!-- ENDEREÇO -->
-
-            <label>
-                Endereço:
-            </label>
-
-            <h2 id="lblEndereco">
-                -
-            </h2>
-
 
             <hr>
 
+            <div class="contador">
 
-            <!-- CONTADOR DO ENDEREÇO -->
+                <p>Produtos neste endereço</p>
 
-            <p>
-                Produtos neste endereço
-            </p>
+                <h2 id="contadorEndereco">0</h2>
 
-            <h1
-                id="contadorEndereco"
-                class="contador endereco"
-            >
-                0
-            </h1>
+                <p>Total coletado</p>
 
+                <h2 id="contadorTotal">0</h2>
 
-            <!-- TOTAL -->
-
-            <p>
-                Total coletado
-            </p>
-
-            <h1
-                id="contadorTotal"
-                class="contador total"
-            >
-                0
-            </h1>
-
+            </div>
 
             <hr>
 
+            <!-- CÂMERA -->
+            <div class="camera-container">
 
-            <!-- =================================================
-                 CÂMERA
-            ================================================== -->
+                <video
+                    id="camera"
+                    autoplay
+                    muted
+                    playsinline>
+                </video>
 
-            <div class="titulo-leitor">
-                Leitura por câmera
+                <div class="scanner-frame">
+
+                    <div class="corner top-left"></div>
+                    <div class="corner top-right"></div>
+                    <div class="corner bottom-left"></div>
+                    <div class="corner bottom-right"></div>
+
+                </div>
+
             </div>
 
-
-            <div
-                id="reader"
-                class="reader"
-            >
-            </div>
-
-
-            <p class="instrucao">
+            <p class="camera-help">
                 Aponte a câmera para o código de barras
             </p>
 
+            <!-- DIGITAÇÃO MANUAL -->
+            <div class="manual">
 
-            <!-- =================================================
-                 DIGITAÇÃO MANUAL
-            ================================================== -->
-
-            <div class="manual-area">
-
-                <label for="codigoManual">
-                    Ou digite o código:
-                </label>
-
+                <strong>Ou digite o código:</strong>
 
                 <input
                     type="text"
-                    id="codigoManual"
-                    class="codigo-manual"
-                    placeholder="Digite ou cole o código"
+                    id="codigo"
+                    placeholder="DIGITE OU COLE O CÓDIGO"
                     autocomplete="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                >
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false">
 
-
-                <button
-                    type="button"
-                    id="btnRegistrarManual"
-                    class="btn-registrar"
-                >
+                <button id="btnRegistrar">
                     REGISTRAR
                 </button>
 
             </div>
 
-
             <hr>
 
+            <div class="ultima">
 
-            <!-- ÚLTIMA LEITURA -->
+                <strong>Última leitura</strong>
 
-            <strong>
-                Última leitura
-            </strong>
+                <div id="ultimaLeitura">
+                    -
+                </div>
 
-            <h2
-                id="ultimaLeitura"
-                class="ultima"
-            >
-                -
-            </h2>
+            </div>
+
+            <!-- STATUS -->
+            <div id="status" class="status"></div>
 
         </div>
 
     </div>
 
-
-    <!-- =====================================================
-         CONFIGURAÇÃO
-    ====================================================== -->
-
+    <!-- CONFIGURAÇÃO DA API -->
     <script src="config.js"></script>
 
-
-    <!-- =====================================================
-         BIBLIOTECA DO LEITOR
-    ====================================================== -->
-
-    <script
-        src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
-    </script>
-
-
-    <!-- =====================================================
-         SCRIPT DO APLICATIVO
-    ====================================================== -->
-
+    <!-- SISTEMA -->
     <script src="script.js"></script>
-
-
-    <!-- =====================================================
-         AJUSTES VISUAIS DO LEITOR
-    ====================================================== -->
-
-    <style>
-
-        .logo-area {
-            width: 100%;
-            text-align: center;
-            margin-bottom: 8px;
-        }
-
-        .logo {
-            width: 250px;
-            max-width: 80%;
-            height: auto;
-            object-fit: contain;
-        }
-
-        .titulo-leitor {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .reader {
-            width: 100%;
-            max-width: 100%;
-            min-height: 260px;
-            overflow: hidden;
-            border-radius: 8px;
-            background: #111;
-        }
-
-        .reader video {
-            width: 100% !important;
-            height: auto !important;
-            max-width: 100% !important;
-            display: block !important;
-            object-fit: cover !important;
-        }
-
-        #reader__scan_region {
-            width: 100% !important;
-        }
-
-        #reader__dashboard {
-            display: none !important;
-        }
-
-        .instrucao {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-
-        .manual-area {
-            margin-top: 18px;
-        }
-
-        .manual-area label {
-            display: block;
-            margin-top: 0;
-        }
-
-        .codigo-manual {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 14px;
-            border-radius: 6px;
-            border: 1px solid #BDBDBD;
-            font-size: 20px;
-            text-transform: uppercase;
-            margin-top: 6px;
-        }
-
-        .btn-registrar {
-            margin-top: 10px;
-            background: #A69484;
-        }
-
-        .btn-registrar:hover {
-            background: #8F7D6D;
-        }
-
-        .contador {
-            text-align: center;
-            font-size: 48px;
-            margin: 8px 0 20px 0;
-        }
-
-        .contador.endereco {
-            color: #A69484;
-        }
-
-        .contador.total {
-            color: #111111;
-        }
-
-        .ultima {
-            text-align: center;
-            color: #A69484;
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        @media (max-width: 600px) {
-
-            .container {
-                padding: 10px;
-                box-sizing: border-box;
-            }
-
-            .card {
-                width: 100%;
-                max-width: 100%;
-                padding: 20px;
-                box-sizing: border-box;
-            }
-
-            .logo {
-                width: 240px;
-            }
-
-            .reader {
-                min-height: 280px;
-            }
-
-            .codigo-manual {
-                font-size: 20px;
-            }
-
-            button {
-                min-height: 52px;
-            }
-
-        }
-
-    </style>
 
 </body>
 
