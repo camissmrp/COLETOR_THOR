@@ -7,37 +7,38 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    >
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <meta
+        name="theme-color"
+        content="#A89483">
 
     <title>Coletor THOR</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css">
 
 </head>
 
-
 <body>
 
-
-<!-- =========================================================
+<!-- ==================================================
      TELA INICIAL
-     ========================================================= -->
+     ================================================== -->
 
-<div id="login" class="container">
+<div id="login" class="screen">
 
-    <div class="logo-area">
+    <div class="brand">
 
         <img
             src="logo-thor.png"
-            class="logo"
             alt="THOR Natural Stones"
-        >
+            class="logo">
+
+        <h1>COLETA</h1>
 
     </div>
-
-
-    <h1>COLETOR</h1>
 
 
     <div class="card login-card">
@@ -62,8 +63,7 @@
         <input
             id="inventario"
             type="text"
-            readonly
-        >
+            readonly>
 
 
         <label for="endereco">
@@ -73,64 +73,62 @@
         <input
             id="endereco"
             type="text"
-            readonly
-        >
+            readonly>
 
 
         <button
             id="btnEntrar"
+            class="btn-primary"
             type="button"
-        >
+            disabled>
+
             INICIAR COLETA
+
         </button>
 
 
         <div
             id="loginStatus"
             class="status"
-        ></div>
+            aria-live="polite">
+        </div>
 
     </div>
 
 </div>
 
 
-
-<!-- =========================================================
+<!-- ==================================================
      TELA DE COLETA
-     ========================================================= -->
+     ================================================== -->
 
 <div
     id="coleta"
-    class="container coleta-container"
-    style="display:none;"
->
+    class="screen hidden">
 
 
-    <div class="logo-area">
+    <div class="brand collection-brand">
 
         <img
             src="logo-thor.png"
-            class="logo"
             alt="THOR Natural Stones"
-        >
+            class="logo">
+
+        <h1>COLETA</h1>
 
     </div>
 
 
-    <h1>COLETA</h1>
+    <div class="card collection-card">
 
 
-    <div class="card coleta-card">
+        <!-- INFORMAÇÕES DA SESSÃO -->
 
+        <div class="session-info">
 
-        <!-- DADOS DA SESSÃO -->
+            <div>
 
-        <div class="dados-sessao">
-
-            <div class="campo-info">
-
-                <span class="titulo-info">
+                <span>
                     Usuário:
                 </span>
 
@@ -141,9 +139,9 @@
             </div>
 
 
-            <div class="campo-info">
+            <div>
 
-                <span class="titulo-info">
+                <span>
                     Inventário:
                 </span>
 
@@ -154,9 +152,9 @@
             </div>
 
 
-            <div class="campo-info">
+            <div>
 
-                <span class="titulo-info">
+                <span>
                     Endereço:
                 </span>
 
@@ -174,122 +172,146 @@
 
         <!-- CONTADORES -->
 
-        <div class="contador-bloco">
-
-            <span>
-                Produtos neste endereço
-            </span>
-
-            <strong id="contadorEndereco">
-                0
-            </strong>
-
-        </div>
+        <div class="counter-row">
 
 
-        <div class="contador-bloco">
+            <div class="counter-box">
 
-            <span>
-                Total coletado
-            </span>
+                <span>
+                    Produtos neste endereço
+                </span>
 
-            <strong id="contadorTotal">
-                0
-            </strong>
+                <strong id="contadorEndereco">
+                    0
+                </strong>
 
-        </div>
-
-
-        <hr>
+            </div>
 
 
-        <!-- =================================================
-             CÂMERA
-             ================================================= -->
+            <div class="counter-box">
 
-        <div
-            id="cameraContainer"
-            class="camera-container"
-        >
+                <span>
+                    Total coletado
+                </span>
 
-            <video
-                id="camera"
-                autoplay
-                muted
-                playsinline
-            ></video>
-
-
-            <div class="scanner-frame">
-
-                <span class="corner top-left"></span>
-                <span class="corner top-right"></span>
-                <span class="corner bottom-left"></span>
-                <span class="corner bottom-right"></span>
+                <strong id="contadorTotal">
+                    0
+                </strong>
 
             </div>
 
         </div>
 
 
-        <div class="camera-instrucao">
+        <hr>
 
-            Aponte a câmera para o código de barras
+
+        <!-- ==================================================
+             CÂMERA
+             ================================================== -->
+
+        <div
+            id="cameraArea"
+            class="camera-area">
+
+
+            <div class="camera-container">
+
+
+                <video
+                    id="camera"
+                    autoplay
+                    muted
+                    playsinline
+                    webkit-playsinline="true"
+                    aria-label="Câmera para leitura de código de barras">
+                </video>
+
+
+                <!-- MOLDURA DA LEITURA -->
+
+                <div
+                    class="scanner-overlay"
+                    aria-hidden="true">
+
+                    <div class="scanner-frame">
+
+                        <span class="corner top-left"></span>
+
+                        <span class="corner top-right"></span>
+
+                        <span class="corner bottom-left"></span>
+
+                        <span class="corner bottom-right"></span>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="cameraMessage"
+                    class="camera-message">
+
+                    Preparando câmera...
+
+                </div>
+
+            </div>
+
+
+            <p class="camera-help">
+
+                Aponte a câmera para o código de barras
+
+            </p>
 
         </div>
 
 
-        <!-- =================================================
+        <!-- ==================================================
              DIGITAÇÃO MANUAL
-             ================================================= -->
+             ================================================== -->
 
         <div class="manual-area">
 
-            <label for="codigoManual">
+            <label for="codigo">
+
                 Ou digite o código:
+
             </label>
 
 
             <input
-                id="codigoManual"
+                id="codigo"
                 type="text"
                 placeholder="DIGITE OU COLE O CÓDIGO"
                 autocomplete="off"
                 autocapitalize="characters"
                 autocorrect="off"
                 spellcheck="false"
-            >
+                enterkeyhint="done">
 
 
             <button
                 id="btnRegistrar"
-                type="button"
-            >
+                class="btn-primary"
+                type="button">
+
                 REGISTRAR
+
             </button>
 
         </div>
 
 
-        <!-- STATUS -->
-
-        <div
-            id="status"
-            class="status"
-        ></div>
-
-
-        <hr>
-
-
         <!-- ÚLTIMA LEITURA -->
 
-        <div class="ultima-area">
+        <div class="last-reading">
 
             <span>
                 Última leitura
             </span>
-
 
             <strong id="ultimaLeitura">
                 -
@@ -298,13 +320,11 @@
         </div>
 
 
-        <button
-            id="btnVoltar"
-            type="button"
-            class="btn-voltar"
-        >
-            VOLTAR
-        </button>
+        <div
+            id="collectionStatus"
+            class="status"
+            aria-live="polite">
+        </div>
 
 
     </div>
@@ -312,22 +332,19 @@
 </div>
 
 
+<!-- ==================================================
+     ZXING - LEITOR DE CÓDIGOS
+     ================================================== -->
 
-<!-- =========================================================
-     BIBLIOTECAS
-     ========================================================= -->
+<script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
+
+
+<!-- CONFIGURAÇÃO DA API -->
 
 <script src="config.js"></script>
 
 
-<!-- ZXING -->
-
-<script
-    src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js">
-</script>
-
-
-<!-- SCRIPT DO APLICATIVO -->
+<!-- SCRIPT PRINCIPAL -->
 
 <script src="script.js"></script>
 
