@@ -1,78 +1,51 @@
 :root {
-
     --thor-beige: #A89483;
-
-    --thor-beige-light: #EDE6DF;
-
     --thor-black: #111111;
-
     --thor-white: #FFFFFF;
-
     --background: #F5F2EF;
-
     --border: #D9D1CA;
-
     --success: #2E7D32;
-
     --error: #B3261E;
-
 }
-
 
 * {
-
     box-sizing: border-box;
-
+    -webkit-box-sizing: border-box;
 }
 
-
-html,
-body {
-
+html {
     margin: 0;
-
     padding: 0;
-
     width: 100%;
-
     min-height: 100%;
-
-    background: var(--background);
-
-    color: var(--thor-black);
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
+    overflow-x: hidden;
 }
-
 
 body {
-
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-width: 0;
     min-height: 100vh;
-
     min-height: 100dvh;
-
     overflow-x: hidden;
-
+    background: var(--background);
+    color: var(--thor-black);
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-text-size-adjust: 100%;
 }
-
 
 button,
 input,
 select {
-
-    font: inherit;
-
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
 }
 
-
 .hidden {
-
     display: none !important;
-
 }
 
 
@@ -81,89 +54,75 @@ select {
 ===================================================== */
 
 .screen {
-
     width: 100%;
-
+    max-width: 100%;
     min-height: 100vh;
-
     min-height: 100dvh;
 
-    padding:
-        25px
-        16px
-        40px;
+    padding: 20px 16px 40px;
 
     display: flex;
-
     flex-direction: column;
-
     align-items: center;
 
+    overflow-x: hidden;
 }
 
 
 /* =====================================================
-   LOGO
+   LOGO / CABEÇALHO
 ===================================================== */
 
 .brand {
-
     width: 100%;
-
     max-width: 760px;
 
     display: flex;
-
     flex-direction: column;
-
     align-items: center;
+    justify-content: center;
 
-    margin-bottom: 18px;
+    margin: 0 auto 20px;
 
+    text-align: center;
 }
 
-
-.logo {
-
+.brand .logo {
     display: block;
 
-    width:
-        min(
-            330px,
-            72vw
-        );
-
-    height: auto;
-
+    width: 300px !important;
+    max-width: 78vw !important;
+    height: auto !important;
     max-height: 105px;
 
     object-fit: contain;
 
+    margin: 0 auto;
 }
 
-
 .brand h1 {
+    display: block;
 
-    margin:
-        10px
-        0
-        0;
+    width: 100%;
 
-    font-size:
-        clamp(
-            30px,
-            5vw,
-            46px
-        );
+    margin: 12px 0 0;
 
-    line-height: 1;
+    padding: 0;
+
+    text-align: center;
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    font-size: 38px;
+    line-height: 1.05;
 
     font-weight: 800;
 
     letter-spacing: 1px;
 
-    color: var(--thor-black);
+    color: #111111;
 
+    white-space: nowrap;
 }
 
 
@@ -172,137 +131,131 @@ select {
 ===================================================== */
 
 .card {
+    width: 100%;
+    max-width: 760px;
 
-    width:
-        min(
-            100%,
-            760px
-        );
+    margin: 0 auto;
 
-    background:
-        var(--thor-white);
+    background: #FFFFFF;
 
-    border:
-        1px solid
-        rgba(
-            168,
-            148,
-            131,
-            .20
-        );
+    border: 1px solid rgba(168, 148, 131, 0.20);
 
     border-radius: 18px;
 
     box-shadow:
-        0 12px 35px
-        rgba(
-            0,
-            0,
-            0,
-            .10
-        );
+        0 12px 35px rgba(0, 0, 0, 0.10);
 
+    overflow: hidden;
 }
-
 
 .login-card {
-
-    width:
-        min(
-            100%,
-            520px
-        );
-
+    max-width: 520px;
     padding: 28px;
-
 }
 
-
 .collection-card {
-
     padding: 28px;
-
 }
 
 
 /* =====================================================
-   CAMPOS
+   LABELS
 ===================================================== */
 
 label {
-
     display: block;
-
-    margin:
-        18px
-        0
-        7px;
-
-    font-size: 17px;
-
-    font-weight: 700;
-
-}
-
-
-label:first-child {
-
-    margin-top: 0;
-
-}
-
-
-input,
-select {
 
     width: 100%;
 
-    min-height: 52px;
-
-    padding:
-        12px
-        15px;
-
-    border:
-        2px solid
-        var(--border);
-
-    border-radius: 10px;
-
-    background: #fff;
-
-    color:
-        var(--thor-black);
+    margin: 18px 0 7px;
 
     font-size: 19px;
+    line-height: 1.2;
+
+    font-weight: 700;
+
+    color: #111111;
+}
+
+label:first-child {
+    margin-top: 0;
+}
+
+
+/* =====================================================
+   INPUTS
+===================================================== */
+
+input,
+select {
+    display: block;
+
+    width: 100% !important;
+    max-width: 100% !important;
+
+    min-width: 0;
+
+    min-height: 58px;
+
+    margin: 0;
+
+    padding: 12px 15px;
+
+    border: 2px solid #D9D1CA !important;
+
+    border-radius: 12px !important;
+
+    background-color: #FFFFFF !important;
+
+    color: #111111 !important;
 
     outline: none;
 
-}
+    -webkit-appearance: none;
+    appearance: none;
 
+    -webkit-border-radius: 12px;
+
+    font-size: 20px !important;
+
+    line-height: 1.2;
+
+    box-shadow: none;
+}
 
 input:focus,
 select:focus {
+    border-color: #A89483 !important;
 
-    border-color:
-        var(--thor-beige);
+    outline: none;
 
     box-shadow:
-        0 0 0 3px
-        rgba(
-            168,
-            148,
-            131,
-            .16
-        );
+        0 0 0 3px rgba(168, 148, 131, 0.16);
+}
 
+input::placeholder {
+    color: #9A9A9A !important;
+    opacity: 1;
+}
+
+#inventario,
+#endereco {
+    text-align: left;
 }
 
 
-input::placeholder {
+/* =====================================================
+   SELECT USUÁRIO
+===================================================== */
 
-    color: #999;
+#usuario {
+    background-color: #FFFFFF !important;
 
+    background-image: none;
+
+    padding-right: 45px;
+
+    cursor: pointer;
 }
 
 
@@ -311,62 +264,84 @@ input::placeholder {
 ===================================================== */
 
 button {
+    display: block;
 
-    border: 0;
+    -webkit-appearance: none !important;
+    appearance: none !important;
 
-    border-radius: 10px;
+    border: 0 !important;
+    outline: none;
+
+    -webkit-border-radius: 12px !important;
+    border-radius: 12px !important;
 
     cursor: pointer;
 
-    -webkit-tap-highlight-color:
-        transparent;
-
+    -webkit-tap-highlight-color: transparent;
 }
 
-
 .btn-primary {
+    display: flex !important;
 
-    display: block;
+    align-items: center;
+    justify-content: center;
 
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
 
-    min-height: 58px;
+    min-height: 60px;
 
-    margin-top: 22px;
+    margin: 22px 0 0 !important;
 
-    padding:
-        12px
-        18px;
+    padding: 12px 18px !important;
+
+    border: 0 !important;
+
+    border-radius: 12px !important;
 
     background:
-        var(--thor-beige);
+        #A89483 !important;
 
-    color: #fff;
+    color:
+        #FFFFFF !important;
 
-    font-size: 20px;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif !important;
 
-    font-weight: 800;
+    font-size: 20px !important;
 
-    letter-spacing: .5px;
+    font-weight: 800 !important;
+
+    line-height: 1.2;
+
+    letter-spacing: 0.5px;
 
     text-align: center;
 
-}
+    text-decoration: none;
 
+    -webkit-appearance: none !important;
+    appearance: none !important;
+
+    -webkit-border-radius: 12px !important;
+
+    box-shadow: none !important;
+}
 
 .btn-primary:active {
-
-    transform: scale(.99);
-
+    transform: scale(0.99);
 }
 
-
 .btn-primary:disabled {
+    opacity: 0.55;
 
-    opacity: .55;
+    background:
+        #A89483 !important;
 
-    cursor: default;
-
+    color:
+        #FFFFFF !important;
 }
 
 
@@ -375,6 +350,7 @@ button {
 ===================================================== */
 
 .status {
+    width: 100%;
 
     min-height: 22px;
 
@@ -385,63 +361,47 @@ button {
     font-size: 14px;
 
     font-weight: 700;
-
 }
-
 
 .status.success {
-
-    color:
-        var(--success);
-
+    color: var(--success);
 }
 
-
 .status.error {
-
-    color:
-        var(--error);
-
+    color: var(--error);
 }
 
 
 /* =====================================================
-   INFORMAÇÕES
+   INFORMAÇÕES DA COLETA
 ===================================================== */
 
 .session-info {
+    width: 100%;
 
     display: grid;
 
     gap: 14px;
-
 }
 
-
 .session-info div {
-
     display: grid;
 
     gap: 3px;
-
 }
 
-
 .session-info span {
-
     font-size: 16px;
 
     font-weight: 700;
-
 }
 
-
 .session-info strong {
-
     font-size: 28px;
 
     line-height: 1.15;
 
+    overflow-wrap: anywhere;
 }
 
 
@@ -450,19 +410,14 @@ button {
 ===================================================== */
 
 hr {
-
     width: 100%;
 
-    margin:
-        26px
-        0;
+    margin: 26px 0;
 
     border: 0;
 
     border-top:
-        1px solid
-        #E4DFDA;
-
+        1px solid #E4DFDA;
 }
 
 
@@ -471,55 +426,41 @@ hr {
 ===================================================== */
 
 .counter-row {
+    width: 100%;
 
     display: grid;
 
-    grid-template-columns:
-        1fr
-        1fr;
+    grid-template-columns: 1fr 1fr;
 
     gap: 20px;
-
 }
 
-
 .counter-box {
+    min-width: 0;
 
     display: flex;
 
     flex-direction: column;
 
     gap: 8px;
-
 }
-
 
 .counter-box span {
-
     font-size: 17px;
-
 }
 
-
 .counter-box strong {
-
     text-align: center;
 
     font-size: 54px;
 
     line-height: 1;
 
-    color:
-        var(--thor-black);
-
+    color: #111111;
 }
 
-
 .counter-box:first-child strong {
-
-    color:
-        var(--thor-beige);
-
+    color: #A89483;
 }
 
 
@@ -528,39 +469,29 @@ hr {
 ===================================================== */
 
 .camera-area {
-
     width: 100%;
-
+    max-width: 100%;
 }
 
-
 .camera-container {
-
     position: relative;
 
     width: 100%;
 
-    height:
-        min(
-            56vw,
-            390px
-        );
+    height: 300px;
 
-    min-height: 250px;
+    min-height: 300px;
 
     overflow: hidden;
 
     border-radius: 14px;
 
-    background: #000;
+    background: #000000;
 
     isolation: isolate;
-
 }
 
-
 .camera-container video {
-
     position: absolute;
 
     inset: 0;
@@ -579,19 +510,21 @@ hr {
 
     object-fit: cover;
 
-    background: #000;
+    background: #000000;
 
     border: 0;
 
     margin: 0;
 
     padding: 0;
-
 }
 
 
-.scanner-overlay {
+/* =====================================================
+   MARCAÇÃO DO LEITOR
+===================================================== */
 
+.scanner-overlay {
     position: absolute;
 
     inset: 0;
@@ -599,123 +532,75 @@ hr {
     z-index: 5;
 
     pointer-events: none;
-
 }
 
-
 .scanner-frame {
-
     position: absolute;
 
     left: 50%;
-
     top: 50%;
 
-    width:
-        min(
-            82%,
-            560px
-        );
-
-    height: 32%;
+    width: 84%;
+    height: 30%;
 
     transform:
-        translate(
-            -50%,
-            -50%
-        );
-
+        translate(-50%, -50%);
 }
 
-
 .corner {
-
     position: absolute;
 
-    width: 42px;
+    width: 36px;
+    height: 36px;
 
-    height: 42px;
-
-    border-color: #fff;
+    border-color: #FFFFFF;
 
     border-style: solid;
 
     filter:
         drop-shadow(
-            0 1px 2px
-            rgba(
-                0,
-                0,
-                0,
-                .65
-            )
+            0 1px 2px rgba(0, 0, 0, .65)
         );
-
 }
-
 
 .top-left {
-
     top: 0;
-
     left: 0;
 
     border-width:
-        4px
-        0
-        0
-        4px;
-
+        4px 0 0 4px;
 }
-
 
 .top-right {
-
     top: 0;
-
     right: 0;
 
     border-width:
-        4px
-        4px
-        0
-        0;
-
+        4px 4px 0 0;
 }
 
-
 .bottom-left {
-
     bottom: 0;
-
     left: 0;
 
     border-width:
-        0
-        0
-        4px
-        4px;
-
+        0 0 4px 4px;
 }
 
-
 .bottom-right {
-
     bottom: 0;
-
     right: 0;
 
     border-width:
-        0
-        4px
-        4px
-        0;
-
+        0 4px 4px 0;
 }
 
 
-.camera-message {
+/* =====================================================
+   MENSAGEM DA CÂMERA
+===================================================== */
 
+.camera-message {
     position: absolute;
 
     z-index: 8;
@@ -728,92 +613,72 @@ hr {
         translateX(-50%);
 
     width:
-        calc(
-            100% - 24px
-        );
+        calc(100% - 24px);
 
     padding:
-        8px
-        12px;
+        8px 12px;
 
     border-radius: 8px;
 
     background:
-        rgba(
-            0,
-            0,
-            0,
-            .55
-        );
+        rgba(0, 0, 0, .55);
 
-    color: #fff;
+    color: #FFFFFF;
 
     text-align: center;
 
     font-size: 14px;
 
     font-weight: 700;
-
 }
 
-
 .camera-help {
+    width: 100%;
 
-    margin:
-        12px
-        0
-        0;
+    margin: 12px 0 0;
 
     text-align: center;
 
     font-size: 17px;
-
 }
 
 
 /* =====================================================
-   DIGITAÇÃO
+   CAMPO DE CÓDIGO
 ===================================================== */
 
 .manual-area {
+    width: 100%;
 
     margin-top: 20px;
-
 }
 
-
 .manual-area label {
-
     margin-top: 0;
 
     font-size: 19px;
-
 }
 
-
 #codigo {
+    width: 100% !important;
 
     min-height: 64px;
 
     text-align: center;
 
-    font-size: 24px;
+    font-size: 24px !important;
 
     font-weight: 700;
 
     letter-spacing: .7px;
 
     text-transform: uppercase;
-
 }
 
-
 #codigo::placeholder {
-
-    color: #9A9A9A;
+    color: #9A9A9A !important;
 
     font-weight: 700;
-
 }
 
 
@@ -822,70 +687,53 @@ hr {
 ===================================================== */
 
 .last-reading {
+    width: 100%;
 
     margin-top: 28px;
 
     padding-top: 22px;
 
     border-top:
-        1px solid
-        #E4DFDA;
+        1px solid #E4DFDA;
 
     display: flex;
 
     flex-direction: column;
 
     gap: 10px;
-
 }
 
-
 .last-reading span {
-
     font-size: 18px;
 
     font-weight: 700;
-
 }
 
-
 .last-reading strong {
-
     min-height: 32px;
 
     text-align: center;
 
     font-size: 25px;
 
-    color:
-        var(--thor-beige);
+    color: #A89483;
 
     overflow-wrap: anywhere;
-
 }
 
 
 /* =====================================================
-   TELA DE COLETA
+   LOGO DA TELA DE COLETA
 ===================================================== */
 
 .collection-brand {
-
     margin-bottom: 14px;
-
 }
 
-
 .collection-brand .logo {
-
-    width:
-        min(
-            290px,
-            68vw
-        );
-
+    width: 290px !important;
+    max-width: 68vw !important;
     max-height: 95px;
-
 }
 
 
@@ -893,131 +741,125 @@ hr {
    CELULAR
 ===================================================== */
 
-@media (
-    max-width: 600px
-) {
+@media (max-width: 600px) {
 
     .screen {
+        width: 100%;
+        max-width: 100%;
 
         padding:
-            20px
-            12px
-            28px;
-
+            18px 12px 30px;
     }
 
+    .brand {
+        width: 100%;
 
-    .logo {
-
-        width:
-            min(
-                300px,
-                78vw
-            );
-
+        margin-bottom: 18px;
     }
 
+    .brand .logo {
+        width: 290px !important;
+
+        max-width: 80vw !important;
+    }
 
     .brand h1 {
+        width: 100%;
 
         font-size: 34px;
 
+        text-align: center;
     }
 
+    .card {
+        width: 100%;
+
+        max-width: 100%;
+
+        border-radius: 16px;
+    }
 
     .login-card,
     .collection-card {
-
         padding:
-            22px
-            18px;
-
-        border-radius: 16px;
-
+            22px 18px;
     }
 
+    label {
+        font-size: 18px;
+    }
+
+    input,
+    select {
+        min-height: 58px;
+
+        font-size: 19px !important;
+    }
+
+    .btn-primary {
+        min-height: 60px;
+
+        font-size: 19px !important;
+    }
 
     .session-info strong {
-
         font-size: 25px;
-
     }
-
 
     .counter-row {
-
         gap: 12px;
-
     }
-
 
     .counter-box span {
-
         font-size: 15px;
-
     }
-
 
     .counter-box strong {
-
         font-size: 48px;
-
     }
 
-
     .camera-container {
+        width: 100%;
 
         height: 300px;
 
         min-height: 300px;
-
     }
-
-
-    .scanner-frame {
-
-        width: 84%;
-
-        height: 30%;
-
-    }
-
-
-    .corner {
-
-        width: 36px;
-
-        height: 36px;
-
-    }
-
-
-    .camera-help {
-
-        font-size: 16px;
-
-    }
-
 }
 
 
-@media (
-    max-width: 380px
-) {
+/* =====================================================
+   IPHONE PEQUENO
+===================================================== */
+
+@media (max-width: 380px) {
+
+    .screen {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .brand .logo {
+        width: 270px !important;
+    }
+
+    .brand h1 {
+        font-size: 32px;
+    }
+
+    .login-card,
+    .collection-card {
+        padding:
+            20px 15px;
+    }
 
     .camera-container {
-
         height: 270px;
 
         min-height: 270px;
-
     }
-
 
     .counter-box strong {
-
         font-size: 42px;
-
     }
-
 }
