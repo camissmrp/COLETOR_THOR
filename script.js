@@ -1,6 +1,8 @@
 // ======================================================
 // COLETOR THOR
+// SCRIPT COMPLETO
 // ======================================================
+
 
 // ======================================================
 // VARIÁVEIS
@@ -17,6 +19,16 @@ let sessao = {
     totalColeta: 0
 };
 
+
+// ======================================================
+// VARIÁVEIS DA CÂMERA
+// ======================================================
+
+let codeReader = null;
+let cameraStream = null;
+let cameraAtiva = false;
+
+
 // ======================================================
 // ELEMENTOS
 // ======================================================
@@ -24,11 +36,18 @@ let sessao = {
 let campoUsuario;
 let campoInventario;
 let campoEndereco;
+
 let btnEntrar;
 let btnRegistrar;
+
 let campoCodigo;
 
-let streamCamera = null;
+let telaLogin;
+let telaColeta;
+
+let camera;
+let cameraMessage;
+
 
 // ======================================================
 // INICIALIZAÇÃO
@@ -36,39 +55,39 @@ let streamCamera = null;
 
 window.addEventListener("DOMContentLoaded", function () {
 
-    console.log("COLETOR THOR - iniciando...");
+    campoUsuario =
+        document.getElementById("usuario");
 
-    campoUsuario = document.getElementById("usuario");
-    campoInventario = document.getElementById("inventario");
-    campoEndereco = document.getElementById("endereco");
+    campoInventario =
+        document.getElementById("inventario");
 
-    btnEntrar = document.getElementById("btnEntrar");
-    btnRegistrar = document.getElementById("btnRegistrar");
+    campoEndereco =
+        document.getElementById("endereco");
 
-    campoCodigo = document.getElementById("codigo");
+    btnEntrar =
+        document.getElementById("btnEntrar");
+
+    btnRegistrar =
+        document.getElementById("btnRegistrar");
+
+    campoCodigo =
+        document.getElementById("codigo");
+
+    telaLogin =
+        document.getElementById("login");
+
+    telaColeta =
+        document.getElementById("coleta");
+
+    camera =
+        document.getElementById("camera");
+
+    cameraMessage =
+        document.getElementById("cameraMessage");
+
 
     // ==================================================
-    // VERIFICA ELEMENTOS
-    // ==================================================
-
-    if (!campoUsuario) {
-        console.error("Elemento #usuario não encontrado.");
-    }
-
-    if (!campoInventario) {
-        console.error("Elemento #inventario não encontrado.");
-    }
-
-    if (!campoEndereco) {
-        console.error("Elemento #endereco não encontrado.");
-    }
-
-    if (!btnEntrar) {
-        console.error("Elemento #btnEntrar não encontrado.");
-    }
-
-    // ==================================================
-    // CAMPOS EDITÁVEIS
+    // GARANTE CAMPOS EDITÁVEIS
     // ==================================================
 
     if (campoInventario) {
@@ -81,57 +100,22 @@ window.addEventListener("DOMContentLoaded", function () {
         campoEndereco.disabled = false;
     }
 
+
     // ==================================================
-    // BOTÃO INICIAR
+    // BOTÃO INICIAR COLETA
     // ==================================================
 
     if (btnEntrar) {
 
         btnEntrar.disabled = false;
 
-        /*
-         * IMPORTANTE:
-         * impede que o botão envie o formulário
-         * e recarregue a página no iPhone.
-         */
-
-        btnEntrar.addEventListener("click", function (evento) {
-
-            evento.preventDefault();
-            evento.stopPropagation();
-
-            console.log("Botão INICIAR COLETA clicado.");
-
-            iniciarColeta();
-
-            return false;
-        });
+        btnEntrar.addEventListener(
+            "click",
+            iniciarColeta
+        );
 
     }
 
-    // ==================================================
-    // SE EXISTIR FORMULÁRIO
-    // ==================================================
-
-    const formulario = btnEntrar
-        ? btnEntrar.closest("form")
-        : null;
-
-    if (formulario) {
-
-        formulario.addEventListener("submit", function (evento) {
-
-            evento.preventDefault();
-            evento.stopPropagation();
-
-            console.log("Submit bloqueado.");
-
-            iniciarColeta();
-
-            return false;
-        });
-
-    }
 
     // ==================================================
     // BOTÃO REGISTRAR
@@ -139,19 +123,19 @@ window.addEventListener("DOMContentLoaded", function () {
 
     if (btnRegistrar) {
 
-        btnRegistrar.addEventListener("click", function (evento) {
+        btnRegistrar.addEventListener(
+            "click",
+            function () {
 
-            evento.preventDefault();
-            evento.stopPropagation();
+                registrarCodigo(
+                    campoCodigo.value
+                );
 
-            if (campoCodigo) {
-                registrarCodigo(campoCodigo.value);
             }
-
-            return false;
-        });
+        );
 
     }
+
 
     // ==================================================
     // ENTER NO CÓDIGO
@@ -159,21 +143,28 @@ window.addEventListener("DOMContentLoaded", function () {
 
     if (campoCodigo) {
 
-        campoCodigo.addEventListener("keydown", function (evento) {
+        campoCodigo.addEventListener(
+            "keydown",
+            function (evento) {
 
-            if (evento.key === "Enter") {
+                if (evento.key === "Enter") {
 
-                evento.preventDefault();
+                    evento.preventDefault();
 
-                registrarCodigo(campoCodigo.value);
+                    registrarCodigo(
+                        campoCodigo.value
+                    );
+
+                }
+
             }
-
-        });
+        );
 
     }
 
+
     // ==================================================
-    // CARREGA CONFIGURAÇÃO
+    // CARREGAR CONFIGURAÇÃO
     // ==================================================
 
     carregarConfiguracao();
@@ -189,19 +180,28 @@ async function carregarConfiguracao() {
 
     try {
 
-        const resposta = await fetch(
-            API + "?acao=config"
-        );
+        const resposta =
+            await fetch(
+                API + "?acao=config"
+            );
+
 
         if (!resposta.ok) {
+
             throw new Error(
-                "Erro HTTP " + resposta.status
+                "Erro HTTP " +
+                resposta.status
             );
+
         }
 
-        const dados = await resposta.json();
+
+        const dados =
+            await resposta.json();
+
 
         configuracao = dados;
+
 
         // ==================================================
         // USUÁRIOS
@@ -211,7 +211,9 @@ async function carregarConfiguracao() {
             return;
         }
 
+
         campoUsuario.innerHTML = "";
+
 
         if (
             !dados.Usuarios ||
@@ -219,29 +221,46 @@ async function carregarConfiguracao() {
         ) {
 
             const opcao =
-                document.createElement("option");
+                document.createElement(
+                    "option"
+                );
 
             opcao.value = "";
-            opcao.text = "Nenhum usuário cadastrado";
 
-            campoUsuario.appendChild(opcao);
+            opcao.text =
+                "Nenhum usuário cadastrado";
+
+            campoUsuario.appendChild(
+                opcao
+            );
 
         }
+
         else {
 
-            dados.Usuarios.forEach(function (usuario) {
+            dados.Usuarios.forEach(
+                function (usuario) {
 
-                const opcao =
-                    document.createElement("option");
+                    const opcao =
+                        document.createElement(
+                            "option"
+                        );
 
-                opcao.value = usuario.id;
-                opcao.text = usuario.nome;
+                    opcao.value =
+                        usuario.id;
 
-                campoUsuario.appendChild(opcao);
+                    opcao.text =
+                        usuario.nome;
 
-            });
+                    campoUsuario.appendChild(
+                        opcao
+                    );
+
+                }
+            );
 
         }
+
 
         // ==================================================
         // PRIMEIRO USUÁRIO
@@ -252,11 +271,15 @@ async function carregarConfiguracao() {
             dados.Usuarios.length > 0
         ) {
 
+            campoUsuario.value =
+                dados.Usuarios[0].id;
+
             atualizarConfiguracaoUsuario(
                 dados.Usuarios[0].id
             );
 
         }
+
 
         // ==================================================
         // TROCA DE USUÁRIO
@@ -273,12 +296,25 @@ async function carregarConfiguracao() {
             }
         );
 
+
+        // ==================================================
+        // HABILITA BOTÃO
+        // ==================================================
+
+        if (btnEntrar) {
+
+            btnEntrar.disabled = false;
+
+        }
+
+
         console.log(
             "Configuração carregada:",
             dados
         );
 
     }
+
     catch (erro) {
 
         console.error(
@@ -286,9 +322,26 @@ async function carregarConfiguracao() {
             erro
         );
 
-        alert(
-            "Erro ao carregar a configuração do coletor."
-        );
+
+        if (btnEntrar) {
+
+            btnEntrar.disabled = false;
+
+        }
+
+
+        const status =
+            document.getElementById(
+                "loginStatus"
+            );
+
+
+        if (status) {
+
+            status.innerText =
+                "Erro ao carregar configuração.";
+
+        }
 
     }
 
@@ -299,38 +352,41 @@ async function carregarConfiguracao() {
 // CONFIGURAÇÃO DO USUÁRIO
 // ======================================================
 
-function atualizarConfiguracaoUsuario(usuarioId) {
+function atualizarConfiguracaoUsuario(
+    usuarioId
+) {
 
-    // ==================================================
-    // GARANTE CAMPOS EDITÁVEIS
-    // ==================================================
-
-    if (campoInventario) {
-        campoInventario.readOnly = false;
-        campoInventario.disabled = false;
-    }
-
-    if (campoEndereco) {
-        campoEndereco.readOnly = false;
-        campoEndereco.disabled = false;
-    }
-
-    // ==================================================
-    // SEM CONFIGURAÇÃO
-    // ==================================================
-
-    if (!configuracao.Configuracoes) {
-
-        if (campoInventario) {
-            campoInventario.value = "";
-        }
-
-        if (campoEndereco) {
-            campoEndereco.value = "";
-        }
-
+    if (!campoInventario || !campoEndereco) {
         return;
     }
+
+
+    // ==================================================
+    // CAMPOS SEMPRE EDITÁVEIS
+    // ==================================================
+
+    campoInventario.readOnly = false;
+    campoInventario.disabled = false;
+
+    campoEndereco.readOnly = false;
+    campoEndereco.disabled = false;
+
+
+    // ==================================================
+    // SEM CONFIGURAÇÕES
+    // ==================================================
+
+    if (
+        !configuracao.Configuracoes
+    ) {
+
+        campoInventario.value = "";
+        campoEndereco.value = "";
+
+        return;
+
+    }
+
 
     // ==================================================
     // PROCURA CONFIGURAÇÃO
@@ -341,12 +397,17 @@ function atualizarConfiguracaoUsuario(usuarioId) {
             function (config) {
 
                 return (
-                    String(config.usuario) ===
-                    String(usuarioId)
+                    String(
+                        config.usuario
+                    ) ===
+                    String(
+                        usuarioId
+                    )
                 );
 
             }
         );
+
 
     // ==================================================
     // NÃO ENCONTROU
@@ -354,38 +415,28 @@ function atualizarConfiguracaoUsuario(usuarioId) {
 
     if (!configUsuario) {
 
-        if (campoInventario) {
-            campoInventario.value = "";
-        }
-
-        if (campoEndereco) {
-            campoEndereco.value = "";
-        }
+        campoInventario.value = "";
+        campoEndereco.value = "";
 
         return;
-    }
-
-    // ==================================================
-    // PREENCHE INVENTÁRIO
-    // ==================================================
-
-    if (campoInventario) {
-
-        campoInventario.value =
-            configUsuario.inventario || "";
 
     }
 
+
     // ==================================================
-    // PREENCHE ENDEREÇO
+    // INVENTÁRIO
     // ==================================================
 
-    if (campoEndereco) {
+    campoInventario.value =
+        configUsuario.inventario || "";
 
-        campoEndereco.value =
-            configUsuario.enderecoAtual || "";
 
-    }
+    // ==================================================
+    // ENDEREÇO
+    // ==================================================
+
+    campoEndereco.value =
+        configUsuario.enderecoAtual || "";
 
 }
 
@@ -394,517 +445,160 @@ function atualizarConfiguracaoUsuario(usuarioId) {
 // INICIAR COLETA
 // ======================================================
 
-function iniciarColeta() {
-
-    console.log("iniciarColeta() executada.");
-
-    // ==================================================
-    // USUÁRIO
-    // ==================================================
-
-    if (
-        !campoUsuario ||
-        !campoUsuario.value
-    ) {
-
-        alert("Selecione um usuário.");
-
-        return false;
-    }
-
-    // ==================================================
-    // INVENTÁRIO
-    // ==================================================
-
-    sessao.inventario =
-        campoInventario
-            ? campoInventario.value
-                .trim()
-                .toUpperCase()
-            : "";
-
-    if (sessao.inventario === "") {
-
-        alert("Informe o inventário.");
-
-        if (campoInventario) {
-            campoInventario.focus();
-        }
-
-        return false;
-    }
-
-    // ==================================================
-    // ENDEREÇO
-    // ==================================================
-
-    sessao.endereco =
-        campoEndereco
-            ? campoEndereco.value
-                .trim()
-                .toUpperCase()
-            : "";
-
-    if (sessao.endereco === "") {
-
-        alert("Informe o endereço.");
-
-        if (campoEndereco) {
-            campoEndereco.focus();
-        }
-
-        return false;
-    }
-
-    // ==================================================
-    // USUÁRIO
-    // ==================================================
-
-    sessao.usuario =
-        campoUsuario.value;
-
-    const opcaoSelecionada =
-        campoUsuario.options[
-            campoUsuario.selectedIndex
-        ];
-
-    sessao.nomeUsuario =
-        opcaoSelecionada
-            ? opcaoSelecionada.text
-            : "";
-
-    // ==================================================
-    // ATUALIZA CAMPOS
-    // ==================================================
-
-    if (campoInventario) {
-        campoInventario.value =
-            sessao.inventario;
-    }
-
-    if (campoEndereco) {
-        campoEndereco.value =
-            sessao.endereco;
-    }
-
-    // ==================================================
-    // LABELS
-    // ==================================================
-
-    const lblUsuario =
-        document.getElementById("lblUsuario");
-
-    const lblInventario =
-        document.getElementById("lblInventario");
-
-    const lblEndereco =
-        document.getElementById("lblEndereco");
-
-    if (lblUsuario) {
-        lblUsuario.innerText =
-            sessao.nomeUsuario;
-    }
-
-    if (lblInventario) {
-        lblInventario.innerText =
-            sessao.inventario;
-    }
-
-    if (lblEndereco) {
-        lblEndereco.innerText =
-            sessao.endereco;
-    }
-
-    // ==================================================
-    // CONTADORES
-    // ==================================================
-
-    sessao.totalEndereco = 0;
-    sessao.totalColeta = 0;
-
-    const contadorEndereco =
-        document.getElementById(
-            "contadorEndereco"
-        );
-
-    const contadorTotal =
-        document.getElementById(
-            "contadorTotal"
-        );
-
-    const ultimaLeitura =
-        document.getElementById(
-            "ultimaLeitura"
-        );
-
-    if (contadorEndereco) {
-        contadorEndereco.innerText = "0";
-    }
-
-    if (contadorTotal) {
-        contadorTotal.innerText = "0";
-    }
-
-    if (ultimaLeitura) {
-        ultimaLeitura.innerText = "-";
-    }
-
-    // ==================================================
-    // TROCA DE TELA
-    // ==================================================
-
-    const telaLogin =
-        document.getElementById("login");
-
-    const telaColeta =
-        document.getElementById("coleta");
-
-    if (telaLogin) {
-        telaLogin.style.display = "none";
-    }
-
-    if (telaColeta) {
-        telaColeta.style.display = "flex";
-    }
-
-    // ==================================================
-    // ABRE CÂMERA
-    // ==================================================
-
-    iniciarCamera();
-
-    // ==================================================
-    // FOCO NO CÓDIGO
-    // ==================================================
-
-    setTimeout(function () {
-
-        if (campoCodigo) {
-            campoCodigo.focus();
-        }
-
-    }, 700);
-
-    console.log(
-        "Sessão iniciada:",
-        sessao
-    );
-
-    return false;
-}
-
-
-// ======================================================
-// REGISTRAR CÓDIGO
-// ======================================================
-
-async function registrarCodigo(codigoRecebido) {
-
-    let codigo =
-        String(codigoRecebido || "")
-            .trim()
-            .toUpperCase();
-
-    if (codigo === "") {
-        return;
-    }
-
-    // ==================================================
-    // LIMPA CAMPO
-    // ==================================================
-
-    if (campoCodigo) {
-        campoCodigo.value = "";
-    }
-
-    // ==================================================
-    // CÓDIGO COMEÇANDO COM LETRA = ENDEREÇO
-    // ==================================================
-
-    if (/^[A-Z]/.test(codigo)) {
-
-        await alterarEndereco(codigo);
-
-        if (campoCodigo) {
-            campoCodigo.focus();
-        }
-
-        return;
-    }
-
-    // ==================================================
-    // CÓDIGO COMEÇANDO COM NÚMERO = PRODUTO
-    // ==================================================
-
-    if (/^[0-9]/.test(codigo)) {
-
-        await registrarProduto(codigo);
-
-        if (campoCodigo) {
-            campoCodigo.focus();
-        }
-
-        return;
-    }
-
-    // ==================================================
-    // CÓDIGO INVÁLIDO
-    // ==================================================
-
-    mostrarUltimaLeitura(
-        codigo + " - INVÁLIDO"
-    );
-
-    if (campoCodigo) {
-        campoCodigo.focus();
-    }
-
-}
-
-
-// ======================================================
-// ALTERAR ENDEREÇO
-// ======================================================
-
-async function alterarEndereco(novoEndereco) {
-
-    novoEndereco =
-        String(novoEndereco)
-            .trim()
-            .toUpperCase();
-
-    // ==================================================
-    // ATUALIZA SESSÃO
-    // ==================================================
-
-    sessao.endereco =
-        novoEndereco;
-
-    // ==================================================
-    // ATUALIZA TELA
-    // ==================================================
-
-    const lblEndereco =
-        document.getElementById("lblEndereco");
-
-    if (lblEndereco) {
-        lblEndereco.innerText =
-            novoEndereco;
-    }
-
-    // ==================================================
-    // ZERA CONTADOR
-    // ==================================================
-
-    sessao.totalEndereco = 0;
-
-    const contadorEndereco =
-        document.getElementById(
-            "contadorEndereco"
-        );
-
-    if (contadorEndereco) {
-        contadorEndereco.innerText = "0";
-    }
-
-    // ==================================================
-    // ATUALIZA TB_CONFIG
-    // ==================================================
+async function iniciarColeta() {
 
     try {
 
-        await fetch(
-            API,
-            {
-                method: "POST",
-                mode: "no-cors",
-
-                headers: {
-                    "Content-Type": "text/plain"
-                },
-
-                body: JSON.stringify({
-
-                    acao: "novoEndereco",
-
-                    usuario:
-                        sessao.usuario,
-
-                    inventario:
-                        sessao.inventario,
-
-                    endereco:
-                        novoEndereco
-
-                })
-
-            }
+        console.log(
+            "Iniciando coleta..."
         );
 
-        // ==================================================
-        // ATUALIZA CONFIGURAÇÃO LOCAL
-        // ==================================================
-
-        if (configuracao.Configuracoes) {
-
-            const configUsuario =
-                configuracao.Configuracoes.find(
-                    function (config) {
-
-                        return (
-                            String(config.usuario) ===
-                            String(sessao.usuario)
-                        );
-
-                    }
-                );
-
-            if (configUsuario) {
-
-                configUsuario.inventario =
-                    sessao.inventario;
-
-                configUsuario.enderecoAtual =
-                    novoEndereco;
-
-            }
-
-        }
-
-        mostrarUltimaLeitura(
-            "Endereço alterado: " +
-            novoEndereco
-        );
-
-    }
-    catch (erro) {
-
-        console.error(
-            "Erro ao atualizar endereço:",
-            erro
-        );
-
-        mostrarUltimaLeitura(
-            "Erro ao atualizar endereço"
-        );
-
-    }
-
-}
-
-
-// ======================================================
-// REGISTRAR PRODUTO
-// ======================================================
-
-async function registrarProduto(codigo) {
-
-    // ==================================================
-    // VERIFICA DUPLICIDADE
-    // ==================================================
-
-    try {
-
-        const resposta =
-            await fetch(
-
-                API +
-                "?acao=verificar" +
-                "&inventario=" +
-                encodeURIComponent(
-                    sessao.inventario
-                ) +
-                "&endereco=" +
-                encodeURIComponent(
-                    sessao.endereco
-                ) +
-                "&codigo=" +
-                encodeURIComponent(
-                    codigo
-                )
-
-            );
-
-        const verifica =
-            await resposta.json();
 
         // ==================================================
-        // DUPLICADO
+        // USUÁRIO
         // ==================================================
 
-        if (verifica.existe) {
+        if (
+            !campoUsuario ||
+            !campoUsuario.value
+        ) {
 
-            mostrarUltimaLeitura(
-                codigo +
-                " - JÁ COLETADO"
+            alert(
+                "Selecione um usuário."
             );
 
             return;
+
         }
 
-    }
-    catch (erro) {
 
-        console.error(
-            "Erro ao verificar duplicidade:",
-            erro
-        );
+        // ==================================================
+        // INVENTÁRIO
+        // ==================================================
 
-        mostrarUltimaLeitura(
-            codigo +
-            " - ERRO NA VERIFICAÇÃO"
-        );
+        sessao.inventario =
+            campoInventario.value
+                .trim()
+                .toUpperCase();
 
-        return;
-    }
 
-    // ==================================================
-    // GRAVA COLETA
-    // ==================================================
+        if (
+            sessao.inventario === ""
+        ) {
 
-    try {
+            alert(
+                "Informe o inventário."
+            );
 
-        await fetch(
-            API,
-            {
-                method: "POST",
-                mode: "no-cors",
+            campoInventario.focus();
 
-                headers: {
-                    "Content-Type": "text/plain"
-                },
+            return;
 
-                body: JSON.stringify({
+        }
 
-                    usuario:
-                        sessao.usuario,
 
-                    nomeUsuario:
-                        sessao.nomeUsuario,
+        // ==================================================
+        // ENDEREÇO
+        // ==================================================
 
-                    inventario:
-                        sessao.inventario,
+        sessao.endereco =
+            campoEndereco.value
+                .trim()
+                .toUpperCase();
 
-                    endereco:
-                        sessao.endereco,
 
-                    codigo:
-                        codigo,
+        if (
+            sessao.endereco === ""
+        ) {
 
-                    tipoLeitura:
-                        "PRODUTO"
+            alert(
+                "Informe o endereço."
+            );
 
-                })
+            campoEndereco.focus();
 
-            }
-        );
+            return;
+
+        }
+
+
+        // ==================================================
+        // USUÁRIO
+        // ==================================================
+
+        sessao.usuario =
+            campoUsuario.value;
+
+
+        if (
+            campoUsuario.selectedIndex >= 0
+        ) {
+
+            sessao.nomeUsuario =
+                campoUsuario
+                    .options[
+                        campoUsuario.selectedIndex
+                    ]
+                    .text;
+
+        }
+
 
         // ==================================================
         // CONTADORES
         // ==================================================
 
-        sessao.totalEndereco++;
-        sessao.totalColeta++;
+        sessao.totalEndereco = 0;
+        sessao.totalColeta = 0;
+
+
+        // ==================================================
+        // ATUALIZA INFORMAÇÕES DA TELA
+        // ==================================================
+
+        const lblUsuario =
+            document.getElementById(
+                "lblUsuario"
+            );
+
+        const lblInventario =
+            document.getElementById(
+                "lblInventario"
+            );
+
+        const lblEndereco =
+            document.getElementById(
+                "lblEndereco"
+            );
+
+
+        if (lblUsuario) {
+
+            lblUsuario.innerText =
+                sessao.nomeUsuario;
+
+        }
+
+
+        if (lblInventario) {
+
+            lblInventario.innerText =
+                sessao.inventario;
+
+        }
+
+
+        if (lblEndereco) {
+
+            lblEndereco.innerText =
+                sessao.endereco;
+
+        }
+
+
+        // ==================================================
+        // ZERA CONTADORES
+        // ==================================================
 
         const contadorEndereco =
             document.getElementById(
@@ -916,52 +610,129 @@ async function registrarProduto(codigo) {
                 "contadorTotal"
             );
 
+
         if (contadorEndereco) {
+
             contadorEndereco.innerText =
-                sessao.totalEndereco;
+                "0";
+
         }
+
 
         if (contadorTotal) {
+
             contadorTotal.innerText =
-                sessao.totalColeta;
+                "0";
+
         }
 
+
         // ==================================================
-        // ÚLTIMA LEITURA
+        // TROCA DE TELA
         // ==================================================
 
-        mostrarUltimaLeitura(
-            codigo
-        );
+        if (telaLogin) {
+
+            telaLogin.classList.add(
+                "hidden"
+            );
+
+            telaLogin.style.display =
+                "none";
+
+        }
+
+
+        if (telaColeta) {
+
+            telaColeta.classList.remove(
+                "hidden"
+            );
+
+            telaColeta.style.display =
+                "block";
+
+        }
+
+
+        // ==================================================
+        // LIMPA CÓDIGO
+        // ==================================================
+
+        if (campoCodigo) {
+
+            campoCodigo.value = "";
+
+        }
+
+
+        // ==================================================
+        // INICIA CÂMERA
+        // ==================================================
+
+        await iniciarCamera();
+
+
+        // ==================================================
+        // FOCO NO CAMPO
+        // ==================================================
+
+        if (campoCodigo) {
+
+            setTimeout(
+                function () {
+
+                    campoCodigo.focus();
+
+                },
+                300
+            );
+
+        }
+
 
         console.log(
-            "Produto registrado:",
-            {
-                usuario:
-                    sessao.usuario,
-
-                inventario:
-                    sessao.inventario,
-
-                endereco:
-                    sessao.endereco,
-
-                codigo:
-                    codigo
-            }
+            "Sessão iniciada:",
+            sessao
         );
 
     }
+
     catch (erro) {
 
         console.error(
-            "Erro ao gravar coleta:",
+            "Erro ao iniciar coleta:",
             erro
         );
 
-        mostrarUltimaLeitura(
-            codigo +
-            " - ERRO AO GRAVAR"
+
+        // ==================================================
+        // SE DER ERRO, NÃO DEIXA A TELA BRANCA
+        // ==================================================
+
+        if (telaLogin) {
+
+            telaLogin.style.display =
+                "block";
+
+            telaLogin.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        if (telaColeta) {
+
+            telaColeta.style.display =
+                "none";
+
+        }
+
+
+        alert(
+            "Não foi possível iniciar a coleta.\n\n" +
+            erro.message
         );
 
     }
@@ -970,140 +741,202 @@ async function registrarProduto(codigo) {
 
 
 // ======================================================
-// ÚLTIMA LEITURA
-// ======================================================
-
-function mostrarUltimaLeitura(texto) {
-
-    const elemento =
-        document.getElementById(
-            "ultimaLeitura"
-        );
-
-    if (elemento) {
-        elemento.innerText = texto;
-    }
-
-}
-
-
-// ======================================================
-// CÂMERA
+// INICIAR CÂMERA
 // ======================================================
 
 async function iniciarCamera() {
 
-    const cameraArea =
-        document.getElementById(
-            "cameraArea"
-        );
-
-    const video =
-        document.getElementById(
-            "camera"
-        );
-
-    if (!cameraArea || !video) {
+    if (!camera) {
 
         console.warn(
-            "Área da câmera não encontrada."
+            "Elemento da câmera não encontrado."
         );
 
         return;
+
     }
 
-    // ==================================================
-    // VERIFICA SUPORTE
-    // ==================================================
 
     if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
+        typeof ZXingBrowser ===
+        "undefined"
     ) {
 
-        cameraArea.style.display = "none";
+        console.warn(
+            "Biblioteca ZXing não carregada."
+        );
 
-        mostrarUltimaLeitura(
-            "Câmera indisponível - digite o código"
+
+        mostrarMensagemCamera(
+            "Leitura manual disponível."
         );
 
         return;
+
     }
+
 
     try {
 
+        mostrarMensagemCamera(
+            "Solicitando acesso à câmera..."
+        );
+
+
         // ==================================================
-        // SE JÁ EXISTIR CÂMERA, PARA PRIMEIRO
+        // PARA CÂMERA ANTERIOR
         // ==================================================
 
         pararCamera();
 
+
         // ==================================================
-        // ABRE CÂMERA TRASEIRA
+        // VERIFICA HTTPS
         // ==================================================
 
-        streamCamera =
-            await navigator.mediaDevices.getUserMedia(
-                {
-                    video: {
-                        facingMode: {
-                            ideal: "environment"
-                        },
+        if (
+            location.protocol !== "https:" &&
+            location.hostname !== "localhost"
+        ) {
 
-                        width: {
-                            ideal: 1280
-                        },
+            throw new Error(
+                "A câmera precisa de uma conexão HTTPS."
+            );
 
-                        height: {
-                            ideal: 720
-                        }
-                    },
+        }
 
-                    audio: false
+
+        // ==================================================
+        // CRIA LEITOR ZXING
+        // ==================================================
+
+        codeReader =
+            new ZXingBrowser.BrowserMultiFormatReader();
+
+
+        // ==================================================
+        // LISTA CÂMERAS
+        // ==================================================
+
+        const dispositivos =
+            await ZXingBrowser.BrowserCodeReader
+                .listVideoInputDevices();
+
+
+        if (
+            !dispositivos ||
+            dispositivos.length === 0
+        ) {
+
+            throw new Error(
+                "Nenhuma câmera encontrada."
+            );
+
+        }
+
+
+        // ==================================================
+        // ESCOLHE CÂMERA TRASEIRA
+        // ==================================================
+
+        let cameraSelecionada =
+            dispositivos[0];
+
+
+        const cameraTraseira =
+            dispositivos.find(
+                function (dispositivo) {
+
+                    const nome =
+                        (
+                            dispositivo.label ||
+                            ""
+                        ).toLowerCase();
+
+
+                    return (
+                        nome.includes("back") ||
+                        nome.includes("traseira") ||
+                        nome.includes("rear") ||
+                        nome.includes("environment")
+                    );
+
                 }
             );
 
+
+        if (cameraTraseira) {
+
+            cameraSelecionada =
+                cameraTraseira;
+
+        }
+
+
         // ==================================================
-        // COLOCA STREAM NO VÍDEO
+        // INICIA LEITURA
         // ==================================================
 
-        video.srcObject =
-            streamCamera;
-
-        video.setAttribute(
-            "playsinline",
-            ""
+        mostrarMensagemCamera(
+            "Câmera ativa. Aponte para o código."
         );
 
-        video.setAttribute(
-            "autoplay",
-            ""
+
+        cameraAtiva = true;
+
+
+        await codeReader.decodeFromVideoDevice(
+            cameraSelecionada.deviceId,
+            camera,
+            function (resultado, erro) {
+
+                if (resultado) {
+
+                    const codigo =
+                        resultado.getText();
+
+                    console.log(
+                        "Código lido:",
+                        codigo
+                    );
+
+
+                    registrarCodigo(
+                        codigo
+                    );
+
+                }
+
+            }
         );
 
-        video.muted = true;
 
-        cameraArea.style.display =
-            "block";
+        // ==================================================
+        // TENTA PEGAR STREAM
+        // ==================================================
 
-        await video.play();
+        if (camera.srcObject) {
 
-        console.log(
-            "Câmera iniciada."
-        );
+            cameraStream =
+                camera.srcObject;
+
+        }
 
     }
+
     catch (erro) {
 
         console.error(
-            "Erro ao abrir câmera:",
+            "Erro ao iniciar câmera:",
             erro
         );
 
-        cameraArea.style.display =
-            "none";
 
-        mostrarUltimaLeitura(
-            "Câmera indisponível - digite o código"
+        cameraAtiva = false;
+
+
+        mostrarMensagemCamera(
+            "Câmera indisponível. Use a digitação manual."
         );
 
     }
@@ -1117,9 +950,34 @@ async function iniciarCamera() {
 
 function pararCamera() {
 
-    if (streamCamera) {
+    cameraAtiva = false;
 
-        streamCamera
+
+    if (codeReader) {
+
+        try {
+
+            codeReader.reset();
+
+        }
+
+        catch (erro) {
+
+            console.warn(
+                "Erro ao resetar câmera:",
+                erro
+            );
+
+        }
+
+        codeReader = null;
+
+    }
+
+
+    if (cameraStream) {
+
+        cameraStream
             .getTracks()
             .forEach(
                 function (track) {
@@ -1129,7 +987,521 @@ function pararCamera() {
                 }
             );
 
-        streamCamera = null;
+        cameraStream = null;
+
+    }
+
+
+    if (
+        camera &&
+        camera.srcObject
+    ) {
+
+        const tracks =
+            camera.srcObject.getTracks();
+
+
+        tracks.forEach(
+            function (track) {
+
+                track.stop();
+
+            }
+        );
+
+
+        camera.srcObject = null;
+
     }
 
 }
+
+
+// ======================================================
+// MENSAGEM DA CÂMERA
+// ======================================================
+
+function mostrarMensagemCamera(
+    mensagem
+) {
+
+    if (cameraMessage) {
+
+        cameraMessage.innerText =
+            mensagem;
+
+    }
+
+}
+
+
+// ======================================================
+// REGISTRAR CÓDIGO
+// ======================================================
+
+async function registrarCodigo(
+    codigoRecebido
+) {
+
+    try {
+
+        let codigo =
+            String(
+                codigoRecebido || ""
+            )
+            .trim()
+            .toUpperCase();
+
+
+        // ==================================================
+        // IGNORA VAZIO
+        // ==================================================
+
+        if (codigo === "") {
+
+            return;
+
+        }
+
+
+        console.log(
+            "Processando código:",
+            codigo
+        );
+
+
+        // ==================================================
+        // LIMPA CAMPO
+        // ==================================================
+
+        if (campoCodigo) {
+
+            campoCodigo.value = "";
+
+        }
+
+
+        // ==================================================
+        // TROCA DE ENDEREÇO
+        // ==================================================
+
+        if (
+            /^[A-Z]/.test(codigo)
+        ) {
+
+            await alterarEndereco(
+                codigo
+            );
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // VERIFICA PRODUTO
+        // ==================================================
+
+        const resposta =
+            await fetch(
+                API +
+                "?acao=verificar" +
+                "&inventario=" +
+                encodeURIComponent(
+                    sessao.inventario
+                ) +
+                "&codigo=" +
+                encodeURIComponent(
+                    codigo
+                )
+            );
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                "Erro ao verificar o código."
+            );
+
+        }
+
+
+        const verifica =
+            await resposta.json();
+
+
+        // ==================================================
+        // PRODUTO REPETIDO
+        // ==================================================
+
+        if (
+            verifica &&
+            verifica.existe
+        ) {
+
+            mostrarUltimaLeitura(
+                "PRODUTO JÁ COLETADO"
+            );
+
+
+            if (campoCodigo) {
+
+                campoCodigo.focus();
+
+            }
+
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // GRAVA COLETA
+        // ==================================================
+
+        const dadosColeta = {
+
+            usuario:
+                sessao.usuario,
+
+            nomeUsuario:
+                sessao.nomeUsuario,
+
+            inventario:
+                sessao.inventario,
+
+            endereco:
+                sessao.endereco,
+
+            codigo:
+                codigo
+
+        };
+
+
+        await fetch(
+            API,
+            {
+
+                method: "POST",
+
+                mode: "no-cors",
+
+                headers: {
+
+                    "Content-Type":
+                        "text/plain"
+
+                },
+
+                body:
+                    JSON.stringify(
+                        dadosColeta
+                    )
+
+            }
+        );
+
+
+        // ==================================================
+        // ATUALIZA CONTADORES
+        // ==================================================
+
+        sessao.totalEndereco++;
+        sessao.totalColeta++;
+
+
+        const contadorEndereco =
+            document.getElementById(
+                "contadorEndereco"
+            );
+
+        const contadorTotal =
+            document.getElementById(
+                "contadorTotal"
+            );
+
+
+        if (contadorEndereco) {
+
+            contadorEndereco.innerText =
+                sessao.totalEndereco;
+
+        }
+
+
+        if (contadorTotal) {
+
+            contadorTotal.innerText =
+                sessao.totalColeta;
+
+        }
+
+
+        // ==================================================
+        // ÚLTIMA LEITURA
+        // ==================================================
+
+        mostrarUltimaLeitura(
+            codigo
+        );
+
+
+        // ==================================================
+        // FOCO
+        // ==================================================
+
+        if (campoCodigo) {
+
+            campoCodigo.focus();
+
+        }
+
+
+        console.log(
+            "Coleta registrada:",
+            dadosColeta
+        );
+
+    }
+
+    catch (erro) {
+
+        console.error(
+            "Erro ao registrar código:",
+            erro
+        );
+
+
+        mostrarUltimaLeitura(
+            "ERRO AO REGISTRAR"
+        );
+
+
+        if (campoCodigo) {
+
+            campoCodigo.value = "";
+            campoCodigo.focus();
+
+        }
+
+    }
+
+}
+
+
+// ======================================================
+// ALTERAR ENDEREÇO
+// ======================================================
+
+async function alterarEndereco(
+    novoEndereco
+) {
+
+    try {
+
+        novoEndereco =
+            novoEndereco
+                .trim()
+                .toUpperCase();
+
+
+        if (
+            novoEndereco === ""
+        ) {
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // ATUALIZA SESSÃO
+        // ==================================================
+
+        sessao.endereco =
+            novoEndereco;
+
+
+        // ==================================================
+        // ATUALIZA TELA
+        // ==================================================
+
+        const lblEndereco =
+            document.getElementById(
+                "lblEndereco"
+            );
+
+
+        if (lblEndereco) {
+
+            lblEndereco.innerText =
+                novoEndereco;
+
+        }
+
+
+        // ==================================================
+        // ZERA CONTADOR DO ENDEREÇO
+        // ==================================================
+
+        sessao.totalEndereco = 0;
+
+
+        const contadorEndereco =
+            document.getElementById(
+                "contadorEndereco"
+            );
+
+
+        if (contadorEndereco) {
+
+            contadorEndereco.innerText =
+                "0";
+
+        }
+
+
+        // ==================================================
+        // SALVA NOVO ENDEREÇO
+        // ==================================================
+
+        await fetch(
+            API,
+            {
+
+                method: "POST",
+
+                mode: "no-cors",
+
+                headers: {
+
+                    "Content-Type":
+                        "text/plain"
+
+                },
+
+                body:
+                    JSON.stringify({
+
+                        acao:
+                            "novoEndereco",
+
+                        endereco:
+                            novoEndereco
+
+                    })
+
+            }
+        );
+
+
+        // ==================================================
+        // MENSAGEM
+        // ==================================================
+
+        mostrarUltimaLeitura(
+            "ENDEREÇO ALTERADO"
+        );
+
+
+        // ==================================================
+        // LIMPA CAMPO
+        // ==================================================
+
+        if (campoCodigo) {
+
+            campoCodigo.value = "";
+            campoCodigo.focus();
+
+        }
+
+
+        console.log(
+            "Novo endereço:",
+            novoEndereco
+        );
+
+    }
+
+    catch (erro) {
+
+        console.error(
+            "Erro ao alterar endereço:",
+            erro
+        );
+
+
+        mostrarUltimaLeitura(
+            "ERRO AO ALTERAR ENDEREÇO"
+        );
+
+    }
+
+}
+
+
+// ======================================================
+// ÚLTIMA LEITURA
+// ======================================================
+
+function mostrarUltimaLeitura(
+    texto
+) {
+
+    const ultimaLeitura =
+        document.getElementById(
+            "ultimaLeitura"
+        );
+
+
+    if (ultimaLeitura) {
+
+        ultimaLeitura.innerText =
+            texto;
+
+    }
+
+}
+
+
+// ======================================================
+// AO SAIR DA PÁGINA
+// ======================================================
+
+window.addEventListener(
+    "beforeunload",
+    function () {
+
+        pararCamera();
+
+    }
+);
+
+
+// ======================================================
+// QUANDO A PÁGINA VOLTAR A FICAR VISÍVEL
+// ======================================================
+
+document.addEventListener(
+    "visibilitychange",
+    function () {
+
+        if (
+            document.visibilityState ===
+            "visible" &&
+            telaColeta &&
+            telaColeta.style.display !== "none"
+        ) {
+
+            if (!cameraAtiva) {
+
+                iniciarCamera();
+
+            }
+
+        }
+
+    }
+);
