@@ -7,41 +7,38 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-    <meta
-        name="theme-color"
-        content="#A89483">
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Coletor THOR</title>
 
-    <link
-        rel="stylesheet"
-        href="style.css">
+    <link rel="stylesheet" href="style.css">
 
 </head>
 
+
 <body>
 
-<!-- ==================================================
+
+<!-- ======================================================
      TELA INICIAL
-     ================================================== -->
+====================================================== -->
 
-<div id="login" class="screen">
+<div id="login" class="container">
 
-    <div class="brand">
+    <!-- LOGO -->
+    <img
+        src="logo-thor.png"
+        class="logo"
+        alt="THOR Natural Stones"
+    >
 
-        <img
-            src="logo-thor.png"
-            alt="THOR Natural Stones"
-            class="logo">
-
-        <h1>COLETA</h1>
-
-    </div>
+    <h1>COLETOR</h1>
 
 
-    <div class="card login-card">
+    <div class="card">
+
+        <!-- USUÁRIO -->
 
         <label for="usuario">
             Usuário
@@ -56,6 +53,8 @@
         </select>
 
 
+        <!-- INVENTÁRIO -->
+
         <label for="inventario">
             Inventário
         </label>
@@ -63,8 +62,15 @@
         <input
             id="inventario"
             type="text"
-            readonly>
+            placeholder="Digite o inventário"
+            autocomplete="off"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck="false"
+        >
 
+
+        <!-- ENDEREÇO -->
 
         <label for="endereco">
             Endereço
@@ -73,197 +79,139 @@
         <input
             id="endereco"
             type="text"
-            readonly>
+            placeholder="Digite o endereço"
+            autocomplete="off"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck="false"
+        >
 
+
+        <!-- BOTÃO -->
 
         <button
             id="btnEntrar"
-            class="btn-primary"
             type="button"
-            disabled>
-
+        >
             INICIAR COLETA
-
         </button>
-
-
-        <div
-            id="loginStatus"
-            class="status"
-            aria-live="polite">
-        </div>
 
     </div>
 
 </div>
 
 
-<!-- ==================================================
+
+<!-- ======================================================
      TELA DE COLETA
-     ================================================== -->
+====================================================== -->
 
 <div
     id="coleta"
-    class="screen hidden">
+    class="container"
+    style="display:none;"
+>
 
 
-    <div class="brand collection-brand">
+    <!-- LOGO -->
 
-        <img
-            src="logo-thor.png"
-            alt="THOR Natural Stones"
-            class="logo">
-
-        <h1>COLETA</h1>
-
-    </div>
+    <img
+        src="logo-thor.png"
+        class="logo"
+        alt="THOR Natural Stones"
+    >
 
 
-    <div class="card collection-card">
+    <h1>COLETA</h1>
 
 
-        <!-- INFORMAÇÕES DA SESSÃO -->
-
-        <div class="session-info">
-
-            <div>
-
-                <span>
-                    Usuário:
-                </span>
-
-                <strong id="lblUsuario">
-                    -
-                </strong>
-
-            </div>
+    <div class="card">
 
 
-            <div>
+        <!-- USUÁRIO -->
 
-                <span>
-                    Inventário:
-                </span>
+        <p>
+            <b>Usuário:</b>
+        </p>
 
-                <strong id="lblInventario">
-                    -
-                </strong>
-
-            </div>
+        <h2 id="lblUsuario"></h2>
 
 
-            <div>
+        <!-- INVENTÁRIO -->
 
-                <span>
-                    Endereço:
-                </span>
+        <p>
+            <b>Inventário:</b>
+        </p>
 
-                <strong id="lblEndereco">
-                    -
-                </strong>
+        <h2 id="lblInventario"></h2>
 
-            </div>
 
-        </div>
+        <!-- ENDEREÇO -->
+
+        <p>
+            <b>Endereço:</b>
+        </p>
+
+        <h2 id="lblEndereco"></h2>
 
 
         <hr>
 
 
-        <!-- CONTADORES -->
+        <!-- CONTADOR DO ENDEREÇO -->
 
-        <div class="counter-row">
+        <p>
+            Produtos neste endereço
+        </p>
 
-
-            <div class="counter-box">
-
-                <span>
-                    Produtos neste endereço
-                </span>
-
-                <strong id="contadorEndereco">
-                    0
-                </strong>
-
-            </div>
+        <h1 id="contadorEndereco">
+            0
+        </h1>
 
 
-            <div class="counter-box">
+        <!-- CONTADOR TOTAL -->
 
-                <span>
-                    Total coletado
-                </span>
+        <p>
+            Total coletado
+        </p>
 
-                <strong id="contadorTotal">
-                    0
-                </strong>
-
-            </div>
-
-        </div>
+        <h1 id="contadorTotal">
+            0
+        </h1>
 
 
         <hr>
 
 
         <!-- ==================================================
-             CÂMERA
-             ================================================== -->
+             ÁREA DA CÂMERA
+        ================================================== -->
 
         <div
             id="cameraArea"
-            class="camera-area">
+            style="display:none;"
+        >
+
+            <video
+                id="camera"
+                autoplay
+                muted
+                playsinline
+            ></video>
 
 
-            <div class="camera-container">
+            <div class="scanner-box">
 
-
-                <video
-                    id="camera"
-                    autoplay
-                    muted
-                    playsinline
-                    webkit-playsinline="true"
-                    aria-label="Câmera para leitura de código de barras">
-                </video>
-
-
-                <!-- MOLDURA DA LEITURA -->
-
-                <div
-                    class="scanner-overlay"
-                    aria-hidden="true">
-
-                    <div class="scanner-frame">
-
-                        <span class="corner top-left"></span>
-
-                        <span class="corner top-right"></span>
-
-                        <span class="corner bottom-left"></span>
-
-                        <span class="corner bottom-right"></span>
-
-                    </div>
-
-                </div>
-
-
-                <div
-                    id="cameraMessage"
-                    class="camera-message">
-
-                    Preparando câmera...
-
-                </div>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
 
             </div>
 
 
-            <p class="camera-help">
-
+            <p class="camera-instruction">
                 Aponte a câmera para o código de barras
-
             </p>
 
         </div>
@@ -271,60 +219,45 @@
 
         <!-- ==================================================
              DIGITAÇÃO MANUAL
-             ================================================== -->
+        ================================================== -->
 
-        <div class="manual-area">
-
-            <label for="codigo">
-
-                Ou digite o código:
-
-            </label>
+        <label for="codigo">
+            Ou digite o código:
+        </label>
 
 
-            <input
-                id="codigo"
-                type="text"
-                placeholder="DIGITE OU COLE O CÓDIGO"
-                autocomplete="off"
-                autocapitalize="characters"
-                autocorrect="off"
-                spellcheck="false"
-                enterkeyhint="done">
+        <input
+            id="codigo"
+            type="text"
+            placeholder="DIGITE OU COLE O CÓDIGO"
+            autocomplete="off"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck="false"
+        >
 
 
-            <button
-                id="btnRegistrar"
-                class="btn-primary"
-                type="button">
+        <button
+            id="btnRegistrar"
+            type="button"
+        >
+            REGISTRAR
+        </button>
 
-                REGISTRAR
 
-            </button>
-
-        </div>
+        <hr>
 
 
         <!-- ÚLTIMA LEITURA -->
 
-        <div class="last-reading">
-
-            <span>
-                Última leitura
-            </span>
-
-            <strong id="ultimaLeitura">
-                -
-            </strong>
-
-        </div>
+        <strong>
+            Última leitura
+        </strong>
 
 
-        <div
-            id="collectionStatus"
-            class="status"
-            aria-live="polite">
-        </div>
+        <h2 id="ultimaLeitura">
+            -
+        </h2>
 
 
     </div>
@@ -332,19 +265,17 @@
 </div>
 
 
-<!-- ==================================================
-     ZXING - LEITOR DE CÓDIGOS
-     ================================================== -->
 
-<script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
-
-
-<!-- CONFIGURAÇÃO DA API -->
+<!-- ======================================================
+     CONFIGURAÇÃO
+====================================================== -->
 
 <script src="config.js"></script>
 
 
-<!-- SCRIPT PRINCIPAL -->
+<!-- ======================================================
+     SCRIPT PRINCIPAL
+====================================================== -->
 
 <script src="script.js"></script>
 
