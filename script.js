@@ -293,7 +293,7 @@ async function carregarConfiguracao() {
 
         /*
          * Mesmo se a API não responder,
-         * deixa o botão funcionar.
+         * permite iniciar a coleta.
          */
 
         if (btnEntrar) {
@@ -318,22 +318,18 @@ function atualizarConfiguracaoUsuario(
 
     if (inventario) {
 
-        inventario.disabled =
-            false;
+        inventario.disabled = false;
 
-        inventario.readOnly =
-            false;
+        inventario.readOnly = false;
 
     }
 
 
     if (endereco) {
 
-        endereco.disabled =
-            false;
+        endereco.disabled = false;
 
-        endereco.readOnly =
-            false;
+        endereco.readOnly = false;
 
     }
 
@@ -368,8 +364,7 @@ function atualizarConfiguracaoUsuario(
 
 
     if (
-        config.inventario !==
-        undefined
+        config.inventario !== undefined
     ) {
 
         inventario.value =
@@ -379,8 +374,7 @@ function atualizarConfiguracaoUsuario(
 
 
     if (
-        config.enderecoAtual !==
-        undefined
+        config.enderecoAtual !== undefined
     ) {
 
         endereco.value =
@@ -403,7 +397,7 @@ function iniciarColeta() {
 
 
     // ==================================================
-    // VALIDA USUÁRIO
+    // USUÁRIO
     // ==================================================
 
     if (
@@ -511,7 +505,7 @@ function iniciarColeta() {
 
 
     // ==================================================
-    // ATUALIZA LABELS
+    // ATUALIZA INFORMAÇÕES
     // ==================================================
 
     const lblUsuario =
@@ -662,7 +656,7 @@ function iniciarColeta() {
 
 
     // ==================================================
-    // CÂMERA
+    // INICIA CÂMERA
     // ==================================================
 
     setTimeout(
@@ -676,7 +670,7 @@ function iniciarColeta() {
 
 
     // ==================================================
-    // FOCO NO CAMPO
+    // FOCO
     // ==================================================
 
     setTimeout(
@@ -821,7 +815,7 @@ async function iniciarCamera() {
 
 
         // ==================================================
-        // INICIA ZXING
+        // ZXING
         // ==================================================
 
         iniciarLeitorZXing();
@@ -988,7 +982,7 @@ async function registrarCodigo(
 
 
     // ==================================================
-    // LETRA = ENDEREÇO
+    // CÓDIGO DE ENDEREÇO
     // ==================================================
 
     if (
@@ -1015,7 +1009,7 @@ async function registrarCodigo(
 
 
     // ==================================================
-    // NÚMERO = PRODUTO
+    // CÓDIGO DE PRODUTO
     // ==================================================
 
     if (
@@ -1113,19 +1107,50 @@ async function alterarEndereco(
 
 
     // ==================================================
-    // SALVA ENDEREÇO NO SHEETS
+    // ENVIA NOVO ENDEREÇO
     // ==================================================
 
     try {
 
+        const dadosEndereco = {
+
+            acao:
+                "novoEndereco",
+
+            usuario:
+                sessao.usuario,
+
+            nomeUsuario:
+                sessao.nomeUsuario,
+
+            inventario:
+                sessao.inventario,
+
+            endereco:
+                sessao.endereco
+
+        };
+
+
+        const parametros =
+            new URLSearchParams(
+                dadosEndereco
+            );
+
+
+        const url =
+            API +
+            "?" +
+            parametros.toString();
+
+
         console.log(
-            "Salvando novo endereço:",
-            sessao.endereco
+            "Enviando novo endereço..."
         );
 
 
         await fetch(
-            API,
+            url,
             {
 
                 method:
@@ -1142,24 +1167,9 @@ async function alterarEndereco(
                 },
 
                 body:
-                    JSON.stringify({
-
-                        acao:
-                            "novoEndereco",
-
-                        usuario:
-                            sessao.usuario,
-
-                        nomeUsuario:
-                            sessao.nomeUsuario,
-
-                        inventario:
-                            sessao.inventario,
-
-                        endereco:
-                            sessao.endereco
-
-                    })
+                    JSON.stringify(
+                        dadosEndereco
+                    )
 
             }
         );
@@ -1227,11 +1237,6 @@ async function registrarProduto(
         );
 
         console.log(
-            "API:",
-            API
-        );
-
-        console.log(
             "================================"
         );
 
@@ -1242,22 +1247,24 @@ async function registrarProduto(
 
         try {
 
+            const urlVerificacao =
+                API +
+                "?acao=verificar" +
+                "&inventario=" +
+                encodeURIComponent(
+                    sessao.inventario
+                ) +
+                "&codigo=" +
+                encodeURIComponent(
+                    codigoProduto
+                ) +
+                "&_=" +
+                Date.now();
+
+
             const resposta =
                 await fetch(
-
-                    API +
-                    "?acao=verificar" +
-                    "&inventario=" +
-                    encodeURIComponent(
-                        sessao.inventario
-                    ) +
-                    "&codigo=" +
-                    encodeURIComponent(
-                        codigoProduto
-                    ) +
-                    "&_=" +
-                    Date.now()
-
+                    urlVerificacao
                 );
 
 
@@ -1268,7 +1275,7 @@ async function registrarProduto(
 
 
                 console.log(
-                    "Resposta da verificação:",
+                    "Resposta verificação:",
                     verifica
                 );
 
@@ -1295,12 +1302,12 @@ async function registrarProduto(
         catch (erroVerificacao) {
 
             /*
-             * Se a verificação de duplicidade
-             * falhar, NÃO impede a gravação.
+             * Se a verificação falhar,
+             * NÃO impede a gravação.
              */
 
             console.warn(
-                "Não foi possível verificar duplicidade.",
+                "Não foi possível verificar duplicidade:",
                 erroVerificacao
             );
 
@@ -1308,19 +1315,22 @@ async function registrarProduto(
 
 
         // ==================================================
-        // DADOS PARA O GOOGLE SHEETS
+        // DADOS DA COLETA
         // ==================================================
 
         const dados = {
 
             /*
-             * IMPORTANTE:
-             * AÇÃO EXPLÍCITA PARA O APPS SCRIPT
+             * AÇÃO PRINCIPAL
              */
 
             acao:
                 "coleta",
 
+
+            /*
+             * USUÁRIO
+             */
 
             usuario:
                 sessao.usuario,
@@ -1330,17 +1340,24 @@ async function registrarProduto(
                 sessao.nomeUsuario,
 
 
+            /*
+             * INVENTÁRIO
+             */
+
             inventario:
                 sessao.inventario,
 
+
+            /*
+             * ENDEREÇO
+             */
 
             endereco:
                 sessao.endereco,
 
 
             /*
-             * Mantém os dois nomes para
-             * compatibilidade.
+             * CÓDIGO
              */
 
             codigo:
@@ -1351,6 +1368,10 @@ async function registrarProduto(
                 codigoProduto,
 
 
+            /*
+             * TIPO
+             */
+
             tipoLeitura:
                 "PRODUTO"
 
@@ -1358,17 +1379,77 @@ async function registrarProduto(
 
 
         console.log(
-            "DADOS ENVIADOS:",
+            "DADOS DA COLETA:",
             dados
         );
 
 
         // ==================================================
-        // GRAVA NO GOOGLE APPS SCRIPT
+        // ENVIA TAMBÉM OS DADOS NA URL
+        // ==================================================
+
+        /*
+         * Esta parte é importante.
+         *
+         * Estamos enviando os dados:
+         *
+         * 1 - no corpo do POST
+         *
+         * 2 - também nos parâmetros da URL
+         *
+         * Assim o Google Apps Script pode
+         * receber por e.postData.contents
+         * ou por e.parameter.
+         */
+
+        const parametros =
+            new URLSearchParams({
+
+                acao:
+                    "coleta",
+
+                usuario:
+                    sessao.usuario,
+
+                nomeUsuario:
+                    sessao.nomeUsuario,
+
+                inventario:
+                    sessao.inventario,
+
+                endereco:
+                    sessao.endereco,
+
+                codigo:
+                    codigoProduto,
+
+                codigoBarras:
+                    codigoProduto,
+
+                tipoLeitura:
+                    "PRODUTO"
+
+            });
+
+
+        const urlGravacao =
+            API +
+            "?" +
+            parametros.toString();
+
+
+        console.log(
+            "URL de gravação:",
+            urlGravacao
+        );
+
+
+        // ==================================================
+        // ENVIA PARA GOOGLE APPS SCRIPT
         // ==================================================
 
         await fetch(
-            API,
+            urlGravacao,
             {
 
                 method:
@@ -1394,7 +1475,7 @@ async function registrarProduto(
 
 
         console.log(
-            "POST enviado para o Google Sheets."
+            "POST enviado para o Google Apps Script."
         );
 
 
@@ -1436,7 +1517,7 @@ async function registrarProduto(
 
 
         // ==================================================
-        // ÚLTIMA LEITURA
+        // MOSTRA ÚLTIMA LEITURA
         // ==================================================
 
         mostrarUltimaLeitura(
@@ -1445,7 +1526,7 @@ async function registrarProduto(
 
 
         console.log(
-            "PRODUTO ENVIADO PARA GRAVAÇÃO:",
+            "COLETA ENVIADA:",
             codigoProduto
         );
 
@@ -1454,7 +1535,7 @@ async function registrarProduto(
     catch (erro) {
 
         console.error(
-            "ERRO AO REGISTRAR:",
+            "ERRO AO REGISTRAR PRODUTO:",
             erro
         );
 
