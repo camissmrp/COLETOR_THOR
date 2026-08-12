@@ -1,103 +1,208 @@
-/* ============================================================
-   COLETOR THOR
-   SCRIPT.JS
-   ============================================================ */
-
 "use strict";
 
+
 /* ============================================================
-   ESTADO DA APLICAÇÃO
+   CONFIGURAÇÃO
    ============================================================ */
 
 let configuracao = {};
 
+
 let sessao = {
+
     usuario: null,
+
     nomeUsuario: "",
+
     inventario: "",
+
     endereco: "",
+
     totalEndereco: 0,
+
     totalColeta: 0
+
 };
 
+
 let cameraStream = null;
+
 let cameraAtiva = false;
+
 let leitorZXing = null;
-let lendoCodigo = false;
 
-let produtosColetados = new Set();
 
-let ultimoCodigoProcessado = "";
-let ultimoProcessamento = 0;
+/*
+ * Produtos já coletados nesta sessão/endereço.
+ *
+ * Evita duplicidade imediata sem precisar esperar
+ * a resposta do servidor.
+ */
+
+let produtosColetados =
+    new Set();
+
+
+/*
+ * Evita que o mesmo código seja processado
+ * repetidamente pela câmera.
+ */
+
+let ultimoCodigo = "";
+
+let ultimoCodigoHora = 0;
 
 
 /* ============================================================
    INICIALIZAÇÃO
    ============================================================ */
 
-window.addEventListener("load", async function () {
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-    console.log("=================================");
-    console.log("COLETOR THOR - INICIANDO");
-    console.log("=================================");
+        console.log(
+            "COLETOR THOR iniciado."
+        );
 
-    /*
-     * IMPORTANTE:
-     * O campo manual e a câmera são iniciados ANTES da API.
-     * Assim, se a API demorar, a câmera não fica bloqueada.
-     */
 
-    try {
+        /*
+         * Garante que a tela inicial apareça.
+         */
+
+        mostrarTelaLogin();
+
+
+        /*
+         * Configura botão inicial.
+         */
+
+        const btnEntrar =
+            document.getElementById(
+                "btnEntrar"
+            );
+
+
+        if (btnEntrar) {
+
+            btnEntrar.addEventListener(
+                "click",
+                iniciarColeta
+            );
+
+        }
+
+
+        /*
+         * Botão voltar.
+         */
+
+        const btnVoltar =
+            document.getElementById(
+                "btnVoltar"
+            );
+
+
+        if (btnVoltar) {
+
+            btnVoltar.addEventListener(
+                "click",
+                voltarParaLogin
+            );
+
+        }
+
+
+        /*
+         * Campo manual.
+         */
+
         configurarCampoManual();
-    } catch (erro) {
-        console.error(
-            "Erro ao configurar campo manual:",
-            erro
+
+
+        /*
+         * Carrega configuração.
+         *
+         * IMPORTANTE:
+         * NÃO inicia a câmera aqui.
+         */
+
+        carregarConfiguracao();
+
+    }
+);
+
+
+/* ============================================================
+   MOSTRAR TELA LOGIN
+   ============================================================ */
+
+function mostrarTelaLogin() {
+
+    const login =
+        document.getElementById(
+            "login"
         );
+
+
+    const coleta =
+        document.getElementById(
+            "coleta"
+        );
+
+
+    if (login) {
+
+        login.style.display =
+            "flex";
+
     }
 
 
-    /* --------------------------------------------------------
-       INICIA A CÂMERA
-       -------------------------------------------------------- */
+    if (coleta) {
 
-    try {
+        coleta.style.display =
+            "none";
 
-        await iniciarCamera();
+    }
 
-    } catch (erro) {
+}
 
-        console.error(
-            "Erro ao iniciar câmera:",
-            erro
+
+/* ============================================================
+   MOSTRAR TELA COLETA
+   ============================================================ */
+
+function mostrarTelaColeta() {
+
+    const login =
+        document.getElementById(
+            "login"
         );
+
+
+    const coleta =
+        document.getElementById(
+            "coleta"
+        );
+
+
+    if (login) {
+
+        login.style.display =
+            "none";
 
     }
 
 
-    /* --------------------------------------------------------
-       CARREGA CONFIGURAÇÃO
-       -------------------------------------------------------- */
+    if (coleta) {
 
-    try {
-
-        await carregarConfiguracao();
-
-    } catch (erro) {
-
-        console.error(
-            "Erro carregando configuração:",
-            erro
-        );
-
-        mostrarStatus(
-            "Não foi possível carregar a configuração.",
-            "erro"
-        );
+        coleta.style.display =
+            "flex";
 
     }
 
-});
+}
 
 
 /* ============================================================
@@ -106,160 +211,525 @@ window.addEventListener("load", async function () {
 
 async function carregarConfiguracao() {
 
-    if (typeof API === "undefined") {
+    try {
+
+        if (
+            typeof API ===
+            "undefined"
+        ) {
+
+            throw new Error(
+                "API não definida no config.js"
+            );
+
+        }
+
+
+        const resposta =
+            await fetch(
+                API +
+                "?acao=config",
+                {
+                    method: "GET",
+                    cache: "no-store"
+                }
+            );
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                "Erro HTTP " +
+                resposta.status
+            );
+
+        }
+
+
+        const dados =
+            await resposta.json();
+
+
+        console.log(
+            "Configuração:",
+            dados
+        );
+
+
+        configuracao =
+            dados;
+
+
+        preencherUsuarios();
+
+
+    }
+    catch (erro) {
 
         console.error(
-            "A variável API não foi encontrada."
+            "Erro ao carregar configuração:",
+            erro
         );
+
+
+        mostrarLoginStatus(
+            "Erro ao carregar configuração.",
+            "erro"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   PREENCHER USUÁRIOS
+   ============================================================ */
+
+function preencherUsuarios() {
+
+    const select =
+        document.getElementById(
+            "usuario"
+        );
+
+
+    if (!select) {
 
         return;
 
     }
 
-    try {
 
-        const resposta = await fetch(
-            API + "?acao=config",
-            {
-                method: "GET",
-                cache: "no-store"
-            }
+    select.innerHTML =
+        "";
+
+
+    const usuarios =
+        configuracao.Usuarios ||
+        [];
+
+
+    if (
+        usuarios.length ===
+        0
+    ) {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+
+        option.value =
+            "";
+
+
+        option.textContent =
+            "Nenhum usuário";
+
+
+        select.appendChild(
+            option
         );
 
-        if (!resposta.ok) {
 
-            throw new Error(
-                "Erro HTTP: " + resposta.status
+        return;
+
+    }
+
+
+    usuarios.forEach(
+        function (usuario) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                usuario.id;
+
+
+            option.textContent =
+                usuario.nome;
+
+
+            select.appendChild(
+                option
             );
 
         }
+    );
 
-        const dados = await resposta.json();
 
-        console.log(
-            "Configuração recebida:",
-            dados
+    /*
+     * Carrega primeiro usuário.
+     */
+
+    atualizarConfiguracaoUsuario(
+        usuarios[0].id
+    );
+
+
+    /*
+     * Troca de usuário.
+     */
+
+    select.addEventListener(
+        "change",
+        function () {
+
+            atualizarConfiguracaoUsuario(
+                this.value
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CONFIGURAÇÃO DO USUÁRIO
+   ============================================================ */
+
+function atualizarConfiguracaoUsuario(
+    usuarioId
+) {
+
+    const campoInventario =
+        document.getElementById(
+            "inventario"
         );
 
-        configuracao = dados || {};
 
-        aplicarConfiguracao(configuracao);
+    const campoEndereco =
+        document.getElementById(
+            "endereco"
+        );
 
-    } catch (erro) {
+
+    if (
+        !campoInventario ||
+        !campoEndereco
+    ) {
+
+        return;
+
+    }
+
+
+    const configuracoes =
+        configuracao.Configuracoes ||
+        [];
+
+
+    const configUsuario =
+        configuracoes.find(
+            function (config) {
+
+                return (
+                    String(
+                        config.usuario
+                    ) ===
+                    String(
+                        usuarioId
+                    )
+                );
+
+            }
+        );
+
+
+    if (!configUsuario) {
+
+        campoInventario.value =
+            "";
+
+        campoEndereco.value =
+            "";
+
+        return;
+
+    }
+
+
+    campoInventario.value =
+        configUsuario.inventario ||
+        "";
+
+
+    campoEndereco.value =
+        configUsuario.enderecoAtual ||
+        "";
+
+}
+
+
+/* ============================================================
+   INICIAR COLETA
+   ============================================================ */
+
+async function iniciarColeta() {
+
+    const btn =
+        document.getElementById(
+            "btnEntrar"
+        );
+
+
+    const usuario =
+        document.getElementById(
+            "usuario"
+        );
+
+
+    const inventario =
+        document.getElementById(
+            "inventario"
+        );
+
+
+    const endereco =
+        document.getElementById(
+            "endereco"
+        );
+
+
+    if (
+        !usuario ||
+        !inventario ||
+        !endereco
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Desabilita enquanto inicia.
+     */
+
+    if (btn) {
+
+        btn.disabled =
+            true;
+
+    }
+
+
+    sessao.usuario =
+        usuario.value;
+
+
+    if (
+        usuario.selectedIndex >=
+        0
+    ) {
+
+        sessao.nomeUsuario =
+            usuario.options[
+                usuario.selectedIndex
+            ].text;
+
+    }
+
+
+    sessao.inventario =
+        inventario.value.trim();
+
+
+    sessao.endereco =
+        endereco.value.trim();
+
+
+    /*
+     * Validação.
+     */
+
+    if (
+        !sessao.usuario
+    ) {
+
+        mostrarLoginStatus(
+            "Selecione o usuário.",
+            "erro"
+        );
+
+
+        if (btn) {
+            btn.disabled = false;
+        }
+
+
+        return;
+
+    }
+
+
+    if (
+        !sessao.inventario
+    ) {
+
+        mostrarLoginStatus(
+            "Informe o inventário.",
+            "erro"
+        );
+
+
+        if (btn) {
+            btn.disabled = false;
+        }
+
+
+        return;
+
+    }
+
+
+    if (
+        !sessao.endereco
+    ) {
+
+        mostrarLoginStatus(
+            "Informe o endereço.",
+            "erro"
+        );
+
+
+        if (btn) {
+            btn.disabled = false;
+        }
+
+
+        return;
+
+    }
+
+
+    /*
+     * Zera contadores.
+     */
+
+    sessao.totalEndereco =
+        0;
+
+
+    sessao.totalColeta =
+        0;
+
+
+    produtosColetados =
+        new Set();
+
+
+    atualizarTelaColeta();
+
+
+    /*
+     * Troca para a tela de coleta.
+     */
+
+    mostrarTelaColeta();
+
+
+    /*
+     * Agora sim abre a câmera.
+     *
+     * Isso garante que ela não abra
+     * na tela inicial.
+     */
+
+    try {
+
+        await iniciarCamera();
+
+    }
+    catch (erro) {
 
         console.error(
-            "Erro na configuração:",
+            "Erro câmera:",
             erro
         );
 
-        /*
-         * Não interrompe a câmera.
-         */
-
-        throw erro;
     }
-}
 
-
-/* ============================================================
-   APLICAR CONFIGURAÇÃO
-   ============================================================ */
-
-function aplicarConfiguracao(dados) {
 
     /*
-     * Aceita diferentes nomes de campos para evitar
-     * problemas caso o Code.gs retorne nomes diferentes.
+     * Foco no campo manual.
      */
 
-    sessao.usuario =
-        dados.usuario ??
-        dados.Usuario ??
-        dados.idUsuario ??
-        dados.IDUsuario ??
-        null;
+    setTimeout(
+        function () {
 
-    sessao.nomeUsuario =
-        dados.nomeUsuario ??
-        dados.NomeUsuario ??
-        dados.nome ??
-        dados.Nome ??
-        "";
+            const campo =
+                document.getElementById(
+                    "codigoManual"
+                );
 
-    sessao.inventario =
-        dados.inventario ??
-        dados.Inventario ??
-        "";
 
-    sessao.endereco =
-        dados.endereco ??
-        dados.Endereco ??
-        "";
+            if (campo) {
 
-    /*
-     * Caso o backend retorne a quantidade de produtos
-     * existentes no endereço.
-     */
+                campo.focus();
 
-    sessao.totalEndereco = Number(
-        dados.totalEndereco ??
-        dados.totalProdutos ??
-        dados.produtosEndereco ??
-        0
+            }
+
+        },
+        300
     );
 
-    /*
-     * Atualiza tela.
-     */
 
-    atualizarTela();
+    if (btn) {
+
+        btn.disabled =
+            false;
+
+    }
 
 }
 
 
 /* ============================================================
-   ATUALIZAR TELA
+   ATUALIZAR TELA DE COLETA
    ============================================================ */
 
-function atualizarTela() {
+function atualizarTelaColeta() {
 
     definirTexto(
-        [
-            "usuario",
-            "nomeUsuario"
-        ],
-        sessao.nomeUsuario || "-"
+        "lblUsuario",
+        sessao.nomeUsuario ||
+        "-"
     );
 
-    definirTexto(
-        [
-            "inventario"
-        ],
-        sessao.inventario || "-"
-    );
 
     definirTexto(
-        [
-            "endereco"
-        ],
-        sessao.endereco || "-"
+        "lblInventario",
+        sessao.inventario ||
+        "-"
     );
 
-    definirTexto(
-        [
-            "totalEndereco",
-            "produtosEndereco"
-        ],
-        String(sessao.totalEndereco)
-    );
 
     definirTexto(
-        [
-            "totalColeta",
-            "totalColetado"
-        ],
-        String(sessao.totalColeta)
+        "lblEndereco",
+        sessao.endereco ||
+        "-"
     );
+
+
+    definirTexto(
+        "contadorEndereco",
+        sessao.totalEndereco
+    );
+
+
+    definirTexto(
+        "contadorTotal",
+        sessao.totalColeta
+    );
+
 }
 
 
@@ -267,32 +737,44 @@ function atualizarTela() {
    DEFINIR TEXTO
    ============================================================ */
 
-function definirTexto(ids, valor) {
+function definirTexto(
+    id,
+    valor
+) {
 
-    ids.forEach(function (id) {
+    const elemento =
+        document.getElementById(
+            id
+        );
 
-        const elemento =
-            document.getElementById(id);
 
-        if (elemento) {
-            elemento.textContent = valor;
-        }
+    if (elemento) {
 
-    });
+        elemento.textContent =
+            valor;
+
+    }
+
 }
 
 
 /* ============================================================
-   CONFIGURAR CAMPO MANUAL
+   CAMPO MANUAL
    ============================================================ */
 
 function configurarCampoManual() {
 
     const campo =
-        document.getElementById("codigoManual");
+        document.getElementById(
+            "codigoManual"
+        );
+
 
     const botao =
-        document.getElementById("btnRegistrar");
+        document.getElementById(
+            "btnRegistrar"
+        );
+
 
     if (campo) {
 
@@ -300,9 +782,13 @@ function configurarCampoManual() {
             "keydown",
             function (evento) {
 
-                if (evento.key === "Enter") {
+                if (
+                    evento.key ===
+                    "Enter"
+                ) {
 
                     evento.preventDefault();
+
 
                     processarCodigo(
                         campo.value
@@ -315,6 +801,7 @@ function configurarCampoManual() {
 
     }
 
+
     if (botao) {
 
         botao.addEventListener(
@@ -322,8 +809,11 @@ function configurarCampoManual() {
             function () {
 
                 if (!campo) {
+
                     return;
+
                 }
+
 
                 processarCodigo(
                     campo.value
@@ -333,6 +823,7 @@ function configurarCampoManual() {
         );
 
     }
+
 }
 
 
@@ -343,12 +834,30 @@ function configurarCampoManual() {
 async function iniciarCamera() {
 
     const video =
-        document.getElementById("camera");
+        document.getElementById(
+            "camera"
+        );
+
 
     if (!video) {
 
         console.error(
-            "Elemento #camera não encontrado."
+            "Elemento camera não encontrado."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
+
+        mostrarStatus(
+            "Este navegador não permite câmera.",
+            "erro"
         );
 
         return;
@@ -357,22 +866,10 @@ async function iniciarCamera() {
 
 
     /*
-     * Verifica suporte.
+     * Se já estiver ativa, não abre novamente.
      */
 
-    if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-    ) {
-
-        console.error(
-            "getUserMedia não disponível."
-        );
-
-        mostrarStatus(
-            "Este navegador não permite acesso à câmera.",
-            "erro"
-        );
+    if (cameraAtiva) {
 
         return;
 
@@ -382,146 +879,106 @@ async function iniciarCamera() {
     try {
 
         console.log(
-            "Solicitando acesso à câmera..."
+            "Solicitando câmera..."
         );
 
-
-        /*
-         * Câmera traseira.
-         */
 
         cameraStream =
-            await navigator.mediaDevices.getUserMedia({
+            await navigator.mediaDevices
+                .getUserMedia({
 
-                video: {
+                    video: {
 
-                    facingMode: {
-                        ideal: "environment"
+                        facingMode: {
+                            ideal: "environment"
+                        },
+
+                        width: {
+                            ideal: 1280
+                        },
+
+                        height: {
+                            ideal: 720
+                        }
+
                     },
 
-                    width: {
-                        ideal: 1280
-                    },
+                    audio: false
 
-                    height: {
-                        ideal: 720
-                    }
+                });
 
-                },
-
-                audio: false
-
-            });
-
-
-        console.log(
-            "Câmera autorizada."
-        );
-
-
-        /*
-         * Coloca o stream no vídeo.
-         */
 
         video.srcObject =
             cameraStream;
+
 
         video.setAttribute(
             "playsinline",
             ""
         );
 
+
         video.setAttribute(
             "autoplay",
             ""
         );
 
-        video.muted = true;
+
+        video.muted =
+            true;
 
 
-        /*
-         * iPhone/Safari.
-         */
-
-        try {
-
-            await video.play();
-
-        } catch (erroVideo) {
-
-            console.warn(
-                "Autoplay bloqueado:",
-                erroVideo
-            );
-
-            /*
-             * Tenta novamente.
-             */
-
-            video.play().catch(
-                function () {}
-            );
-
-        }
+        await video.play();
 
 
-        cameraAtiva = true;
+        cameraAtiva =
+            true;
 
 
         console.log(
-            "Câmera funcionando."
+            "Câmera iniciada."
         );
 
 
         /*
-         * Inicia o leitor.
+         * Inicia ZXing.
          */
 
         iniciarZXing();
 
 
-    } catch (erro) {
+    }
+    catch (erro) {
 
-        cameraAtiva = false;
+        cameraAtiva =
+            false;
+
 
         console.error(
-            "ERRO AO ABRIR CÂMERA:",
+            "Erro ao abrir câmera:",
             erro
         );
 
 
-        let mensagem =
-            "Não foi possível abrir a câmera.";
-
-
         if (
-            erro &&
-            erro.name === "NotAllowedError"
+            erro.name ===
+            "NotAllowedError"
         ) {
 
-            mensagem =
-                "Permita o acesso à câmera no navegador.";
+            mostrarStatus(
+                "Permita o acesso à câmera.",
+                "erro"
+            );
 
         }
+        else {
 
-
-        if (
-            erro &&
-            erro.name === "NotFoundError"
-        ) {
-
-            mensagem =
-                "Nenhuma câmera foi encontrada.";
+            mostrarStatus(
+                "Não foi possível abrir a câmera.",
+                "erro"
+            );
 
         }
-
-
-        mostrarStatus(
-            mensagem,
-            "erro"
-        );
-
-        throw erro;
 
     }
 
@@ -529,42 +986,39 @@ async function iniciarCamera() {
 
 
 /* ============================================================
-   INICIAR ZXING
+   ZXING
    ============================================================ */
 
 function iniciarZXing() {
 
     const video =
-        document.getElementById("camera");
+        document.getElementById(
+            "camera"
+        );
 
 
     if (!video) {
-
-        console.error(
-            "Vídeo não encontrado."
-        );
 
         return;
 
     }
 
 
-    /*
-     * Verifica se a biblioteca ZXing existe.
-     */
-
     if (
-        typeof ZXingBrowser === "undefined"
+        typeof ZXingBrowser ===
+        "undefined"
     ) {
 
         console.error(
-            "ZXingBrowser não encontrado."
+            "ZXingBrowser não carregado."
         );
 
+
         mostrarStatus(
-            "Biblioteca de leitura não carregada.",
+            "Leitor de código não carregado.",
             "erro"
         );
+
 
         return;
 
@@ -573,23 +1027,10 @@ function iniciarZXing() {
 
     try {
 
-        console.log(
-            "Iniciando leitor ZXing..."
-        );
-
-
-        /*
-         * Leitor para múltiplos formatos.
-         */
-
         leitorZXing =
-            new ZXingBrowser.BrowserMultiFormatReader();
+            new ZXingBrowser
+                .BrowserMultiFormatReader();
 
-
-        /*
-         * Alguns códigos de barras podem exigir
-         * um pequeno intervalo entre leituras.
-         */
 
         leitorZXing.decodeFromVideoElement(
             video,
@@ -598,20 +1039,43 @@ function iniciarZXing() {
                 erro
             ) {
 
-                if (resultado) {
+                if (!resultado) {
 
-                    const codigo =
-                        extrairCodigoResultado(
-                            resultado
-                        );
+                    return;
 
-                    if (codigo) {
+                }
 
-                        processarCodigo(
-                            codigo
-                        );
 
-                    }
+                let codigo =
+                    "";
+
+
+                try {
+
+                    codigo =
+                        resultado.getText();
+
+                }
+                catch (e) {
+
+                    codigo =
+                        resultado.text ||
+                        "";
+
+                }
+
+
+                codigo =
+                    limparCodigo(
+                        codigo
+                    );
+
+
+                if (codigo) {
+
+                    processarCodigo(
+                        codigo
+                    );
 
                 }
 
@@ -620,14 +1084,14 @@ function iniciarZXing() {
 
 
         console.log(
-            "ZXing iniciado."
+            "ZXing ativo."
         );
 
-
-    } catch (erro) {
+    }
+    catch (erro) {
 
         console.error(
-            "Erro ao iniciar ZXing:",
+            "Erro ZXing:",
             erro
         );
 
@@ -637,69 +1101,22 @@ function iniciarZXing() {
 
 
 /* ============================================================
-   EXTRAIR CÓDIGO DO RESULTADO
-   ============================================================ */
-
-function extrairCodigoResultado(resultado) {
-
-    if (!resultado) {
-        return "";
-    }
-
-
-    /*
-     * Formato mais comum.
-     */
-
-    if (
-        typeof resultado.getText === "function"
-    ) {
-
-        return limparCodigo(
-            resultado.getText()
-        );
-
-    }
-
-
-    /*
-     * Alguns retornos podem vir como text.
-     */
-
-    if (
-        typeof resultado.text === "string"
-    ) {
-
-        return limparCodigo(
-            resultado.text
-        );
-
-    }
-
-
-    return "";
-
-}
-
-
-/* ============================================================
    LIMPAR CÓDIGO
    ============================================================ */
 
-function limparCodigo(codigo) {
+function limparCodigo(
+    codigo
+) {
 
-    if (codigo === null ||
-        codigo === undefined) {
-
-        return "";
-
-    }
-
-    return String(codigo)
+    return String(
+        codigo ||
+        ""
+    )
         .trim()
-        .replace(/\r/g, "")
-        .replace(/\n/g, "")
-        .replace(/\t/g, "");
+        .replace(
+            /[\r\n\t]/g,
+            ""
+        );
 
 }
 
@@ -708,10 +1125,14 @@ function limparCodigo(codigo) {
    PROCESSAR CÓDIGO
    ============================================================ */
 
-function processarCodigo(codigo) {
+function processarCodigo(
+    codigo
+) {
 
     codigo =
-        limparCodigo(codigo);
+        limparCodigo(
+            codigo
+        );
 
 
     if (!codigo) {
@@ -722,8 +1143,8 @@ function processarCodigo(codigo) {
 
 
     /*
-     * Evita processamento duplicado imediato
-     * do mesmo frame da câmera.
+     * Evita o mesmo código sendo lido
+     * várias vezes pela câmera.
      */
 
     const agora =
@@ -731,8 +1152,13 @@ function processarCodigo(codigo) {
 
 
     if (
-        codigo === ultimoCodigoProcessado &&
-        agora - ultimoProcessamento < 1200
+        codigo ===
+        ultimoCodigo
+        &&
+        (
+            agora -
+            ultimoCodigoHora
+        ) < 1200
     ) {
 
         return;
@@ -740,39 +1166,41 @@ function processarCodigo(codigo) {
     }
 
 
-    ultimoCodigoProcessado =
+    ultimoCodigo =
         codigo;
 
-    ultimoProcessamento =
+
+    ultimoCodigoHora =
         agora;
 
 
     console.log(
-        "Código detectado:",
+        "Código:",
         codigo
     );
 
 
     /*
-     * REGRA PRINCIPAL:
+     * REGRA:
      *
-     * LETRA = ENDEREÇO
-     * NÚMERO = PRODUTO
+     * começa com LETRA = ENDEREÇO
+     *
+     * começa com NÚMERO = PRODUTO
      */
 
-    const primeiroCaractere =
-        codigo.charAt(0);
-
-
     if (
-        /^[A-Za-z]$/.test(
-            primeiroCaractere
+        /^[A-Za-z]/.test(
+            codigo
         )
     ) {
 
         processarEndereco(
-            codigo
+            codigo.toUpperCase()
         );
+
+
+        limparCampo();
+
 
         return;
 
@@ -780,8 +1208,8 @@ function processarCodigo(codigo) {
 
 
     if (
-        /^[0-9]$/.test(
-            primeiroCaractere
+        /^[0-9]/.test(
+            codigo
         )
     ) {
 
@@ -789,23 +1217,28 @@ function processarCodigo(codigo) {
             codigo
         );
 
+
+        limparCampo();
+
+
         return;
 
     }
 
 
-    /*
-     * Código inválido.
-     */
-
     mostrarUltimaLeitura(
-        codigo + " - INVÁLIDO"
+        codigo +
+        " - INVÁLIDO"
     );
+
 
     mostrarStatus(
         "Código inválido.",
         "erro"
     );
+
+
+    limparCampo();
 
 }
 
@@ -814,56 +1247,45 @@ function processarCodigo(codigo) {
    PROCESSAR ENDEREÇO
    ============================================================ */
 
-function processarEndereco(codigo) {
+async function processarEndereco(
+    novoEndereco
+) {
 
     console.log(
-        "Endereço detectado:",
-        codigo
+        "Novo endereço:",
+        novoEndereco
     );
 
 
     /*
-     * Troca o endereço.
+     * Atualiza imediatamente a tela.
      */
 
     sessao.endereco =
-        codigo;
+        novoEndereco;
 
 
     /*
-     * Zera a lista de produtos do endereço.
-     *
-     * Isso é importante porque o mesmo produto
-     * pode existir em outro endereço.
+     * Zera contador do endereço.
+     */
+
+    sessao.totalEndereco =
+        0;
+
+
+    /*
+     * Zera produtos locais.
      */
 
     produtosColetados =
         new Set();
 
 
-    /*
-     * Atualiza contadores.
-     */
-
-    sessao.totalColeta =
-        0;
-
-
-    /*
-     * Tenta obter a quantidade do endereço
-     * no backend.
-     */
-
-    consultarEndereco(
-        codigo
-    );
-
-
-    atualizarTela();
+    atualizarTelaColeta();
 
 
     mostrarUltimaLeitura(
-        codigo
+        novoEndereco
     );
 
 
@@ -872,6 +1294,70 @@ function processarEndereco(codigo) {
         "sucesso"
     );
 
+
+    /*
+     * Grava no TB_CONFIG.
+     *
+     * O Code.gs atual recebe:
+     * acao = novoEndereco
+     */
+
+    try {
+
+        await fetch(
+            API,
+            {
+
+                method: "POST",
+
+                mode: "no-cors",
+
+                headers: {
+
+                    "Content-Type":
+                        "text/plain"
+
+                },
+
+                body:
+                    JSON.stringify({
+
+                        acao:
+                            "novoEndereco",
+
+                        usuario:
+                            sessao.usuario,
+
+                        inventario:
+                            sessao.inventario,
+
+                        endereco:
+                            novoEndereco
+
+                    }),
+
+                keepalive:
+                    true
+
+            }
+        );
+
+
+        console.log(
+            "Endereço enviado ao servidor."
+        );
+
+
+    }
+    catch (erro) {
+
+        console.error(
+            "Erro ao salvar endereço:",
+            erro
+        );
+
+    }
+
 }
 
 
@@ -879,81 +1365,91 @@ function processarEndereco(codigo) {
    PROCESSAR PRODUTO
    ============================================================ */
 
-function processarProduto(codigo) {
-
-    console.log(
-        "Produto detectado:",
-        codigo
-    );
-
-
-    /*
-     * Não permite produto sem endereço.
-     */
+function processarProduto(
+    codigo
+) {
 
     if (
         !sessao.endereco
     ) {
 
         mostrarUltimaLeitura(
-            codigo + " - SEM ENDEREÇO"
+            codigo +
+            " - SEM ENDEREÇO"
         );
+
 
         mostrarStatus(
             "Leia primeiro o endereço.",
             "erro"
         );
 
+
         return;
 
     }
 
 
     /*
-     * NÃO PERMITE PRODUTO REPETIDO
-     * NO MESMO ENDEREÇO.
+     * DUPLICIDADE LOCAL
+     *
+     * Impede imediatamente que o mesmo
+     * produto seja enviado duas vezes
+     * durante a mesma sessão/endereço.
      */
 
+    const chave =
+        sessao.inventario +
+        "|" +
+        sessao.endereco +
+        "|" +
+        codigo;
+
+
     if (
-        produtosColetados.has(codigo)
+        produtosColetados.has(
+            chave
+        )
     ) {
 
         mostrarUltimaLeitura(
-            codigo + " - DUPLICADO"
+            codigo +
+            " - DUPLICADO"
         );
+
 
         mostrarStatus(
             "Produto já coletado neste endereço.",
             "erro"
         );
 
+
         return;
 
     }
 
 
     /*
-     * Adiciona imediatamente ao Set.
-     *
-     * Isso acontece ANTES do fetch.
-     *
-     * Assim, mesmo que o servidor demore,
-     * uma segunda leitura do mesmo código
-     * não será registrada.
+     * Reserva imediatamente.
      */
 
     produtosColetados.add(
-        codigo
+        chave
     );
 
 
     /*
-     * Atualização imediata da tela.
+     * Atualiza tela imediatamente.
+     *
+     * Não espera o servidor.
      */
+
+    sessao.totalEndereco++;
 
     sessao.totalColeta++;
 
-    atualizarTela();
+
+    atualizarTelaColeta();
 
 
     mostrarUltimaLeitura(
@@ -961,13 +1457,19 @@ function processarProduto(codigo) {
     );
 
 
+    mostrarStatus(
+        "Registrando...",
+        "sucesso"
+    );
+
+
     /*
-     * Registra no servidor sem bloquear
-     * a leitura seguinte.
+     * Envia sem bloquear a câmera.
      */
 
     registrarProduto(
-        codigo
+        codigo,
+        chave
     );
 
 }
@@ -977,146 +1479,63 @@ function processarProduto(codigo) {
    REGISTRAR PRODUTO
    ============================================================ */
 
-async function registrarProduto(codigo) {
-
-    if (
-        typeof API === "undefined"
-    ) {
-
-        console.error(
-            "API não definida."
-        );
-
-        /*
-         * Remove do Set se não conseguiu
-         * nem tentar enviar.
-         */
-
-        produtosColetados.delete(
-            codigo
-        );
-
-        sessao.totalColeta =
-            Math.max(
-                0,
-                sessao.totalColeta - 1
-            );
-
-        atualizarTela();
-
-        return;
-
-    }
-
-
-    /*
-     * Monta os dados.
-     */
-
-    const dados = {
-
-        id:
-            gerarID(),
-
-        inventario:
-            sessao.inventario,
-
-        endereco:
-            sessao.endereco,
-
-        dataHora:
-            new Date().toISOString(),
-
-        usuario:
-            sessao.usuario,
-
-        codigoBarras:
-            codigo,
-
-        tipoLeitura:
-            "PRODUTO",
-
-        nomeUsuario:
-            sessao.nomeUsuario
-
-    };
-
-
-    console.log(
-        "Registrando:",
-        dados
-    );
-
+async function registrarProduto(
+    codigo,
+    chave
+) {
 
     try {
 
-        /*
-         * POST rápido.
-         *
-         * keepalive permite que a requisição
-         * continue mesmo se a página sofrer
-         * alguma atualização.
-         */
+        await fetch(
+            API,
+            {
 
-        const resposta =
-            await fetch(
-                API,
-                {
-                    method: "POST",
+                method: "POST",
 
-                    headers: {
-                        "Content-Type":
-                            "text/plain;charset=utf-8"
-                    },
+                mode: "no-cors",
 
-                    body:
-                        JSON.stringify(dados),
+                headers: {
 
-                    keepalive: true
-                }
-            );
+                    "Content-Type":
+                        "text/plain"
 
+                },
 
-        if (!resposta.ok) {
+                body:
+                    JSON.stringify({
 
-            throw new Error(
-                "HTTP " +
-                resposta.status
-            );
+                        usuario:
+                            sessao.usuario,
 
-        }
+                        nomeUsuario:
+                            sessao.nomeUsuario,
 
+                        inventario:
+                            sessao.inventario,
 
-        /*
-         * Tenta ler a resposta.
-         */
+                        endereco:
+                            sessao.endereco,
 
-        let retorno = null;
+                        codigo:
+                            codigo,
 
-        try {
+                        tipoLeitura:
+                            "PRODUTO"
 
-            retorno =
-                await resposta.json();
+                    }),
 
-        } catch (erroJSON) {
+                keepalive:
+                    true
 
-            /*
-             * Alguns Apps Script retornam
-             * texto mesmo quando deu certo.
-             */
-
-            console.log(
-                "Resposta não JSON."
-            );
-
-        }
-
-
-        console.log(
-            "Registro concluído:",
-            retorno
+            }
         );
 
+
+        /*
+         * Com no-cors não podemos ler a resposta.
+         * O Code.gs continua fazendo a proteção
+         * definitiva contra duplicidade.
+         */
 
         mostrarStatus(
             "Registrado.",
@@ -1124,7 +1543,8 @@ async function registrarProduto(codigo) {
         );
 
 
-    } catch (erro) {
+    }
+    catch (erro) {
 
         console.error(
             "Erro ao registrar:",
@@ -1133,27 +1553,40 @@ async function registrarProduto(codigo) {
 
 
         /*
-         * Se o servidor rejeitou,
-         * libera novamente o código.
+         * Libera a chave local.
          */
 
         produtosColetados.delete(
-            codigo
+            chave
         );
+
+
+        /*
+         * Corrige contadores.
+         */
+
+        sessao.totalEndereco =
+            Math.max(
+                0,
+                sessao.totalEndereco -
+                1
+            );
 
 
         sessao.totalColeta =
             Math.max(
                 0,
-                sessao.totalColeta - 1
+                sessao.totalColeta -
+                1
             );
 
 
-        atualizarTela();
+        atualizarTelaColeta();
 
 
         mostrarUltimaLeitura(
-            codigo + " - ERRO"
+            codigo +
+            " - ERRO"
         );
 
 
@@ -1168,96 +1601,21 @@ async function registrarProduto(codigo) {
 
 
 /* ============================================================
-   CONSULTAR ENDEREÇO
+   LIMPAR CAMPO
    ============================================================ */
 
-async function consultarEndereco(endereco) {
+function limparCampo() {
 
-    if (
-        typeof API === "undefined"
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const resposta =
-            await fetch(
-                API +
-                "?acao=endereco&endereco=" +
-                encodeURIComponent(
-                    endereco
-                ) +
-                "&inventario=" +
-                encodeURIComponent(
-                    sessao.inventario
-                ),
-                {
-                    method: "GET",
-                    cache: "no-store"
-                }
-            );
-
-
-        if (!resposta.ok) {
-
-            return;
-
-        }
-
-
-        const dados =
-            await resposta.json();
-
-
-        console.log(
-            "Dados do endereço:",
-            dados
+    const campo =
+        document.getElementById(
+            "codigoManual"
         );
 
 
-        /*
-         * Atualiza quantidade esperada.
-         */
+    if (campo) {
 
-        if (
-            dados &&
-            dados.total !== undefined
-        ) {
-
-            sessao.totalEndereco =
-                Number(
-                    dados.total
-                );
-
-        }
-
-
-        if (
-            dados &&
-            dados.totalEndereco !== undefined
-        ) {
-
-            sessao.totalEndereco =
-                Number(
-                    dados.totalEndereco
-                );
-
-        }
-
-
-        atualizarTela();
-
-
-    } catch (erro) {
-
-        console.warn(
-            "Não foi possível consultar endereço:",
-            erro
-        );
+        campo.value =
+            "";
 
     }
 
@@ -1265,100 +1623,29 @@ async function consultarEndereco(endereco) {
 
 
 /* ============================================================
-   GERAR ID
+   ÚLTIMA LEITURA
    ============================================================ */
 
-function gerarID() {
+function mostrarUltimaLeitura(
+    texto
+) {
 
-    /*
-     * UUID moderno.
-     */
-
-    if (
-        typeof crypto !== "undefined" &&
-        typeof crypto.randomUUID === "function"
-    ) {
-
-        return crypto.randomUUID();
-
-    }
-
-
-    /*
-     * Fallback.
-     */
-
-    return (
-        Date.now().toString(36) +
-        Math.random()
-            .toString(36)
-            .substring(2, 10)
+    definirTexto(
+        "ultimaLeitura",
+        texto
     );
 
 }
 
 
 /* ============================================================
-   MOSTRAR ÚLTIMA LEITURA
-   ============================================================ */
-
-function mostrarUltimaLeitura(texto) {
-
-    const ids = [
-        "ultimaLeitura",
-        "ultima-leitura",
-        "ultimoCodigo",
-        "ultimaLeituraCodigo"
-    ];
-
-
-    let elemento = null;
-
-
-    for (
-        let i = 0;
-        i < ids.length;
-        i++
-    ) {
-
-        elemento =
-            document.getElementById(
-                ids[i]
-            );
-
-        if (elemento) {
-            break;
-        }
-
-    }
-
-
-    if (elemento) {
-
-        elemento.textContent =
-            texto;
-
-    }
-
-}
-
-
-/* ============================================================
-   MOSTRAR STATUS
+   STATUS
    ============================================================ */
 
 function mostrarStatus(
     mensagem,
     tipo
 ) {
-
-    console.log(
-        "[" +
-        tipo +
-        "] " +
-        mensagem
-    );
-
 
     const elemento =
         document.getElementById(
@@ -1385,10 +1672,6 @@ function mostrarStatus(
         );
 
 
-    /*
-     * Remove mensagem depois de alguns segundos.
-     */
-
     setTimeout(
         function () {
 
@@ -1400,11 +1683,76 @@ function mostrarStatus(
                 elemento.textContent =
                     "";
 
+                elemento.className =
+                    "status";
+
             }
 
         },
         1800
     );
+
+}
+
+
+/* ============================================================
+   STATUS LOGIN
+   ============================================================ */
+
+function mostrarLoginStatus(
+    mensagem,
+    tipo
+) {
+
+    const elemento =
+        document.getElementById(
+            "loginStatus"
+        );
+
+
+    if (!elemento) {
+
+        return;
+
+    }
+
+
+    elemento.textContent =
+        mensagem;
+
+
+    elemento.className =
+        "status " +
+        (
+            tipo ||
+            ""
+        );
+
+}
+
+
+/* ============================================================
+   VOLTAR PARA LOGIN
+   ============================================================ */
+
+function voltarParaLogin() {
+
+    pararCamera();
+
+
+    sessao.totalEndereco =
+        0;
+
+
+    sessao.totalColeta =
+        0;
+
+
+    produtosColetados =
+        new Set();
+
+
+    mostrarTelaLogin();
 
 }
 
@@ -1427,7 +1775,8 @@ function pararCamera() {
 
         }
 
-    } catch (erro) {
+    }
+    catch (erro) {
 
         console.warn(
             "Erro ao parar ZXing:",
@@ -1435,6 +1784,10 @@ function pararCamera() {
         );
 
     }
+
+
+    leitorZXing =
+        null;
 
 
     if (cameraStream) {
@@ -1448,6 +1801,7 @@ function pararCamera() {
 
                 }
             );
+
 
         cameraStream =
             null;
@@ -1483,97 +1837,33 @@ async function reiniciarCamera() {
 
     pararCamera();
 
+
     await iniciarCamera();
 
 }
 
 
 /* ============================================================
-   VISIBILIDADE DA PÁGINA
+   VOLTAR PARA CÂMERA APÓS SEGUNDO PLANO
    ============================================================ */
 
 document.addEventListener(
     "visibilitychange",
-    async function () {
-
-        /*
-         * No iPhone, quando o navegador vai para
-         * segundo plano, a câmera pode ser encerrada.
-         */
+    function () {
 
         if (
             document.visibilityState ===
             "visible"
-        ) {
-
-            /*
-             * Só reinicia se não houver câmera ativa.
-             */
-
-            if (!cameraAtiva) {
-
-                try {
-
-                    await iniciarCamera();
-
-                } catch (erro) {
-
-                    console.warn(
-                        "Não foi possível reiniciar câmera:",
-                        erro
-                    );
-
-                }
-
-            }
-
-        }
-
-    }
-);
-
-
-/* ============================================================
-   GARANTIR VÍDEO NO IPHONE
-   ============================================================ */
-
-document.addEventListener(
-    "click",
-    async function () {
-
-        const video =
+            &&
             document.getElementById(
-                "camera"
-            );
-
-
-        if (!video) {
-            return;
-        }
-
-
-        /*
-         * Se o stream existe mas o vídeo
-         * foi pausado, tenta tocar novamente.
-         */
-
-        if (
-            cameraStream &&
-            video.paused
+                "coleta"
+            )?.style.display !==
+            "none"
+            &&
+            !cameraAtiva
         ) {
 
-            try {
-
-                await video.play();
-
-            } catch (erro) {
-
-                console.warn(
-                    "Não foi possível reproduzir vídeo:",
-                    erro
-                );
-
-            }
+            iniciarCamera();
 
         }
 
@@ -1582,85 +1872,24 @@ document.addEventListener(
 
 
 /* ============================================================
-   IMPEDIR SUBMIT PADRÃO DE FORMULÁRIO
+   EXPOR FUNÇÕES
    ============================================================ */
-
-document.addEventListener(
-    "submit",
-    function (evento) {
-
-        evento.preventDefault();
-
-    }
-);
-
-
-/* ============================================================
-   LIMPAR CAMPO MANUAL APÓS REGISTRO
-   ============================================================ */
-
-function limparCampoManual() {
-
-    const campo =
-        document.getElementById(
-            "codigoManual"
-        );
-
-
-    if (campo) {
-
-        campo.value =
-            "";
-
-    }
-
-}
-
-
-/* ============================================================
-   FOCO NO CAMPO MANUAL
-   ============================================================ */
-
-function focarCampoManual() {
-
-    const campo =
-        document.getElementById(
-            "codigoManual"
-        );
-
-
-    if (campo) {
-
-        campo.focus();
-
-    }
-
-}
-
-
-/* ============================================================
-   EXPORTA FUNÇÕES PARA USO NO HTML
-   ============================================================ */
-
-window.processarCodigo =
-    processarCodigo;
 
 window.iniciarCamera =
     iniciarCamera;
 
+
 window.pararCamera =
     pararCamera;
+
 
 window.reiniciarCamera =
     reiniciarCamera;
 
-window.limparCampoManual =
-    limparCampoManual;
 
+window.processarCodigo =
+    processarCodigo;
 
-/* ============================================================
-   FIM
-   ============================================================ */
 
 console.log(
     "COLETOR THOR - script.js carregado."
