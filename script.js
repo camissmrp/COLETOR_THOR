@@ -304,49 +304,81 @@ function iniciarZXing() {
 
     try {
 
-        if (
-            typeof ZXingBrowser === "undefined"
-        ) {
-
-            throw new Error(
-                "Biblioteca ZXing não carregada."
-            );
-
+        if (typeof ZXingBrowser === "undefined") {
+            throw new Error("ZXingBrowser não carregado.");
         }
 
+        if (typeof ZXing === "undefined") {
+            throw new Error("ZXing Library não carregada.");
+        }
 
-        const video =
-            document.getElementById("camera");
+        const video = document.getElementById("camera");
 
+        // ====================================================
+        // CONFIGURAÇÃO DO LEITOR
+        // SOMENTE CODE 128
+        // ====================================================
 
-        // ----------------------------------------------------
-        // LEITOR MULTIFORMATO
-        // ----------------------------------------------------
+        const hints = new Map();
 
-        leitor =
-            new ZXingBrowser.BrowserMultiFormatReader();
-
-
-        console.log(
-            "ZXing iniciado."
+        hints.set(
+            ZXing.DecodeHintType.POSSIBLE_FORMATS,
+            [
+                ZXing.BarcodeFormat.CODE_128
+            ]
         );
 
+        hints.set(
+            ZXing.DecodeHintType.TRY_HARDER,
+            true
+        );
+
+        // ====================================================
+        // LEITOR
+        // ====================================================
+
+        leitor =
+            new ZXingBrowser.BrowserMultiFormatReader(
+                hints,
+                150
+            );
+
+        console.log(
+            "ZXing iniciado - CODE 128"
+        );
+
+        // ====================================================
+        // LEITURA CONTÍNUA
+        // ====================================================
 
         leitor.decodeFromVideoElement(
             video,
             (resultado, erro) => {
 
-                if (resultado) {
-
-                    processarLeituraCamera(
-                        resultado
-                    );
-
+                if (!resultado) {
+                    return;
                 }
+
+                const codigo =
+                    resultado.getText()
+                        .trim()
+                        .replace(/\s+/g, "");
+
+                if (!codigo) {
+                    return;
+                }
+
+                console.log(
+                    "CODE 128 detectado:",
+                    codigo
+                );
+
+                processarLeituraCamera(
+                    resultado
+                );
 
             }
         );
-
 
     } catch (erro) {
 
@@ -354,7 +386,6 @@ function iniciarZXing() {
             "Erro iniciando ZXing:",
             erro
         );
-
 
         mostrarStatus(
             "Erro ao iniciar leitor de código.",
@@ -364,7 +395,6 @@ function iniciarZXing() {
     }
 
 }
-
 
 // ============================================================
 // PROCESSAR LEITURA DA CAMERA
