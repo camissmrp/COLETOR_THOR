@@ -1,29 +1,55 @@
-/* ==================================================
-   CONFIGURAÇÃO GERAL
-   ================================================== */
+/* ============================================================
+   COLETOR THOR
+   STYLE.CSS
+   ============================================================ */
+
+
+/* ============================================================
+   CONFIGURAÇÕES GERAIS
+   ============================================================ */
 
 * {
     box-sizing: border-box;
 }
 
+
+html,
 body {
-
     margin: 0;
+    padding: 0;
 
-    background: #F4F1EE;
+    width: 100%;
+    min-height: 100%;
 
     font-family:
         Arial,
         Helvetica,
         sans-serif;
 
-    color: #111111;
+    background: #f4f2ef;
+
+    color: #111;
+
+    -webkit-text-size-adjust: 100%;
 }
 
 
-/* ==================================================
+/* ============================================================
+   BODY
+   ============================================================ */
+
+body {
+
+    min-height: 100vh;
+
+    overflow-x: hidden;
+
+}
+
+
+/* ============================================================
    CONTAINER
-   ================================================== */
+   ============================================================ */
 
 .container {
 
@@ -35,17 +61,22 @@ body {
 
     flex-direction: column;
 
-    justify-content: center;
-
     align-items: center;
 
-    padding: 25px 15px;
+    padding:
+
+        max(20px, env(safe-area-inset-top))
+
+        16px
+
+        max(30px, env(safe-area-inset-bottom));
+
 }
 
 
-/* ==================================================
+/* ============================================================
    LOGO
-   ================================================== */
+   ============================================================ */
 
 .logo-area {
 
@@ -57,439 +88,859 @@ body {
 
     align-items: center;
 
-    margin-bottom: 12px;
+    margin-top: 10px;
+
+    margin-bottom: 8px;
+
 }
+
 
 .logo {
 
-    width: 280px;
+    width: min(280px, 80vw);
 
-    max-width: 80vw;
+    max-height: 115px;
 
-    height: auto;
+    object-fit: contain;
 
-    display: block;
 }
 
 
-/* Logo menor na tela de coleta */
-
-.logo-coleta {
-
-    margin-bottom: 5px;
-}
-
-.logo-coleta .logo {
-
-    width: 220px;
-}
-
-
-/* ==================================================
-   TÍTULOS
-   ================================================== */
+/* ============================================================
+   TÍTULO
+   ============================================================ */
 
 h1 {
 
-    text-align: center;
+    margin:
 
-    color: #111111;
+        4px
 
-    margin-top: 8px;
+        0
 
-    margin-bottom: 5px;
+        20px;
 
     font-size: 32px;
 
-    font-weight: 700;
+    font-weight: 800;
 
     letter-spacing: 1px;
-}
-
-
-.subtitulo {
-
-    margin-top: 0;
-
-    margin-bottom: 25px;
-
-    color: #9B8978;
-
-    font-size: 16px;
-
-    font-weight: 500;
 
     text-align: center;
+
 }
 
 
-/* ==================================================
+/* ============================================================
    CARD
-   ================================================== */
+   ============================================================ */
 
 .card {
 
-    width: 420px;
+    width: min(
+        100%,
+        520px
+    );
 
-    max-width: 95%;
+    background: #ffffff;
 
-    background: #FFFFFF;
+    border-radius: 18px;
 
-    border-radius: 14px;
-
-    padding: 30px;
+    padding: 28px;
 
     box-shadow:
-        0 5px 25px rgba(0, 0, 0, 0.12);
 
-    border: 1px solid #E4DED8;
+        0 8px 30px
+        rgba(
+            0,
+            0,
+            0,
+            0.10
+        );
+
 }
 
 
-/* ==================================================
-   LABELS
-   ================================================== */
+/* ============================================================
+   LOGIN
+   ============================================================ */
 
-label {
+.login-card {
 
-    display: block;
+    display: flex;
 
-    margin-top: 18px;
+    flex-direction: column;
+
+}
+
+
+.login-card label {
+
+    margin-top: 14px;
 
     margin-bottom: 7px;
 
-    font-weight: bold;
-
-    color: #222222;
-
     font-size: 16px;
+
+    font-weight: 700;
+
 }
 
 
-/* ==================================================
-   INPUTS E SELECT
-   ================================================== */
-
-input,
-select {
+.login-card select,
+.login-card input {
 
     width: 100%;
 
-    padding: 14px;
+    height: 52px;
 
-    border-radius: 7px;
+    border:
 
-    border: 1px solid #C9C1BA;
+        1px solid
+        #cfcfcf;
 
-    background: #FFFFFF;
+    border-radius: 10px;
 
-    color: #111111;
+    padding:
+
+        0
+
+        14px;
 
     font-size: 18px;
 
-    outline: none;
+    background: #fafafa;
 
-    transition:
-        border-color 0.15s,
-        box-shadow 0.15s;
+    color: #111;
+
 }
 
 
-input:focus,
-select:focus {
+.login-card input:read-only {
 
-    border-color: #9B8978;
+    background: #f1f1f1;
 
-    box-shadow:
-        0 0 0 3px rgba(155, 137, 120, 0.18);
 }
 
 
-input::placeholder {
-
-    color: #8A8A8A;
-}
-
-
-/* ==================================================
-   BOTÃO PRINCIPAL
-   ================================================== */
+/* ============================================================
+   BOTÕES
+   ============================================================ */
 
 button {
 
-    width: 100%;
-
-    margin-top: 25px;
-
-    padding: 15px;
-
-    background: #9B8978;
-
-    color: #FFFFFF;
-
     border: none;
-
-    border-radius: 7px;
-
-    font-size: 19px;
-
-    font-weight: bold;
 
     cursor: pointer;
 
+    font-family: inherit;
+
     transition:
-        background 0.15s,
-        transform 0.08s;
-}
 
+        transform 0.1s ease,
 
-button:hover {
+        opacity 0.1s ease;
 
-    background: #806F60;
 }
 
 
 button:active {
 
-    transform: scale(0.99);
+    transform: scale(
+        0.98
+    );
+
 }
 
 
-button:disabled {
-
-    background: #C8BEB5;
-
-    cursor: not-allowed;
-}
-
-
-/* ==================================================
-   INFORMAÇÕES DA COLETA
-   ================================================== */
-
-.informacao {
-
-    margin-bottom: 18px;
-}
-
-
-.informacao span {
-
-    display: block;
-
-    font-size: 15px;
-
-    font-weight: bold;
-
-    margin-bottom: 5px;
-
-    color: #333333;
-}
-
-
-.informacao strong {
-
-    display: block;
-
-    font-size: 25px;
-
-    color: #111111;
-}
-
-
-/* ==================================================
-   LINHAS
-   ================================================== */
-
-hr {
-
-    margin: 25px 0;
-
-    border: none;
-
-    border-top: 1px solid #E1DCD7;
-}
-
-
-/* ==================================================
-   CONTADORES
-   ================================================== */
-
-.contador-box {
-
-    margin: 15px 0 25px 0;
-}
-
-
-.contador-box p {
-
-    margin: 0 0 5px 0;
-
-    font-size: 16px;
-
-    color: #333333;
-}
-
-
-.contador-box h2 {
-
-    margin: 0;
-
-    text-align: center;
-
-    font-size: 52px;
-
-    line-height: 1.1;
-
-    color: #9B8978;
-
-    font-weight: bold;
-}
-
-
-/* Total geral */
-
-#contadorTotal {
-
-    color: #111111;
-}
-
-
-/* ==================================================
-   CAMPO DE CÓDIGO DE BARRAS
-   ================================================== */
-
-#codigo {
+#btnEntrar,
+#btnRegistrar {
 
     width: 100%;
 
-    text-align: center;
+    min-height: 56px;
 
-    font-size: 24px;
+    margin-top: 22px;
 
-    font-weight: bold;
+    border-radius: 11px;
 
-    letter-spacing: 1px;
+    background: #a99786;
 
-    padding: 17px;
+    color: white;
 
-    border: 2px solid #9B8978;
+    font-size: 18px;
 
-    border-radius: 8px;
+    font-weight: 800;
+
+    letter-spacing: 0.5px;
+
 }
 
 
-#codigo:focus {
+#btnEntrar:disabled,
+#btnRegistrar:disabled {
 
-    border-color: #806F60;
+    opacity: 0.55;
 
-    box-shadow:
-        0 0 0 4px rgba(155, 137, 120, 0.15);
+    cursor: default;
+
 }
 
 
-/* ==================================================
-   ÚLTIMA LEITURA
-   ================================================== */
+/* ============================================================
+   DADOS DA SESSÃO
+   ============================================================ */
 
-.ultima-leitura {
+.dados-sessao {
 
-    margin-top: 20px;
+    display: flex;
 
-    text-align: center;
+    flex-direction: column;
+
+    gap: 18px;
+
 }
 
 
-.ultima-leitura strong {
+.campo-info {
 
-    display: block;
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+}
+
+
+.titulo-info {
 
     font-size: 15px;
 
-    color: #333333;
+    font-weight: 700;
+
 }
 
 
-#ultimaLeitura {
+.campo-info strong {
 
-    margin: 8px 0 0 0;
+    font-size: 25px;
+
+    line-height: 1.1;
+
+}
+
+
+/* ============================================================
+   LINHAS
+   ============================================================ */
+
+hr {
+
+    border: none;
+
+    border-top:
+
+        1px solid
+        #dedbd7;
+
+    margin:
+
+        22px
+
+        0;
+
+}
+
+
+/* ============================================================
+   CONTADORES
+   ============================================================ */
+
+.contador-bloco {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    margin-bottom: 20px;
+
+}
+
+
+.contador-bloco span {
+
+    font-size: 16px;
+
+}
+
+
+.contador-bloco strong {
 
     text-align: center;
 
-    color: #9B8978;
+    font-size: 44px;
 
-    font-size: 28px;
+    line-height: 1;
 
-    font-weight: bold;
+    color: #a99786;
 
-    word-break: break-word;
 }
 
 
-/* ==================================================
-   RESPONSIVO - CELULAR
-   ================================================== */
+/* ============================================================
+   CÂMERA
+   ============================================================ */
 
-@media (max-width: 600px) {
+.camera-container {
+
+    position: relative;
+
+    width: 100%;
+
+    height: 300px;
+
+    max-height: 300px;
+
+    overflow: hidden;
+
+    border-radius: 14px;
+
+    background: #111;
+
+}
+
+
+/*
+ * IMPORTANTE:
+ * impede o vídeo de aumentar a página.
+ */
+
+.camera-container video {
+
+    display: block;
+
+    width: 100%;
+
+    height: 100%;
+
+    max-width: 100%;
+
+    max-height: 100%;
+
+    object-fit: cover;
+
+    background: #111;
+
+}
+
+
+/* ============================================================
+   MOLDURA DO LEITOR
+   ============================================================ */
+
+.scanner-frame {
+
+    position: absolute;
+
+    top: 50%;
+
+    left: 50%;
+
+    width: 82%;
+
+    height: 38%;
+
+    transform:
+        translate(
+            -50%,
+            -50%
+        );
+
+    pointer-events: none;
+
+}
+
+
+/* ============================================================
+   CANTOS DA MOLDURA
+   ============================================================ */
+
+.corner {
+
+    position: absolute;
+
+    width: 38px;
+
+    height: 38px;
+
+    border-color: white;
+
+    border-style: solid;
+
+}
+
+
+.top-left {
+
+    top: 0;
+
+    left: 0;
+
+    border-width:
+        4px
+
+        0
+
+        0
+
+        4px;
+
+}
+
+
+.top-right {
+
+    top: 0;
+
+    right: 0;
+
+    border-width:
+        4px
+
+        4px
+
+        0
+
+        0;
+
+}
+
+
+.bottom-left {
+
+    bottom: 0;
+
+    left: 0;
+
+    border-width:
+        0
+
+        0
+
+        4px
+
+        4px;
+
+}
+
+
+.bottom-right {
+
+    bottom: 0;
+
+    right: 0;
+
+    border-width:
+        0
+
+        4px
+
+        4px
+
+        0;
+
+}
+
+
+/* ============================================================
+   INSTRUÇÃO
+   ============================================================ */
+
+.camera-instrucao {
+
+    text-align: center;
+
+    margin-top: 12px;
+
+    font-size: 16px;
+
+    line-height: 1.4;
+
+}
+
+
+/* ============================================================
+   DIGITAÇÃO MANUAL
+   ============================================================ */
+
+.manual-area {
+
+    margin-top: 20px;
+
+}
+
+
+.manual-area label {
+
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+}
+
+
+#codigoManual {
+
+    width: 100%;
+
+    height: 58px;
+
+    border:
+
+        2px solid
+        #a99786;
+
+    border-radius: 11px;
+
+    padding:
+
+        0
+
+        15px;
+
+    font-size: 20px;
+
+    font-weight: 600;
+
+    text-align: center;
+
+    outline: none;
+
+}
+
+
+#codigoManual:focus {
+
+    border-color: #8d7966;
+
+    box-shadow:
+
+        0 0 0 3px
+        rgba(
+            169,
+            151,
+            134,
+            0.18
+        );
+
+}
+
+
+#codigoManual::placeholder {
+
+    color: #999;
+
+    font-weight: 700;
+
+}
+
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+.status {
+
+    min-height: 24px;
+
+    margin-top: 10px;
+
+    text-align: center;
+
+    font-size: 15px;
+
+    font-weight: 700;
+
+}
+
+
+.status.sucesso {
+
+    color: #39833b;
+
+}
+
+
+.status.erro {
+
+    color: #c0392b;
+
+}
+
+
+/* ============================================================
+   ÚLTIMA LEITURA
+   ============================================================ */
+
+.ultima-area {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 10px;
+
+}
+
+
+.ultima-area span {
+
+    width: 100%;
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+}
+
+
+.ultima-area strong {
+
+    width: 100%;
+
+    min-height: 45px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    font-size: 27px;
+
+    color: #a99786;
+
+    word-break: break-all;
+
+}
+
+
+/* ============================================================
+   BOTÃO VOLTAR
+   ============================================================ */
+
+.btn-voltar {
+
+    width: 100%;
+
+    min-height: 48px;
+
+    margin-top: 20px;
+
+    border-radius: 10px;
+
+    background: transparent;
+
+    border:
+
+        1px solid
+        #a99786;
+
+    color: #8d7966;
+
+    font-size: 15px;
+
+    font-weight: 700;
+
+}
+
+
+/* ============================================================
+   DESKTOP
+   ============================================================ */
+
+@media (
+    min-width: 768px
+) {
 
     .container {
 
-        padding:
-            20px
-            10px;
+        padding-top: 30px;
+
     }
 
 
     .logo {
 
-        width: 230px;
-    }
+        width: 300px;
 
-
-    .logo-coleta .logo {
-
-        width: 180px;
     }
 
 
     h1 {
 
-        font-size: 27px;
+        font-size: 34px;
+
     }
 
 
     .card {
 
-        width: 100%;
+        padding: 30px;
 
-        padding: 24px;
-
-        border-radius: 12px;
     }
 
 
-    .informacao strong {
+    .camera-container {
 
-        font-size: 22px;
+        height: 320px;
+
+        max-height: 320px;
+
+    }
+
+}
+
+
+/* ============================================================
+   CELULAR
+   ============================================================ */
+
+@media (
+    max-width: 600px
+) {
+
+    .container {
+
+        padding-left: 12px;
+
+        padding-right: 12px;
+
     }
 
 
-    .contador-box h2 {
+    .logo {
 
-        font-size: 46px;
+        width: min(
+            250px,
+            75vw
+        );
+
+        max-height: 95px;
+
     }
 
 
-    #codigo {
+    h1 {
 
-        font-size: 21px;
+        font-size: 28px;
 
-        padding: 15px;
+        margin-bottom: 15px;
+
     }
 
 
-    button {
+    .card {
+
+        padding: 20px;
+
+        border-radius: 16px;
+
+    }
+
+
+    .campo-info strong {
+
+        font-size: 23px;
+
+    }
+
+
+    .contador-bloco strong {
+
+        font-size: 40px;
+
+    }
+
+
+    /*
+     * No celular:
+     * câmera limitada a 280 px.
+     */
+
+    .camera-container {
+
+        height: 280px;
+
+        max-height: 280px;
+
+    }
+
+
+    .camera-instrucao {
+
+        font-size: 15px;
+
+    }
+
+
+    #codigoManual {
+
+        height: 58px;
 
         font-size: 18px;
+
     }
+
+
+    #btnRegistrar {
+
+        min-height: 56px;
+
+    }
+
+}
+
+
+/* ============================================================
+   CELULARES MUITO PEQUENOS
+   ============================================================ */
+
+@media (
+    max-width: 380px
+) {
+
+    .camera-container {
+
+        height: 250px;
+
+        max-height: 250px;
+
+    }
+
+
+    .card {
+
+        padding: 16px;
+
+    }
+
+
+    .logo {
+
+        width: 220px;
+
+    }
+
 }
