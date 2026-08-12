@@ -17,12 +17,17 @@ let sessao = {
 let codeReader = null;
 let cameraStream = null;
 
+
 // ======================================================
-// CONTROLE DE DUPLICIDADE
+// CONTROLE DE LEITURAS
 // ======================================================
 
+// Códigos que já foram registrados nesta sessão
 let codigosColetados = new Set();
+
+// Códigos que estão sendo processados neste momento
 let codigosProcessando = new Set();
+
 
 // ======================================================
 // ELEMENTOS
@@ -35,6 +40,7 @@ let btnEntrar;
 let btnRegistrar;
 let codigo;
 
+
 // ======================================================
 // INICIALIZAÇÃO
 // ======================================================
@@ -43,26 +49,44 @@ window.addEventListener("DOMContentLoaded", function () {
 
     console.log("THOR - página carregada");
 
-    usuario = document.getElementById("usuario");
-    inventario = document.getElementById("inventario");
-    endereco = document.getElementById("endereco");
-    btnEntrar = document.getElementById("btnEntrar");
-    btnRegistrar = document.getElementById("btnRegistrar");
-    codigo = document.getElementById("codigo");
+    usuario =
+        document.getElementById("usuario");
+
+    inventario =
+        document.getElementById("inventario");
+
+    endereco =
+        document.getElementById("endereco");
+
+    btnEntrar =
+        document.getElementById("btnEntrar");
+
+    btnRegistrar =
+        document.getElementById("btnRegistrar");
+
+    codigo =
+        document.getElementById("codigo");
+
 
     // ==================================================
     // CAMPOS
     // ==================================================
 
     if (inventario) {
+
         inventario.disabled = false;
         inventario.readOnly = false;
+
     }
 
+
     if (endereco) {
+
         endereco.disabled = false;
         endereco.readOnly = false;
+
     }
+
 
     // ==================================================
     // BOTÃO INICIAR
@@ -82,6 +106,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
     }
 
+
     // ==================================================
     // BOTÃO REGISTRAR
     // ==================================================
@@ -100,8 +125,9 @@ window.addEventListener("DOMContentLoaded", function () {
 
     }
 
+
     // ==================================================
-    // ENTER
+    // ENTER NO CAMPO MANUAL
     // ==================================================
 
     if (codigo) {
@@ -125,8 +151,9 @@ window.addEventListener("DOMContentLoaded", function () {
 
     }
 
+
     // ==================================================
-    // CONFIGURAÇÃO
+    // CARREGA CONFIGURAÇÃO
     // ==================================================
 
     carregarConfiguracao();
@@ -153,6 +180,7 @@ async function carregarConfiguracao() {
                 Date.now()
             );
 
+
         if (!resposta.ok) {
 
             throw new Error(
@@ -162,11 +190,14 @@ async function carregarConfiguracao() {
 
         }
 
+
         const dados =
             await resposta.json();
 
+
         configuracao =
             dados;
+
 
         // ==================================================
         // USUÁRIOS
@@ -175,6 +206,7 @@ async function carregarConfiguracao() {
         if (usuario) {
 
             usuario.innerHTML = "";
+
 
             if (
                 dados.Usuarios &&
@@ -202,11 +234,14 @@ async function carregarConfiguracao() {
                     }
                 );
 
+
                 atualizarConfiguracaoUsuario(
                     usuario.value
                 );
 
-            } else {
+            }
+
+            else {
 
                 const option =
                     document.createElement(
@@ -224,6 +259,7 @@ async function carregarConfiguracao() {
 
             }
 
+
             usuario.onchange =
                 function () {
 
@@ -235,12 +271,14 @@ async function carregarConfiguracao() {
 
         }
 
+
         if (btnEntrar) {
 
             btnEntrar.disabled =
                 false;
 
         }
+
 
         console.log(
             "Configuração carregada."
@@ -254,6 +292,7 @@ async function carregarConfiguracao() {
             "Erro na configuração:",
             erro
         );
+
 
         if (btnEntrar) {
 
@@ -277,23 +316,34 @@ function atualizarConfiguracaoUsuario(
 
     if (inventario) {
 
-        inventario.disabled = false;
-        inventario.readOnly = false;
+        inventario.disabled =
+            false;
+
+        inventario.readOnly =
+            false;
 
     }
+
 
     if (endereco) {
 
-        endereco.disabled = false;
-        endereco.readOnly = false;
+        endereco.disabled =
+            false;
+
+        endereco.readOnly =
+            false;
 
     }
 
-    if (!configuracao.Configuracoes) {
+
+    if (
+        !configuracao.Configuracoes
+    ) {
 
         return;
 
     }
+
 
     const config =
         configuracao.Configuracoes.find(
@@ -307,11 +357,13 @@ function atualizarConfiguracaoUsuario(
             }
         );
 
+
     if (!config) {
 
         return;
 
     }
+
 
     if (
         config.inventario !== undefined
@@ -321,6 +373,7 @@ function atualizarConfiguracaoUsuario(
             config.inventario || "";
 
     }
+
 
     if (
         config.enderecoAtual !== undefined
@@ -344,6 +397,7 @@ function iniciarColeta() {
         "INICIAR COLETA clicado."
     );
 
+
     // ==================================================
     // VALIDA USUÁRIO
     // ==================================================
@@ -361,6 +415,7 @@ function iniciarColeta() {
 
     }
 
+
     // ==================================================
     // INVENTÁRIO
     // ==================================================
@@ -369,6 +424,7 @@ function iniciarColeta() {
         inventario.value
             .trim()
             .toUpperCase();
+
 
     if (
         valorInventario === ""
@@ -384,6 +440,7 @@ function iniciarColeta() {
 
     }
 
+
     // ==================================================
     // ENDEREÇO
     // ==================================================
@@ -392,6 +449,7 @@ function iniciarColeta() {
         endereco.value
             .trim()
             .toUpperCase();
+
 
     if (
         valorEndereco === ""
@@ -407,41 +465,46 @@ function iniciarColeta() {
 
     }
 
+
     // ==================================================
-    // NOVA SESSÃO
+    // SESSÃO
     // ==================================================
 
     sessao.usuario =
         usuario.value;
+
 
     sessao.nomeUsuario =
         usuario.options[
             usuario.selectedIndex
         ].text;
 
+
     sessao.inventario =
         valorInventario;
+
 
     sessao.endereco =
         valorEndereco;
 
+
     sessao.totalEndereco =
         0;
+
 
     sessao.totalColeta =
         0;
 
+
     // ==================================================
-    // LIMPA CONTROLE DE DUPLICIDADE
+    // IMPORTANTE:
+    // LIMPA OS CÓDIGOS DA SESSÃO ANTERIOR
     // ==================================================
 
     codigosColetados.clear();
 
     codigosProcessando.clear();
 
-    console.log(
-        "Controle de duplicidade zerado."
-    );
 
     // ==================================================
     // LABELS
@@ -462,12 +525,14 @@ function iniciarColeta() {
             "lblEndereco"
         );
 
+
     if (lblUsuario) {
 
         lblUsuario.innerText =
             sessao.nomeUsuario;
 
     }
+
 
     if (lblInventario) {
 
@@ -476,12 +541,14 @@ function iniciarColeta() {
 
     }
 
+
     if (lblEndereco) {
 
         lblEndereco.innerText =
             sessao.endereco;
 
     }
+
 
     // ==================================================
     // CONTADORES
@@ -502,12 +569,14 @@ function iniciarColeta() {
             "ultimaLeitura"
         );
 
+
     if (contadorEndereco) {
 
         contadorEndereco.innerText =
             "0";
 
     }
+
 
     if (contadorTotal) {
 
@@ -516,12 +585,14 @@ function iniciarColeta() {
 
     }
 
+
     if (ultimaLeitura) {
 
         ultimaLeitura.innerText =
             "-";
 
     }
+
 
     // ==================================================
     // ESCONDE LOGIN
@@ -531,6 +602,7 @@ function iniciarColeta() {
         document.getElementById(
             "login"
         );
+
 
     if (login) {
 
@@ -543,6 +615,7 @@ function iniciarColeta() {
 
     }
 
+
     // ==================================================
     // MOSTRA COLETA
     // ==================================================
@@ -551,6 +624,7 @@ function iniciarColeta() {
         document.getElementById(
             "coleta"
         );
+
 
     if (!coleta) {
 
@@ -562,12 +636,14 @@ function iniciarColeta() {
 
     }
 
+
     coleta.classList.remove(
         "hidden"
     );
 
     coleta.style.display =
         "flex";
+
 
     // ==================================================
     // CÂMERA
@@ -581,6 +657,7 @@ function iniciarColeta() {
         },
         300
     );
+
 
     // ==================================================
     // FOCO
@@ -596,7 +673,7 @@ function iniciarColeta() {
             }
 
         },
-        500
+        700
     );
 
 }
@@ -612,25 +689,29 @@ async function iniciarCamera() {
         "Iniciando câmera..."
     );
 
+
     const video =
         document.getElementById(
             "camera"
         );
+
 
     const mensagem =
         document.getElementById(
             "cameraMessage"
         );
 
+
     if (!video) {
 
         console.warn(
-            "Vídeo não encontrado."
+            "Câmera não encontrada."
         );
 
         return;
 
     }
+
 
     if (
         !navigator.mediaDevices ||
@@ -648,6 +729,7 @@ async function iniciarCamera() {
 
     }
 
+
     try {
 
         if (mensagem) {
@@ -657,35 +739,45 @@ async function iniciarCamera() {
 
         }
 
+
         cameraStream =
             await navigator.mediaDevices.getUserMedia(
                 {
                     video: {
+
                         facingMode: {
                             ideal: "environment"
                         }
+
                     },
+
                     audio: false
                 }
             );
 
+
         video.srcObject =
             cameraStream;
+
 
         video.setAttribute(
             "playsinline",
             ""
         );
 
+
         video.setAttribute(
             "autoplay",
             ""
         );
 
+
         video.muted =
             true;
 
+
         await video.play();
+
 
         if (mensagem) {
 
@@ -694,9 +786,6 @@ async function iniciarCamera() {
 
         }
 
-        console.log(
-            "Câmera aberta."
-        );
 
         iniciarLeitorZXing();
 
@@ -708,6 +797,7 @@ async function iniciarCamera() {
             "Erro ao abrir câmera:",
             erro
         );
+
 
         if (mensagem) {
 
@@ -732,7 +822,7 @@ function iniciarLeitorZXing() {
         "undefined"
     ) {
 
-        console.warn(
+        console.error(
             "ZXing não carregado."
         );
 
@@ -740,10 +830,12 @@ function iniciarLeitorZXing() {
 
     }
 
+
     const video =
         document.getElementById(
             "camera"
         );
+
 
     if (!video) {
 
@@ -751,10 +843,12 @@ function iniciarLeitorZXing() {
 
     }
 
+
     try {
 
         codeReader =
             new ZXingBrowser.BrowserMultiFormatReader();
+
 
         codeReader.decodeFromVideoElement(
             video,
@@ -769,7 +863,9 @@ function iniciarLeitorZXing() {
 
                 }
 
+
                 let texto = "";
+
 
                 try {
 
@@ -785,16 +881,25 @@ function iniciarLeitorZXing() {
 
                 }
 
+
                 if (!texto) {
 
                     return;
 
                 }
 
+
+                texto =
+                    String(texto)
+                        .trim()
+                        .toUpperCase();
+
+
                 console.log(
-                    "Código detectado:",
+                    "CÓDIGO DETECTADO:",
                     texto
                 );
+
 
                 registrarCodigo(
                     texto
@@ -808,7 +913,7 @@ function iniciarLeitorZXing() {
     catch (erro) {
 
         console.error(
-            "Erro ZXing:",
+            "Erro no ZXing:",
             erro
         );
 
@@ -832,6 +937,7 @@ async function registrarCodigo(
         .trim()
         .toUpperCase();
 
+
     if (
         codigoLido === ""
     ) {
@@ -840,12 +946,18 @@ async function registrarCodigo(
 
     }
 
+
+    // ==================================================
+    // LIMPA CAMPO
+    // ==================================================
+
     if (codigo) {
 
         codigo.value =
             "";
 
     }
+
 
     // ==================================================
     // ENDEREÇO
@@ -871,6 +983,7 @@ async function registrarCodigo(
 
     }
 
+
     // ==================================================
     // PRODUTO
     // ==================================================
@@ -895,6 +1008,7 @@ async function registrarCodigo(
 
     }
 
+
     // ==================================================
     // INVÁLIDO
     // ==================================================
@@ -903,6 +1017,7 @@ async function registrarCodigo(
         codigoLido +
         " - INVÁLIDO"
     );
+
 
     if (codigo) {
 
@@ -926,10 +1041,12 @@ async function alterarEndereco(
             .trim()
             .toUpperCase();
 
+
     const lblEndereco =
         document.getElementById(
             "lblEndereco"
         );
+
 
     if (lblEndereco) {
 
@@ -938,13 +1055,16 @@ async function alterarEndereco(
 
     }
 
+
     sessao.totalEndereco =
         0;
+
 
     const contadorEndereco =
         document.getElementById(
             "contadorEndereco"
         );
+
 
     if (contadorEndereco) {
 
@@ -953,16 +1073,19 @@ async function alterarEndereco(
 
     }
 
+
     mostrarUltimaLeitura(
         "ENDEREÇO: " +
         sessao.endereco
     );
+
 
     try {
 
         await fetch(
             API,
             {
+
                 method:
                     "POST",
 
@@ -970,8 +1093,10 @@ async function alterarEndereco(
                     "no-cors",
 
                 headers: {
+
                     "Content-Type":
                         "text/plain"
+
                 },
 
                 body:
@@ -1019,8 +1144,31 @@ async function registrarProduto(
     codigoProduto
 ) {
 
+    codigoProduto =
+        String(
+            codigoProduto || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (
+        codigoProduto === ""
+    ) {
+
+        return;
+
+    }
+
+
+    console.log(
+        "Processando:",
+        codigoProduto
+    );
+
+
     // ==================================================
-    // EVITA LEITURA DUPLICADA IMEDIATA
+    // 1 - JÁ FOI REGISTRADO NESTA SESSÃO?
     // ==================================================
 
     if (
@@ -1030,14 +1178,23 @@ async function registrarProduto(
     ) {
 
         console.log(
-            "REPETIDO:",
+            "DUPLICADO LOCAL:",
             codigoProduto
         );
 
+
         mostrarUltimaLeitura(
             codigoProduto +
-            " - REPETIDO - NÃO REGISTRADO"
+            " - JÁ COLETADO - NÃO REGISTRADO"
         );
+
+
+        mostrarStatus(
+            "⚠️ " +
+            codigoProduto +
+            " JÁ FOI COLETADO"
+        );
+
 
         return;
 
@@ -1045,7 +1202,7 @@ async function registrarProduto(
 
 
     // ==================================================
-    // EVITA DUPLICIDADE ENQUANTO ESTÁ PROCESSANDO
+    // 2 - ESTÁ SENDO PROCESSADO?
     // ==================================================
 
     if (
@@ -1055,14 +1212,23 @@ async function registrarProduto(
     ) {
 
         console.log(
-            "REPETIDO DURANTE PROCESSAMENTO:",
+            "LEITURA REPETIDA DURANTE PROCESSAMENTO:",
             codigoProduto
         );
+
 
         mostrarUltimaLeitura(
             codigoProduto +
             " - REPETIDO - NÃO REGISTRADO"
         );
+
+
+        mostrarStatus(
+            "⚠️ " +
+            codigoProduto +
+            " JÁ ESTÁ SENDO PROCESSADO"
+        );
+
 
         return;
 
@@ -1070,7 +1236,7 @@ async function registrarProduto(
 
 
     // ==================================================
-    // MARCA COMO PROCESSANDO
+    // 3 - BLOQUEIA IMEDIATAMENTE
     // ==================================================
 
     codigosProcessando.add(
@@ -1080,175 +1246,119 @@ async function registrarProduto(
 
     try {
 
+        // ==================================================
+        // 4 - CONSULTA A SHEET
+        // ==================================================
+
         console.log(
-            "Verificando código:",
+            "Consultando Sheet:",
             codigoProduto
         );
 
-        // ==================================================
-        // VERIFICA NA PLANILHA
-        // ==================================================
 
-        try {
+        const resposta =
+            await fetch(
 
-            const resposta =
-                await fetch(
+                API +
+                "?acao=verificar" +
+                "&inventario=" +
+                encodeURIComponent(
+                    sessao.inventario
+                ) +
+                "&codigo=" +
+                encodeURIComponent(
+                    codigoProduto
+                ) +
+                "&_=" +
+                Date.now()
 
-                    API +
-                    "?acao=verificar" +
-                    "&inventario=" +
-                    encodeURIComponent(
-                        sessao.inventario
-                    ) +
-                    "&codigo=" +
-                    encodeURIComponent(
-                        codigoProduto
-                    ) +
-                    "&_=" +
-                    Date.now()
+            );
 
-                );
 
-            if (resposta.ok) {
+        if (!resposta.ok) {
 
-                const verifica =
-                    await resposta.json();
-
-                console.log(
-                    "Resultado da verificação:",
-                    verifica
-                );
-
-                if (
-                    verifica &&
-                    verifica.existe
-                ) {
-
-                    // Marca para impedir
-                    // novas tentativas.
-
-                    codigosColetados.add(
-                        codigoProduto
-                    );
-
-                    codigosProcessando.delete(
-                        codigoProduto
-                    );
-
-                    mostrarUltimaLeitura(
-                        codigoProduto +
-                        " - REPETIDO - NÃO REGISTRADO"
-                    );
-
-                    return;
-
-                }
-
-            }
-
-        }
-
-        catch (erroVerificacao) {
-
-            /*
-             * Se a consulta de duplicidade
-             * falhar, ainda permitimos
-             * a gravação.
-             */
-
-            console.warn(
-                "Falha na verificação:",
-                erroVerificacao
+            throw new Error(
+                "Erro HTTP na verificação: " +
+                resposta.status
             );
 
         }
 
 
-        // ==================================================
-        // DADOS
-        // ==================================================
-
-        const dados = {
-
-            acao:
-                "coleta",
-
-            usuario:
-                sessao.usuario,
-
-            nomeUsuario:
-                sessao.nomeUsuario,
-
-            inventario:
-                sessao.inventario,
-
-            endereco:
-                sessao.endereco,
-
-            codigo:
-                codigoProduto,
-
-            codigoBarras:
-                codigoProduto,
-
-            tipoLeitura:
-                "PRODUTO"
-
-        };
+        const verifica =
+            await resposta.json();
 
 
         console.log(
-            "Enviando coleta:",
-            dados
+            "Resposta da verificação:",
+            verifica
         );
 
 
         // ==================================================
-        // URL
+        // 5 - JÁ EXISTE NA SHEET
         // ==================================================
 
-        const parametros =
-            new URLSearchParams({
+        if (
+            verifica &&
+            (
+                verifica.existe === true ||
+                verifica.existe === "true" ||
+                verifica.existe === 1 ||
+                verifica.existe === "1"
+            )
+        ) {
 
-                acao:
-                    "coleta",
-
-                usuario:
-                    sessao.usuario,
-
-                nomeUsuario:
-                    sessao.nomeUsuario,
-
-                inventario:
-                    sessao.inventario,
-
-                endereco:
-                    sessao.endereco,
-
-                codigo:
-                    codigoProduto,
-
-                codigoBarras:
-                    codigoProduto,
-
-                tipoLeitura:
-                    "PRODUTO"
-
-            });
+            console.log(
+                "PRODUTO JÁ EXISTE NA SHEET:",
+                codigoProduto
+            );
 
 
-        const url =
-            API +
-            "?" +
-            parametros.toString();
+            // IMPORTANTE:
+            // Guarda localmente para impedir
+            // novas leituras.
+
+            codigosColetados.add(
+                codigoProduto
+            );
+
+
+            codigosProcessando.delete(
+                codigoProduto
+            );
+
+
+            mostrarUltimaLeitura(
+                codigoProduto +
+                " - JÁ COLETADO"
+            );
+
+
+            mostrarStatus(
+                "⚠️ " +
+                codigoProduto +
+                " JÁ FOI COLETADO. NÃO REGISTRADO NOVAMENTE."
+            );
+
+
+            return;
+
+        }
 
 
         // ==================================================
-        // GRAVA NA SHEET
+        // 6 - NÃO EXISTE -> REGISTRA
         // ==================================================
+
+        console.log(
+            "Produto novo. Registrando:",
+            codigoProduto
+        );
+
 
         await fetch(
-            url,
+            API,
             {
 
                 method:
@@ -1265,21 +1375,46 @@ async function registrarProduto(
                 },
 
                 body:
-                    JSON.stringify(
-                        dados
-                    )
+                    JSON.stringify({
+
+                        acao:
+                            "coleta",
+
+                        usuario:
+                            sessao.usuario,
+
+                        nomeUsuario:
+                            sessao.nomeUsuario,
+
+                        inventario:
+                            sessao.inventario,
+
+                        endereco:
+                            sessao.endereco,
+
+                        codigo:
+                            codigoProduto,
+
+                        codigoBarras:
+                            codigoProduto,
+
+                        tipoLeitura:
+                            "PRODUTO"
+
+                    })
 
             }
         );
 
 
         // ==================================================
-        // MARCA COMO COLETADO
+        // 7 - AGORA SIM MARCA COMO COLETADO
         // ==================================================
 
         codigosProcessando.delete(
             codigoProduto
         );
+
 
         codigosColetados.add(
             codigoProduto
@@ -1287,18 +1422,22 @@ async function registrarProduto(
 
 
         // ==================================================
-        // CONTADORES
+        // 8 - CONTADORES
         // ==================================================
 
-        sessao.totalEndereco++;
+        sessao.totalEndereco =
+            sessao.totalEndereco + 1;
 
-        sessao.totalColeta++;
+
+        sessao.totalColeta =
+            sessao.totalColeta + 1;
 
 
         const contadorEndereco =
             document.getElementById(
                 "contadorEndereco"
             );
+
 
         const contadorTotal =
             document.getElementById(
@@ -1323,16 +1462,24 @@ async function registrarProduto(
 
 
         // ==================================================
-        // ÚLTIMA LEITURA
+        // 9 - MOSTRA LEITURA
         // ==================================================
 
         mostrarUltimaLeitura(
-            codigoProduto
+            codigoProduto +
+            " - REGISTRADO"
+        );
+
+
+        mostrarStatus(
+            "✓ " +
+            codigoProduto +
+            " registrado com sucesso."
         );
 
 
         console.log(
-            "COLETA REGISTRADA:",
+            "REGISTRADO:",
             codigoProduto
         );
 
@@ -1346,8 +1493,9 @@ async function registrarProduto(
         );
 
 
-        // Se deu erro,
-        // permite tentar novamente.
+        // ==================================================
+        // SE DEU ERRO, LIBERA PARA TENTAR NOVAMENTE
+        // ==================================================
 
         codigosProcessando.delete(
             codigoProduto
@@ -1359,13 +1507,19 @@ async function registrarProduto(
             " - ERRO AO REGISTRAR"
         );
 
+
+        mostrarStatus(
+            "❌ Erro ao registrar " +
+            codigoProduto
+        );
+
     }
 
 }
 
 
 // ======================================================
-// ÚLTIMA LEITURA
+// MOSTRAR ÚLTIMA LEITURA
 // ======================================================
 
 function mostrarUltimaLeitura(
@@ -1377,12 +1531,62 @@ function mostrarUltimaLeitura(
             "ultimaLeitura"
         );
 
+
     if (elemento) {
 
         elemento.innerText =
             texto;
 
     }
+
+}
+
+
+// ======================================================
+// MOSTRAR STATUS
+// ======================================================
+
+function mostrarStatus(
+    texto
+) {
+
+    const status =
+        document.getElementById(
+            "collectionStatus"
+        );
+
+
+    if (!status) {
+
+        return;
+
+    }
+
+
+    status.innerText =
+        texto;
+
+
+    status.style.display =
+        "block";
+
+
+    // Mantém a mensagem por alguns segundos
+
+    clearTimeout(
+        window.timerStatusColeta
+    );
+
+
+    window.timerStatusColeta =
+        setTimeout(
+            function () {
+
+                status.innerText = "";
+
+            },
+            4000
+        );
 
 }
 
@@ -1410,6 +1614,7 @@ function pararCamera() {
 
         }
 
+
         codeReader =
             null;
 
@@ -1428,6 +1633,7 @@ function pararCamera() {
                 }
             );
 
+
         cameraStream =
             null;
 
@@ -1437,7 +1643,7 @@ function pararCamera() {
 
 
 // ======================================================
-// AO SAIR
+// SAÍDA DA PÁGINA
 // ======================================================
 
 window.addEventListener(
