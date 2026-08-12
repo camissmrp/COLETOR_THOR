@@ -2,98 +2,203 @@
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
     <title>Coletor THOR</title>
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- ZXing -->
-<script src="https://unpkg.com/@zxing/library@0.22.0"></script>
-<script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
+    <!-- =====================================================
+         ZXING
+         Versão fixa para evitar alterações automáticas
+         ===================================================== -->
+
+    <script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
 
 </head>
+
 
 <body>
 
     <div class="app">
 
-        <!-- LOGO -->
+        <!-- =================================================
+             LOGO THOR
+             ================================================= -->
+
         <div class="logo-container">
-            <img src="logo-thor.png" class="logo" alt="THOR Natural Stones">
+
+            <img
+                src="logo-thor.png"
+                class="logo"
+                alt="THOR Natural Stones"
+            >
+
         </div>
+
+
+        <!-- =================================================
+             TÍTULO
+             ================================================= -->
 
         <h1>COLETA</h1>
 
+
+        <!-- =================================================
+             CARD PRINCIPAL
+             ================================================= -->
+
         <div class="card">
+
+
+            <!-- =================================================
+                 INFORMAÇÕES
+                 ================================================= -->
 
             <div class="info">
 
+
                 <div class="campo">
+
                     <span>Usuário:</span>
-                    <strong id="usuario">-</strong>
+
+                    <strong id="usuario">
+                        -
+                    </strong>
+
                 </div>
 
+
                 <div class="campo">
+
                     <span>Inventário:</span>
-                    <strong id="inventario">-</strong>
+
+                    <strong id="inventario">
+                        -
+                    </strong>
+
                 </div>
 
+
                 <div class="campo">
+
                     <span>Endereço:</span>
-                    <strong id="endereco">-</strong>
+
+                    <strong id="endereco">
+                        -
+                    </strong>
+
                 </div>
+
 
             </div>
 
+
             <hr>
+
+
+            <!-- =================================================
+                 CONTADORES
+                 ================================================= -->
 
             <div class="contador">
 
-                <p>Produtos neste endereço</p>
 
-                <h2 id="contadorEndereco">0</h2>
+                <p>
+                    Produtos neste endereço
+                </p>
 
-                <p>Total coletado</p>
 
-                <h2 id="contadorTotal">0</h2>
+                <h2 id="contadorEndereco">
+                    0
+                </h2>
+
+
+                <p>
+                    Total coletado
+                </p>
+
+
+                <h2 id="contadorTotal">
+                    0
+                </h2>
+
 
             </div>
 
+
             <hr>
 
-            <!-- CÂMERA -->
+
+            <!-- =================================================
+                 CAMERA
+                 ================================================= -->
+
             <div class="camera-container">
 
                 <video
                     id="camera"
                     autoplay
                     muted
-                    playsinline>
-                </video>
+                    playsinline
+                ></video>
+
+
+                <!-- Moldura para ajudar o usuário -->
 
                 <div class="scanner-frame">
 
-                    <div class="corner top-left"></div>
-                    <div class="corner top-right"></div>
-                    <div class="corner bottom-left"></div>
-                    <div class="corner bottom-right"></div>
+
+                    <div
+                        class="corner top-left"
+                    ></div>
+
+
+                    <div
+                        class="corner top-right"
+                    ></div>
+
+
+                    <div
+                        class="corner bottom-left"
+                    ></div>
+
+
+                    <div
+                        class="corner bottom-right"
+                    ></div>
+
 
                 </div>
 
+
             </div>
 
+
             <p class="camera-help">
+
                 Aponte a câmera para o código de barras
+
             </p>
 
-            <!-- DIGITAÇÃO MANUAL -->
+
+            <!-- =================================================
+                 DIGITAÇÃO MANUAL
+                 ================================================= -->
+
             <div class="manual">
 
-                <strong>Ou digite o código:</strong>
+
+                <strong>
+                    Ou digite o código:
+                </strong>
+
 
                 <input
                     type="text"
@@ -102,38 +207,72 @@
                     autocomplete="off"
                     autocapitalize="off"
                     autocorrect="off"
-                    spellcheck="false">
+                    spellcheck="false"
+                >
 
-                <button id="btnRegistrar">
+
+                <button
+                    id="btnRegistrar"
+                    type="button"
+                >
                     REGISTRAR
                 </button>
 
+
             </div>
+
 
             <hr>
 
+
+            <!-- =================================================
+                 ÚLTIMA LEITURA
+                 ================================================= -->
+
             <div class="ultima">
 
-                <strong>Última leitura</strong>
+
+                <strong>
+                    Última leitura
+                </strong>
+
 
                 <div id="ultimaLeitura">
                     -
                 </div>
 
+
             </div>
 
-            <!-- STATUS -->
-            <div id="status" class="status"></div>
+
+            <!-- =================================================
+                 STATUS
+                 ================================================= -->
+
+            <div
+                id="status"
+                class="status"
+            ></div>
+
 
         </div>
 
     </div>
 
-    <!-- CONFIGURAÇÃO DA API -->
+
+    <!-- =====================================================
+         CONFIGURAÇÃO DA API
+         ===================================================== -->
+
     <script src="config.js"></script>
 
-    <!-- SISTEMA -->
+
+    <!-- =====================================================
+         SISTEMA DO COLETOR
+         ===================================================== -->
+
     <script src="script.js"></script>
+
 
 </body>
 
