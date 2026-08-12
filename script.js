@@ -11,6 +11,7 @@ let processandoCodigo = false;
 let ultimoCodigoLido = "";
 let ultimoCodigoTempo = 0;
 
+
 /* ============================================================
    ÁUDIO / BIP
    ============================================================ */
@@ -126,7 +127,18 @@ document.addEventListener("DOMContentLoaded", () => {
    PREPARAR ÁUDIO
    ============================================================ */
 
-function prepararAudio() {
+/*
+ * IMPORTANTE:
+ *
+ * Esta função é chamada diretamente pelo clique no botão
+ * "INICIAR COLETA".
+ *
+ * Isso é necessário principalmente no iPhone/Safari,
+ * que bloqueia áudio iniciado fora de uma interação
+ * do usuário.
+ */
+
+async function prepararAudio() {
 
     try {
 
@@ -135,8 +147,19 @@ function prepararAudio() {
             window.webkitAudioContext;
 
         if (!AudioContextClass) {
-            return;
+
+            console.warn(
+                "AudioContext não é suportado neste navegador."
+            );
+
+            return false;
+
         }
+
+
+        /* ====================================================
+           CRIA O CONTEXTO DE ÁUDIO
+           ==================================================== */
 
         if (!audioContext) {
 
@@ -145,13 +168,107 @@ function prepararAudio() {
 
         }
 
+
+        /* ====================================================
+           LIBERA O AUDIOCONTEXT
+           ==================================================== */
+
         if (
             audioContext.state === "suspended"
         ) {
 
-            audioContext.resume();
+            await audioContext.resume();
 
         }
+
+
+        /* ====================================================
+           TESTE REAL DE ÁUDIO
+           
+           Este pequeno som acontece dentro do clique do
+           usuário e ajuda a liberar o áudio no Safari/iOS.
+           ==================================================== */
+
+        const agora =
+            audioContext.currentTime;
+
+        const oscilador =
+            audioContext.createOscillator();
+
+        const ganho =
+            audioContext.createGain();
+
+
+        oscilador.type =
+            "sine";
+
+
+        oscilador.frequency.setValueAtTime(
+            1200,
+            agora
+        );
+
+
+        ganho.gain.setValueAtTime(
+            0.0001,
+            agora
+        );
+
+
+        ganho.gain.exponentialRampToValueAtTime(
+            0.15,
+            agora + 0.01
+        );
+
+
+        ganho.gain.exponentialRampToValueAtTime(
+            0.0001,
+            agora + 0.08
+        );
+
+
+        oscilador.connect(
+            ganho
+        );
+
+
+        ganho.connect(
+            audioContext.destination
+        );
+
+
+        oscilador.start(
+            agora
+        );
+
+
+        oscilador.stop(
+            agora + 0.08
+        );
+
+
+        /* ====================================================
+           GARANTE QUE O CONTEXTO FICOU ATIVO
+           ==================================================== */
+
+        if (
+            audioContext.state === "suspended"
+        ) {
+
+            await audioContext.resume();
+
+        }
+
+
+        console.log(
+            "AudioContext:",
+            audioContext.state
+        );
+
+
+        return (
+            audioContext.state === "running"
+        );
 
     }
     catch (erro) {
@@ -160,6 +277,8 @@ function prepararAudio() {
             "Não foi possível preparar o áudio:",
             erro
         );
+
+        return false;
 
     }
 
@@ -178,10 +297,21 @@ function emitirBip() {
             window.AudioContext ||
             window.webkitAudioContext;
 
+
         if (!AudioContextClass) {
+
+            console.warn(
+                "AudioContext não é suportado neste navegador."
+            );
+
             return;
+
         }
 
+
+        /* ====================================================
+           GARANTE QUE EXISTE UM CONTEXTO
+           ==================================================== */
 
         if (!audioContext) {
 
@@ -191,63 +321,152 @@ function emitirBip() {
         }
 
 
+        /*
+         * Se o contexto estiver suspenso, tenta liberar.
+         *
+         * Normalmente ele já estará "running", pois foi
+         * liberado pelo botão INICIAR COLETA.
+         */
+
         if (
             audioContext.state === "suspended"
         ) {
 
-            audioContext.resume();
+            audioContext.resume()
+                .catch(
+                    erro => {
+
+                        console.warn(
+                            "Não foi possível reativar o áudio:",
+                            erro
+                        );
+
+                    }
+                );
 
         }
 
 
+        if (
+            audioContext.state !== "running"
+        ) {
+
+            console.warn(
+                "Áudio não está disponível. Estado:",
+                audioContext.state
+            );
+
+            return;
+
+        }
+
+
+        /* ====================================================
+           MOMENTO ATUAL DO ÁUDIO
+           ==================================================== */
+
+        const agora =
+            audioContext.currentTime;
+
+
+        /* ====================================================
+           OSCILADOR
+           ==================================================== */
+
         const oscilador =
             audioContext.createOscillator();
+
+
+        /* ====================================================
+           CONTROLE DE VOLUME
+           ==================================================== */
 
         const ganho =
             audioContext.createGain();
 
 
         /* ====================================================
-           CONFIGURAÇÃO DO SOM
+           CONFIGURAÇÃO DO BIP
            ==================================================== */
 
-        oscilador.type = "sine";
+        oscilador.type =
+            "sine";
+
+
+        /*
+         * Frequência do bip.
+         *
+         * 1800 Hz é um som agudo e perceptível.
+         */
 
         oscilador.frequency.setValueAtTime(
             1800,
-            audioContext.currentTime
+            agora
         );
 
+
+        /*
+         * Começa praticamente no zero.
+         */
 
         ganho.gain.setValueAtTime(
-            0.001,
-            audioContext.currentTime
+            0.0001,
+            agora
         );
 
+
+        /*
+         * Ataque rápido.
+         */
 
         ganho.gain.exponentialRampToValueAtTime(
             0.30,
-            audioContext.currentTime + 0.01
+            agora + 0.01
         );
 
+
+        /*
+         * Decaimento.
+         *
+         * Bip de aproximadamente 150 ms.
+         */
 
         ganho.gain.exponentialRampToValueAtTime(
-            0.001,
-            audioContext.currentTime + 0.12
+            0.0001,
+            agora + 0.15
         );
 
 
-        oscilador.connect(ganho);
+        /* ====================================================
+           CONEXÕES
+           ==================================================== */
+
+        oscilador.connect(
+            ganho
+        );
+
 
         ganho.connect(
             audioContext.destination
         );
 
 
-        oscilador.start();
+        /* ====================================================
+           EXECUTA O BIP
+           ==================================================== */
+
+        oscilador.start(
+            agora
+        );
+
 
         oscilador.stop(
-            audioContext.currentTime + 0.12
+            agora + 0.15
+        );
+
+
+        console.log(
+            "BIP emitido."
         );
 
     }
@@ -484,6 +703,7 @@ async function carregarConfiguracao() {
 
             option.value = "";
 
+
             option.textContent =
                 "Nenhum usuário disponível";
 
@@ -495,6 +715,7 @@ async function carregarConfiguracao() {
 
             campoInventario.value =
                 "";
+
 
             campoEndereco.value =
                 "";
@@ -627,7 +848,7 @@ function atualizarConfiguracaoUsuario(
 
 
     /*
-     * Compatibilidade com versões anteriores
+     * Compatibilidade com versões anteriores.
      */
 
     if (
@@ -694,13 +915,12 @@ async function iniciarColeta() {
 
     /*
      * IMPORTANTE:
-     * O áudio é liberado aqui dentro do clique
-     * do usuário.
      *
-     * Isso é importante principalmente no iPhone.
+     * O áudio é inicializado imediatamente dentro
+     * do clique do usuário.
      */
 
-    prepararAudio();
+    await prepararAudio();
 
 
     const usuarioSelecionado =
@@ -757,6 +977,7 @@ async function iniciarColeta() {
 
         inventario.focus();
 
+
         return;
 
     }
@@ -771,6 +992,7 @@ async function iniciarColeta() {
 
 
         endereco.focus();
+
 
         return;
 
@@ -900,10 +1122,12 @@ async function iniciarCamera() {
 
     video.playsInline = true;
 
+
     video.setAttribute(
         "playsinline",
         "true"
     );
+
 
     video.setAttribute(
         "webkit-playsinline",
@@ -1032,7 +1256,6 @@ async function iniciarCamera() {
             );
 
         }
-
         else if (
             erro.name ===
             "NotFoundError"
@@ -1043,7 +1266,6 @@ async function iniciarCamera() {
             );
 
         }
-
         else {
 
             mostrarCameraStatus(
@@ -1193,8 +1415,7 @@ function receberCodigoDaCamera(
     /*
      * O mesmo código aparece em vários frames.
      *
-     * Ignora apenas repetições imediatas
-     * da câmera.
+     * Ignora apenas repetições imediatas da câmera.
      */
 
     if (
@@ -1332,6 +1553,7 @@ async function processarCodigo(
      * NÚMERO = PRODUTO
      */
 
+
     if (
         /^[A-Za-z]/.test(
             codigo
@@ -1341,6 +1563,13 @@ async function processarCodigo(
         await processarNovoEndereco(
             codigo
         );
+
+
+        /*
+         * Bip imediato ao alterar endereço.
+         */
+
+        emitirBip();
 
 
         processandoCodigo =
@@ -1578,10 +1807,23 @@ async function registrarProduto(
 
 
     /*
-     * O Apps Script continua sendo responsável
-     * por verificar duplicidade.
+     * ========================================================
+     * BIP IMEDIATO
+     * ========================================================
      *
-     * NÃO alteramos essa lógica.
+     * O bip acontece ANTES do fetch.
+     *
+     * Isso evita que o som dependa do tempo de resposta
+     * do Apps Script.
+     */
+
+    emitirBip();
+
+
+    /*
+     * ========================================================
+     * ENVIO PARA O APPS SCRIPT
+     * ========================================================
      */
 
     try {
@@ -1633,14 +1875,7 @@ async function registrarProduto(
          * ====================================================
          * COLETA REGISTRADA
          * ====================================================
-         *
-         * Aqui está o BIP.
-         *
-         * Ele acontece depois do envio da coleta.
          */
-
-        emitirBip();
-
 
         /*
          * Atualiza contadores.
@@ -1743,8 +1978,7 @@ function focarCampoCodigo() {
 
 
     /*
-     * Não abre automaticamente o teclado
-     * no iPhone.
+     * Não abre automaticamente o teclado no iPhone.
      */
 
     input.value = "";
