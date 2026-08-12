@@ -7,271 +7,329 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     >
 
     <title>Coletor THOR</title>
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- =====================================================
-         ZXING
-         Versão fixa para evitar alterações automáticas
-         ===================================================== -->
-
-    <script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
-
 </head>
 
 
 <body>
 
-    <div class="app">
 
-        <!-- =================================================
-             LOGO THOR
-             ================================================= -->
+<!-- =========================================================
+     TELA INICIAL
+     ========================================================= -->
 
-        <div class="logo-container">
+<div id="login" class="container">
 
-            <img
-                src="logo-thor.png"
-                class="logo"
-                alt="THOR Natural Stones"
-            >
+    <div class="logo-area">
 
-        </div>
-
-
-        <!-- =================================================
-             TÍTULO
-             ================================================= -->
-
-        <h1>COLETA</h1>
-
-
-        <!-- =================================================
-             CARD PRINCIPAL
-             ================================================= -->
-
-        <div class="card">
-
-
-            <!-- =================================================
-                 INFORMAÇÕES
-                 ================================================= -->
-
-            <div class="info">
-
-
-                <div class="campo">
-
-                    <span>Usuário:</span>
-
-                    <strong id="usuario">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="campo">
-
-                    <span>Inventário:</span>
-
-                    <strong id="inventario">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="campo">
-
-                    <span>Endereço:</span>
-
-                    <strong id="endereco">
-                        -
-                    </strong>
-
-                </div>
-
-
-            </div>
-
-
-            <hr>
-
-
-            <!-- =================================================
-                 CONTADORES
-                 ================================================= -->
-
-            <div class="contador">
-
-
-                <p>
-                    Produtos neste endereço
-                </p>
-
-
-                <h2 id="contadorEndereco">
-                    0
-                </h2>
-
-
-                <p>
-                    Total coletado
-                </p>
-
-
-                <h2 id="contadorTotal">
-                    0
-                </h2>
-
-
-            </div>
-
-
-            <hr>
-
-
-            <!-- =================================================
-                 CAMERA
-                 ================================================= -->
-
-            <div class="camera-container">
-
-                <video
-                    id="camera"
-                    autoplay
-                    muted
-                    playsinline
-                ></video>
-
-
-                <!-- Moldura para ajudar o usuário -->
-
-                <div class="scanner-frame">
-
-
-                    <div
-                        class="corner top-left"
-                    ></div>
-
-
-                    <div
-                        class="corner top-right"
-                    ></div>
-
-
-                    <div
-                        class="corner bottom-left"
-                    ></div>
-
-
-                    <div
-                        class="corner bottom-right"
-                    ></div>
-
-
-                </div>
-
-
-            </div>
-
-
-            <p class="camera-help">
-
-                Aponte a câmera para o código de barras
-
-            </p>
-
-
-            <!-- =================================================
-                 DIGITAÇÃO MANUAL
-                 ================================================= -->
-
-            <div class="manual">
-
-
-                <strong>
-                    Ou digite o código:
-                </strong>
-
-
-                <input
-                    type="text"
-                    id="codigo"
-                    placeholder="DIGITE OU COLE O CÓDIGO"
-                    autocomplete="off"
-                    autocapitalize="off"
-                    autocorrect="off"
-                    spellcheck="false"
-                >
-
-
-                <button
-                    id="btnRegistrar"
-                    type="button"
-                >
-                    REGISTRAR
-                </button>
-
-
-            </div>
-
-
-            <hr>
-
-
-            <!-- =================================================
-                 ÚLTIMA LEITURA
-                 ================================================= -->
-
-            <div class="ultima">
-
-
-                <strong>
-                    Última leitura
-                </strong>
-
-
-                <div id="ultimaLeitura">
-                    -
-                </div>
-
-
-            </div>
-
-
-            <!-- =================================================
-                 STATUS
-                 ================================================= -->
-
-            <div
-                id="status"
-                class="status"
-            ></div>
-
-
-        </div>
+        <img
+            src="logo-thor.png"
+            class="logo"
+            alt="THOR Natural Stones"
+        >
 
     </div>
 
 
-    <!-- =====================================================
-         CONFIGURAÇÃO DA API
-         ===================================================== -->
-
-    <script src="config.js"></script>
+    <h1>COLETOR</h1>
 
 
-    <!-- =====================================================
-         SISTEMA DO COLETOR
-         ===================================================== -->
+    <div class="card login-card">
 
-    <script src="script.js"></script>
+        <label for="usuario">
+            Usuário
+        </label>
+
+        <select id="usuario">
+
+            <option value="">
+                Carregando...
+            </option>
+
+        </select>
+
+
+        <label for="inventario">
+            Inventário
+        </label>
+
+        <input
+            id="inventario"
+            type="text"
+            readonly
+        >
+
+
+        <label for="endereco">
+            Endereço
+        </label>
+
+        <input
+            id="endereco"
+            type="text"
+            readonly
+        >
+
+
+        <button
+            id="btnEntrar"
+            type="button"
+        >
+            INICIAR COLETA
+        </button>
+
+
+        <div
+            id="loginStatus"
+            class="status"
+        ></div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     TELA DE COLETA
+     ========================================================= -->
+
+<div
+    id="coleta"
+    class="container coleta-container"
+    style="display:none;"
+>
+
+
+    <div class="logo-area">
+
+        <img
+            src="logo-thor.png"
+            class="logo"
+            alt="THOR Natural Stones"
+        >
+
+    </div>
+
+
+    <h1>COLETA</h1>
+
+
+    <div class="card coleta-card">
+
+
+        <!-- DADOS DA SESSÃO -->
+
+        <div class="dados-sessao">
+
+            <div class="campo-info">
+
+                <span class="titulo-info">
+                    Usuário:
+                </span>
+
+                <strong id="lblUsuario">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="campo-info">
+
+                <span class="titulo-info">
+                    Inventário:
+                </span>
+
+                <strong id="lblInventario">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="campo-info">
+
+                <span class="titulo-info">
+                    Endereço:
+                </span>
+
+                <strong id="lblEndereco">
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- CONTADORES -->
+
+        <div class="contador-bloco">
+
+            <span>
+                Produtos neste endereço
+            </span>
+
+            <strong id="contadorEndereco">
+                0
+            </strong>
+
+        </div>
+
+
+        <div class="contador-bloco">
+
+            <span>
+                Total coletado
+            </span>
+
+            <strong id="contadorTotal">
+                0
+            </strong>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- =================================================
+             CÂMERA
+             ================================================= -->
+
+        <div
+            id="cameraContainer"
+            class="camera-container"
+        >
+
+            <video
+                id="camera"
+                autoplay
+                muted
+                playsinline
+            ></video>
+
+
+            <div class="scanner-frame">
+
+                <span class="corner top-left"></span>
+                <span class="corner top-right"></span>
+                <span class="corner bottom-left"></span>
+                <span class="corner bottom-right"></span>
+
+            </div>
+
+        </div>
+
+
+        <div class="camera-instrucao">
+
+            Aponte a câmera para o código de barras
+
+        </div>
+
+
+        <!-- =================================================
+             DIGITAÇÃO MANUAL
+             ================================================= -->
+
+        <div class="manual-area">
+
+            <label for="codigoManual">
+                Ou digite o código:
+            </label>
+
+
+            <input
+                id="codigoManual"
+                type="text"
+                placeholder="DIGITE OU COLE O CÓDIGO"
+                autocomplete="off"
+                autocapitalize="characters"
+                autocorrect="off"
+                spellcheck="false"
+            >
+
+
+            <button
+                id="btnRegistrar"
+                type="button"
+            >
+                REGISTRAR
+            </button>
+
+        </div>
+
+
+        <!-- STATUS -->
+
+        <div
+            id="status"
+            class="status"
+        ></div>
+
+
+        <hr>
+
+
+        <!-- ÚLTIMA LEITURA -->
+
+        <div class="ultima-area">
+
+            <span>
+                Última leitura
+            </span>
+
+
+            <strong id="ultimaLeitura">
+                -
+            </strong>
+
+        </div>
+
+
+        <button
+            id="btnVoltar"
+            type="button"
+            class="btn-voltar"
+        >
+            VOLTAR
+        </button>
+
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     BIBLIOTECAS
+     ========================================================= -->
+
+<script src="config.js"></script>
+
+
+<!-- ZXING -->
+
+<script
+    src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js">
+</script>
+
+
+<!-- SCRIPT DO APLICATIVO -->
+
+<script src="script.js"></script>
 
 
 </body>
