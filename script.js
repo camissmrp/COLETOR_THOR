@@ -4,14 +4,13 @@ let scannerControls = null;
 let codeReader = null;
 let cameraAtiva = false;
 
+let processandoCodigo = false;
+let scannerBloqueado = false;
+
 let ultimoCodigoLido = "";
 let ultimoCodigoTempo = 0;
 
 let audioContext = null;
-
-/* CONTROLE DA COLETA EM LOTE */
-let scannerBloqueado = false;
-let processandoCodigo = false;
 
 
 /* =========================================================
@@ -50,6 +49,7 @@ document.addEventListener(
                 iniciarColeta
             );
 
+
         document
             .getElementById("btnRegistrar")
             ?.addEventListener(
@@ -57,12 +57,14 @@ document.addEventListener(
                 processarCodigoDigitado
             );
 
+
         document
             .getElementById("btnAlterarEndereco")
             ?.addEventListener(
                 "click",
                 ativarModoEndereco
             );
+
 
         document
             .getElementById("codigo")
@@ -79,6 +81,7 @@ document.addEventListener(
                 }
             );
 
+
         document
             .getElementById("usuario")
             ?.addEventListener(
@@ -91,12 +94,14 @@ document.addEventListener(
                 }
             );
 
+
         document
             .getElementById("tipoProduto")
             ?.addEventListener(
                 "change",
                 atualizarTipoProduto
             );
+
 
         mostrarTelaLogin();
 
@@ -120,7 +125,9 @@ async function prepararAudio() {
         if (!AC) return;
 
         if (!audioContext) {
-            audioContext = new AC();
+
+            audioContext =
+                new AC();
         }
 
         if (
@@ -152,7 +159,9 @@ function emitirBip() {
         if (!AC) return;
 
         if (!audioContext) {
-            audioContext = new AC();
+
+            audioContext =
+                new AC();
         }
 
         if (
@@ -166,42 +175,57 @@ function emitirBip() {
         const agora =
             audioContext.currentTime;
 
+
         const oscilador =
             audioContext.createOscillator();
+
 
         const ganho =
             audioContext.createGain();
 
+
         oscilador.type =
             "sine";
+
 
         oscilador.frequency.setValueAtTime(
             1800,
             agora
         );
 
+
         ganho.gain.setValueAtTime(
             0.0001,
             agora
         );
+
 
         ganho.gain.exponentialRampToValueAtTime(
             0.30,
             agora + 0.01
         );
 
+
         ganho.gain.exponentialRampToValueAtTime(
             0.0001,
             agora + 0.15
         );
 
-        oscilador.connect(ganho);
+
+        oscilador.connect(
+            ganho
+        );
+
 
         ganho.connect(
             audioContext.destination
         );
 
-        oscilador.start(agora);
+
+        oscilador.start(
+            agora
+        );
+
 
         oscilador.stop(
             agora + 0.15
@@ -229,11 +253,13 @@ function mostrarTelaLogin() {
             "hidden"
         );
 
+
     document
         .getElementById("coleta")
         ?.classList.add(
             "hidden"
         );
+
 
     pararCamera();
 }
@@ -246,6 +272,7 @@ function mostrarTelaColeta() {
         ?.classList.add(
             "hidden"
         );
+
 
     document
         .getElementById("coleta")
@@ -269,10 +296,13 @@ function mostrarLoginStatus(
             "loginStatus"
         );
 
+
     if (!el) return;
+
 
     el.textContent =
         mensagem || "";
+
 
     el.className =
         "status" +
@@ -294,10 +324,13 @@ function mostrarCollectionStatus(
             "collectionStatus"
         );
 
+
     if (!el) return;
+
 
     el.textContent =
         mensagem || "";
+
 
     el.className =
         "status" +
@@ -317,6 +350,7 @@ function mostrarCameraStatus(
         document.getElementById(
             "cameraMessage"
         );
+
 
     if (el) {
 
@@ -338,6 +372,7 @@ async function carregarConfiguracao() {
             "Carregando configuração..."
         );
 
+
         const resposta =
             await fetch(
                 API +
@@ -349,6 +384,7 @@ async function carregarConfiguracao() {
                 }
             );
 
+
         if (!resposta.ok) {
 
             throw new Error(
@@ -357,16 +393,16 @@ async function carregarConfiguracao() {
             );
         }
 
+
         configuracao =
             await resposta.json();
 
-
-        /* USUÁRIOS */
 
         const selectUsuario =
             document.getElementById(
                 "usuario"
             );
+
 
         if (!selectUsuario) {
 
@@ -374,6 +410,7 @@ async function carregarConfiguracao() {
                 "Campo usuario não encontrado."
             );
         }
+
 
         selectUsuario.innerHTML =
             "";
@@ -394,23 +431,30 @@ async function carregarConfiguracao() {
                     "option"
                 );
 
-            option.value = "";
+
+            option.value =
+                "";
+
 
             option.textContent =
                 "Nenhum usuário disponível";
+
 
             selectUsuario.appendChild(
                 option
             );
 
+
             document.getElementById(
                 "btnEntrar"
             ).disabled = true;
+
 
             mostrarLoginStatus(
                 "Nenhum usuário ativo foi encontrado.",
                 "error"
             );
+
 
             return;
         }
@@ -424,11 +468,14 @@ async function carregarConfiguracao() {
                         "option"
                     );
 
+
                 option.value =
                     usuario.id;
 
+
                 option.textContent =
                     usuario.nome;
+
 
                 selectUsuario.appendChild(
                     option
@@ -437,12 +484,8 @@ async function carregarConfiguracao() {
         );
 
 
-        /* TIPOS DE PRODUTO */
-
         carregarTiposProduto();
 
-
-        /* USUÁRIO INICIAL */
 
         atualizarConfiguracaoUsuario(
             usuarios[0].id
@@ -463,10 +506,12 @@ async function carregarConfiguracao() {
             erro
         );
 
+
         mostrarLoginStatus(
             "Não foi possível carregar a configuração.",
             "error"
         );
+
 
         document.getElementById(
             "btnEntrar"
@@ -486,7 +531,15 @@ function carregarTiposProduto() {
             "tipoProduto"
         );
 
-    if (!select) return;
+
+    /*
+     * Se o campo ainda não existir
+     * no HTML, não quebra o aplicativo.
+     */
+
+    if (!select)
+        return;
+
 
     select.innerHTML =
         "";
@@ -507,14 +560,19 @@ function carregarTiposProduto() {
                 "option"
             );
 
-        option.value = "";
+
+        option.value =
+            "";
+
 
         option.textContent =
             "Nenhum tipo disponível";
 
+
         select.appendChild(
             option
         );
+
 
         return;
     }
@@ -528,18 +586,23 @@ function carregarTiposProduto() {
                     "option"
                 );
 
+
             option.value =
                 item.tipoProduto;
+
 
             option.textContent =
                 item.tipoProduto;
 
+
             option.dataset.regra =
                 item.regraColeta || "";
+
 
             option.dataset.tipoColeta =
                 item.tipoColeta ||
                 "UNITARIA";
+
 
             select.appendChild(
                 option
@@ -551,12 +614,13 @@ function carregarTiposProduto() {
     select.selectedIndex =
         0;
 
+
     atualizarTipoProduto();
 }
 
 
 /* =========================================================
-   ATUALIZAR TIPO DE PRODUTO
+   TIPO DE PRODUTO SELECIONADO
 ========================================================= */
 
 function atualizarTipoProduto() {
@@ -566,7 +630,9 @@ function atualizarTipoProduto() {
             "tipoProduto"
         );
 
-    if (!select) return;
+
+    if (!select)
+        return;
 
 
     const opcao =
@@ -574,7 +640,9 @@ function atualizarTipoProduto() {
             select.selectedIndex
         ];
 
-    if (!opcao) return;
+
+    if (!opcao)
+        return;
 
 
     sessao.tipoProduto =
@@ -587,8 +655,7 @@ function atualizarTipoProduto() {
 
     sessao.regraColeta =
         String(
-            opcao.dataset.regra ||
-            ""
+            opcao.dataset.regra || ""
         )
         .trim()
         .toUpperCase();
@@ -604,45 +671,29 @@ function atualizarTipoProduto() {
 
 
     console.log(
-        "Tipo:",
-        sessao.tipoProduto,
-        "Regra:",
-        sessao.regraColeta,
-        "Coleta:",
+        "TIPO PRODUTO:",
+        sessao.tipoProduto
+    );
+
+
+    console.log(
+        "REGRA:",
+        sessao.regraColeta
+    );
+
+
+    console.log(
+        "TIPO COLETA:",
         sessao.tipoColeta
     );
 
 
-    const botao =
-        document.getElementById(
-            "btnAlterarEndereco"
-        );
-
-
-    if (!botao) return;
-
-
-    if (
-        sessao.tipoProduto ===
-        "BLOCOS"
-    ) {
-
-        botao.style.display =
-            "block";
-
-    } else {
-
-        botao.style.display =
-            "none";
-
-        sessao.modoEndereco =
-            false;
-    }
+    atualizarBotaoEndereco();
 }
 
 
 /* =========================================================
-   CONFIGURAÇÃO DO USUÁRIO
+   USUÁRIO
 ========================================================= */
 
 function atualizarConfiguracaoUsuario(
@@ -653,6 +704,7 @@ function atualizarConfiguracaoUsuario(
         document.getElementById(
             "inventario"
         );
+
 
     const endereco =
         document.getElementById(
@@ -673,11 +725,9 @@ function atualizarConfiguracaoUsuario(
         configUsuario =
             configuracao.Configuracoes.find(
                 item =>
-
                     String(
                         item.usuario
                     ).trim() ===
-
                     String(
                         usuarioId
                     ).trim()
@@ -713,15 +763,18 @@ async function iniciarColeta() {
             "usuario"
         );
 
+
     const inventario =
         document.getElementById(
             "inventario"
         );
 
+
     const endereco =
         document.getElementById(
             "endereco"
         );
+
 
     const tipoProduto =
         document.getElementById(
@@ -764,39 +817,58 @@ async function iniciarColeta() {
         .toUpperCase();
 
 
-    sessao.tipoProduto =
-        String(
-            tipoProduto.value || ""
-        )
-        .trim()
-        .toUpperCase();
+    if (tipoProduto) {
+
+        const opcaoTipo =
+            tipoProduto.options[
+                tipoProduto.selectedIndex
+            ];
 
 
-    const opcaoTipo =
-        tipoProduto.options[
-            tipoProduto.selectedIndex
-        ];
+        sessao.tipoProduto =
+            String(
+                tipoProduto.value || ""
+            )
+            .trim()
+            .toUpperCase();
 
 
-    sessao.regraColeta =
-        String(
-            opcaoTipo?.dataset.regra ||
-            ""
-        )
-        .trim()
-        .toUpperCase();
+        sessao.regraColeta =
+            String(
+                opcaoTipo?.dataset.regra ||
+                ""
+            )
+            .trim()
+            .toUpperCase();
 
 
-    sessao.tipoColeta =
-        String(
-            opcaoTipo?.dataset.tipoColeta ||
-            "UNITARIA"
-        )
-        .trim()
-        .toUpperCase();
+        sessao.tipoColeta =
+            String(
+                opcaoTipo?.dataset.tipoColeta ||
+                "UNITARIA"
+            )
+            .trim()
+            .toUpperCase();
+
+    } else {
+
+        /*
+         * Compatibilidade caso o HTML
+         * ainda não tenha tipoProduto.
+         */
+
+        sessao.tipoProduto =
+            "CHAPAS";
 
 
-    /* VALIDAÇÕES */
+        sessao.regraColeta =
+            "";
+
+
+        sessao.tipoColeta =
+            "UNITARIA";
+    }
+
 
     if (!sessao.usuario) {
 
@@ -822,7 +894,10 @@ async function iniciarColeta() {
     }
 
 
-    if (!sessao.tipoProduto) {
+    if (
+        tipoProduto &&
+        !sessao.tipoProduto
+    ) {
 
         mostrarLoginStatus(
             "Selecione o tipo de produto.",
@@ -848,31 +923,33 @@ async function iniciarColeta() {
     }
 
 
-    /* RESET */
-
     sessao.totalEndereco =
         0;
+
 
     sessao.totalColeta =
         0;
 
+
     sessao.modoEndereco =
         false;
 
-    ultimoCodigoLido =
-        "";
-
-    ultimoCodigoTempo =
-        0;
-
-    scannerBloqueado =
-        false;
 
     processandoCodigo =
         false;
 
 
-    /* INFORMAÇÕES */
+    scannerBloqueado =
+        false;
+
+
+    ultimoCodigoLido =
+        "";
+
+
+    ultimoCodigoTempo =
+        0;
+
 
     document.getElementById(
         "lblUsuario"
@@ -886,10 +963,17 @@ async function iniciarColeta() {
         sessao.inventario;
 
 
-    document.getElementById(
-        "lblTipoProduto"
-    ).textContent =
-        sessao.tipoProduto;
+    const lblTipoProduto =
+        document.getElementById(
+            "lblTipoProduto"
+        );
+
+
+    if (lblTipoProduto) {
+
+        lblTipoProduto.textContent =
+            sessao.tipoProduto;
+    }
 
 
     document.getElementById(
@@ -933,7 +1017,9 @@ async function iniciarColeta() {
 
 /* =========================================================
    CÂMERA
-   TRASEIRA + 1920x1080 + FOCO CONTÍNUO
+   RESOLUÇÃO MÁXIMA DO APARELHO
+   + TRASEIRA
+   + FOCO CONTÍNUO
 ========================================================= */
 
 async function iniciarCamera() {
@@ -972,6 +1058,17 @@ async function iniciarCamera() {
 
     try {
 
+        /*
+         * Primeiro abre a câmera traseira.
+         *
+         * Não fixamos 1280x720.
+         * Não fixamos 1920x1080.
+         *
+         * A resolução máxima será obtida
+         * através das capacidades reais
+         * do aparelho.
+         */
+
         cameraStream =
             await navigator.mediaDevices
                 .getUserMedia({
@@ -987,12 +1084,12 @@ async function iniciarCamera() {
 
                         width: {
                             ideal:
-                                1920
+                                9999
                         },
 
                         height: {
                             ideal:
-                                1080
+                                9999
                         },
 
                         frameRate: {
@@ -1013,58 +1110,147 @@ async function iniciarCamera() {
 
         if (track) {
 
-            try {
+            const capabilities =
+                typeof track.getCapabilities ===
+                "function"
+                    ? track.getCapabilities()
+                    : {};
 
-                const capabilities =
-                    track.getCapabilities
-                        ? track.getCapabilities()
-                        : {};
+
+            console.log(
+                "CAPACIDADES DA CÂMERA:",
+                capabilities
+            );
 
 
-                if (
-                    capabilities.focusMode &&
-                    Array.isArray(
-                        capabilities.focusMode
-                    ) &&
-                    capabilities.focusMode.includes(
-                        "continuous"
-                    )
-                ) {
+            /*
+             * =================================================
+             * RESOLUÇÃO MÁXIMA
+             * =================================================
+             */
+
+            if (
+                capabilities.width &&
+                capabilities.height &&
+                capabilities.width.max &&
+                capabilities.height.max
+            ) {
+
+                try {
+
+                    await track.applyConstraints({
+
+                        width: {
+                            exact:
+                                capabilities.width.max
+                        },
+
+                        height: {
+                            exact:
+                                capabilities.height.max
+                        }
+                    });
+
+
+                    console.log(
+                        "RESOLUÇÃO MÁXIMA SOLICITADA:",
+                        capabilities.width.max +
+                        " x " +
+                        capabilities.height.max
+                    );
+
+                } catch (erroResolucao) {
+
+                    console.warn(
+                        "Não foi possível aplicar a resolução máxima:",
+                        erroResolucao
+                    );
+                }
+            }
+
+
+            /*
+             * =================================================
+             * FOCO CONTÍNUO
+             * =================================================
+             */
+
+            if (
+                capabilities.focusMode &&
+                Array.isArray(
+                    capabilities.focusMode
+                ) &&
+                capabilities.focusMode.includes(
+                    "continuous"
+                )
+            ) {
+
+                try {
 
                     await track.applyConstraints({
 
                         advanced: [
+
                             {
                                 focusMode:
                                     "continuous"
                             }
+
                         ]
                     });
 
 
                     console.log(
-                        "Foco contínuo ativado."
+                        "FOCO CONTÍNUO ATIVADO."
+                    );
+
+                } catch (erroFoco) {
+
+                    console.warn(
+                        "Foco contínuo não disponível:",
+                        erroFoco
                     );
                 }
-
-            } catch (erroFoco) {
-
-                console.warn(
-                    "Foco contínuo:",
-                    erroFoco
-                );
             }
+
+
+            /*
+             * MOSTRA A CONFIGURAÇÃO REAL.
+             */
+
+            const settings =
+                typeof track.getSettings ===
+                "function"
+                    ? track.getSettings()
+                    : {};
+
+
+            console.log(
+                "CONFIGURAÇÃO FINAL DA CÂMERA:",
+                settings
+            );
+
+
+            console.log(
+                "RESOLUÇÃO FINAL:",
+                settings.width +
+                " x " +
+                settings.height
+            );
         }
 
 
         video.srcObject =
             cameraStream;
 
+
         video.autoplay =
             true;
 
+
         video.muted =
             true;
+
 
         video.playsInline =
             true;
@@ -1090,7 +1276,7 @@ async function iniciarCamera() {
 
 
         console.log(
-            "Resolução real:",
+            "RESOLUÇÃO REAL DO VÍDEO:",
             video.videoWidth +
             " x " +
             video.videoHeight
@@ -1101,6 +1287,12 @@ async function iniciarCamera() {
             "Aponte a câmera para o código de barras"
         );
 
+
+        /*
+         * IMPORTANTE:
+         *
+         * Mantemos o mesmo leitor.
+         */
 
         iniciarLeitorZXing(
             video
@@ -1134,24 +1326,12 @@ async function iniciarCamera() {
 
 /* =========================================================
    ZXING
+   MESMO LEITOR MULTIFORMATO
 ========================================================= */
 
 function iniciarLeitorZXing(
     video
 ) {
-
-    /*
-     * Não iniciar outro leitor
-     * enquanto a coleta em lote
-     * estiver bloqueada.
-     */
-
-    if (
-        scannerBloqueado
-    ) {
-        return;
-    }
-
 
     if (
         typeof ZXingBrowser ===
@@ -1162,44 +1342,17 @@ function iniciarLeitorZXing(
             "Leitor não carregado."
         );
 
+
         console.error(
             "ZXingBrowser não encontrado."
         );
+
 
         return;
     }
 
 
     try {
-
-        /*
-         * Se existir leitor anterior,
-         * encerra antes de criar outro.
-         */
-
-        if (scannerControls) {
-
-            try {
-
-                scannerControls.stop();
-
-            } catch (e) {}
-        }
-
-
-        scannerControls =
-            null;
-
-
-        if (codeReader) {
-
-            try {
-
-                codeReader.reset();
-
-            } catch (e) {}
-        }
-
 
         codeReader =
             new ZXingBrowser
@@ -1213,20 +1366,16 @@ function iniciarLeitorZXing(
                 (resultado, erro) => {
 
                     /*
-                     * Se o lote estiver aberto,
+                     * Enquanto estiver
+                     * informando quantidade,
                      * ignora qualquer leitura.
                      */
 
                     if (
-                        scannerBloqueado
-                    ) {
-                        return;
-                    }
-
-
-                    if (
+                        scannerBloqueado ||
                         processandoCodigo
                     ) {
+
                         return;
                     }
 
@@ -1278,8 +1427,8 @@ function iniciarLeitorZXing(
 
                     /*
                      * Se durante a inicialização
-                     * o scanner foi bloqueado,
-                     * não deixa este leitor continuar.
+                     * o lote foi bloqueado,
+                     * não deixa o leitor continuar.
                      */
 
                     if (
@@ -1337,73 +1486,12 @@ function iniciarLeitorZXing(
 
 
 /* =========================================================
-   PARAR APENAS O LEITOR
-   NÃO DESLIGA A CÂMERA
-========================================================= */
-
-function pararLeitorZXing() {
-
-    try {
-
-        if (
-            scannerControls &&
-            typeof scannerControls.stop ===
-            "function"
-        ) {
-
-            scannerControls.stop();
-        }
-
-    } catch (erro) {
-
-        console.warn(
-            "Erro parando scanner:",
-            erro
-        );
-    }
-
-
-    scannerControls =
-        null;
-
-
-    try {
-
-        if (
-            codeReader &&
-            typeof codeReader.reset ===
-            "function"
-        ) {
-
-            codeReader.reset();
-        }
-
-    } catch (erro) {
-
-        console.warn(
-            "Erro resetando ZXing:",
-            erro
-        );
-    }
-
-
-    codeReader =
-        null;
-}
-
-
-/* =========================================================
    RECEBER CÓDIGO DA CÂMERA
 ========================================================= */
 
 function receberCodigoDaCamera(
     codigo
 ) {
-
-    /*
-     * Não aceitar outra leitura
-     * enquanto estiver processando.
-     */
 
     if (
         scannerBloqueado ||
@@ -1429,16 +1517,15 @@ function receberCodigoDaCamera(
 
 
     /*
-     * Evita somente a repetição
-     * imediata do mesmo frame.
+     * SOMENTE proteção contra o mesmo
+     * frame ser capturado várias vezes.
      *
-     * NÃO é duplicidade da coleta.
+     * NÃO é duplicidade de coleta.
      */
 
     if (
         codigo ===
         ultimoCodigoLido &&
-
         agora -
         ultimoCodigoTempo <
         800
@@ -1457,16 +1544,10 @@ function receberCodigoDaCamera(
 
 
     /*
-     * =====================================================
-     * IMPORTANTE
+     * IMPORTANTE:
      *
-     * O código lido pela câmera NÃO
+     * Código vindo da câmera NÃO
      * será colocado no campo manual.
-     *
-     * Isso corrige exatamente o
-     * código que ficava preenchido
-     * atrás da tela de quantidade.
-     * =====================================================
      */
 
     const campo =
@@ -1530,7 +1611,7 @@ function processarCodigoDigitado() {
 
 
 /* =========================================================
-   NORMALIZAR CÓDIGO
+   NORMALIZAR
 ========================================================= */
 
 function normalizarCodigo(
@@ -1570,8 +1651,7 @@ function processarCodigo(
     if (
         !sessao.usuario ||
         !sessao.inventario ||
-        !sessao.endereco ||
-        !sessao.tipoProduto
+        !sessao.endereco
     ) {
 
         mostrarCollectionStatus(
@@ -1587,39 +1667,36 @@ function processarCodigo(
         true;
 
 
-    /*
-     * =====================================================
-     * MODO ALTERAR ENDEREÇO
-     * =====================================================
-     */
+    /* =====================================================
+       ALTERAÇÃO DE ENDEREÇO
+    ===================================================== */
 
     if (
         sessao.modoEndereco
     ) {
 
+        emitirBip();
+
+
         processarNovoEndereco(
             codigo
         );
 
-        emitirBip();
 
         processandoCodigo =
             false;
 
+
         limparCampoCodigo();
+
 
         return;
     }
 
 
-    /*
-     * =====================================================
-     * CHAPAS / RECORTADOS
-     *
-     * NÚMERO = PRODUTO
-     * LETRA = ENDEREÇO
-     * =====================================================
-     */
+    /* =====================================================
+       CHAPAS / RECORTADOS
+    ===================================================== */
 
     if (
         sessao.tipoProduto ===
@@ -1629,26 +1706,38 @@ function processarCodigo(
         "RECORTADOS"
     ) {
 
+        /*
+         * LETRA = ENDEREÇO
+         */
+
         if (
             /^[A-Za-z]/.test(
                 codigo
             )
         ) {
 
+            emitirBip();
+
+
             processarNovoEndereco(
                 codigo
             );
 
-            emitirBip();
 
             processandoCodigo =
                 false;
 
+
             limparCampoCodigo();
+
 
             return;
         }
 
+
+        /*
+         * NÚMERO = PRODUTO
+         */
 
         if (
             !/^\d/.test(
@@ -1656,11 +1745,18 @@ function processarCodigo(
             )
         ) {
 
-            document.getElementById(
-                "ultimaLeitura"
-            ).textContent =
-                codigo +
-                " - INVÁLIDO";
+            const ultima =
+                document.getElementById(
+                    "ultimaLeitura"
+                );
+
+
+            if (ultima) {
+
+                ultima.textContent =
+                    codigo +
+                    " - INVÁLIDO";
+            }
 
 
             mostrarCollectionStatus(
@@ -1675,43 +1771,32 @@ function processarCodigo(
 
             limparCampoCodigo();
 
+
             return;
         }
     }
 
 
-    /*
-     * =====================================================
-     * BLOCOS
-     *
-     * Qualquer código = PRODUTO
-     * =====================================================
-     */
+    /* =====================================================
+       BLOCOS
+       
+       Qualquer código = PRODUTO.
+       
+       O endereço é alterado através
+       do botão "Alterar Endereço".
+    ===================================================== */
 
 
     /*
-     * =====================================================
-     * OUTROS TIPOS
-     *
-     * Tratados como produto.
-     * =====================================================
-     */
-
-
-    /*
-     * =====================================================
      * BIP
-     * =====================================================
      */
 
     emitirBip();
 
 
-    /*
-     * =====================================================
-     * COLETA EM LOTE
-     * =====================================================
-     */
+    /* =====================================================
+       COLETA EM LOTE
+    ===================================================== */
 
     if (
         sessao.tipoColeta ===
@@ -1719,7 +1804,7 @@ function processarCodigo(
     ) {
 
         /*
-         * PRIMEIRO BLOQUEIA.
+         * BLOQUEIA IMEDIATAMENTE.
          */
 
         scannerBloqueado =
@@ -1727,23 +1812,23 @@ function processarCodigo(
 
 
         /*
-         * PARA O ZXING.
+         * PARA SOMENTE O ZXING.
          *
-         * A câmera continua ligada.
+         * A câmera permanece ligada.
          */
 
         pararLeitorZXing();
 
 
         /*
-         * Limpa o campo manual.
+         * Garante campo vazio.
          */
 
         limparCampoCodigo();
 
 
         /*
-         * Agora abre a quantidade.
+         * Pergunta quantidade.
          */
 
         solicitarQuantidadeLote(
@@ -1755,11 +1840,9 @@ function processarCodigo(
     }
 
 
-    /*
-     * =====================================================
-     * COLETA UNITÁRIA
-     * =====================================================
-     */
+    /* =====================================================
+       UNITÁRIA
+    ===================================================== */
 
     registrarProduto(
         codigo,
@@ -1776,6 +1859,114 @@ function processarCodigo(
 
 
 /* =========================================================
+   PARAR SOMENTE O LEITOR
+   A CÂMERA CONTINUA LIGADA
+========================================================= */
+
+function pararLeitorZXing() {
+
+    try {
+
+        if (
+            scannerControls &&
+            typeof scannerControls.stop ===
+            "function"
+        ) {
+
+            scannerControls.stop();
+        }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro parando scanner:",
+            erro
+        );
+    }
+
+
+    scannerControls =
+        null;
+
+
+    try {
+
+        if (
+            codeReader &&
+            typeof codeReader.reset ===
+            "function"
+        ) {
+
+            codeReader.reset();
+        }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro resetando ZXing:",
+            erro
+        );
+    }
+
+
+    codeReader =
+        null;
+}
+
+
+/* =========================================================
+   REINICIAR LEITOR
+========================================================= */
+
+function reiniciarLeitorZXing() {
+
+    if (
+        scannerBloqueado ||
+        !cameraAtiva
+    ) {
+
+        return;
+    }
+
+
+    const video =
+        document.getElementById(
+            "camera"
+        );
+
+
+    if (!video)
+        return;
+
+
+    pararLeitorZXing();
+
+
+    /*
+     * Pequeno intervalo apenas para garantir
+     * que o leitor anterior terminou.
+     */
+
+    setTimeout(
+        () => {
+
+            if (
+                !scannerBloqueado &&
+                cameraAtiva
+            ) {
+
+                iniciarLeitorZXing(
+                    video
+                );
+            }
+
+        },
+        100
+    );
+}
+
+
+/* =========================================================
    COLETA EM LOTE
 ========================================================= */
 
@@ -1784,9 +1975,11 @@ function solicitarQuantidadeLote(
 ) {
 
     /*
-     * NÃO existe setTimeout aqui.
+     * Neste momento:
      *
-     * O ZXing já foi parado.
+     * scannerBloqueado = true
+     * ZXing = parado
+     * câmera = ligada
      */
 
     const resposta =
@@ -1799,11 +1992,9 @@ function solicitarQuantidadeLote(
         );
 
 
-    /*
-     * =====================================================
-     * CANCELAR
-     * =====================================================
-     */
+    /* =====================================================
+       CANCELAR
+    ===================================================== */
 
     if (
         resposta ===
@@ -1816,37 +2007,12 @@ function solicitarQuantidadeLote(
         );
 
 
-        processandoCodigo =
-            false;
-
-
-        scannerBloqueado =
-            false;
-
-
-        ultimoCodigoLido =
-            "";
-
-
-        ultimoCodigoTempo =
-            0;
-
-
-        limparCampoCodigo();
-
-
-        reiniciarScanner();
+        liberarScannerLote();
 
 
         return;
     }
 
-
-    /*
-     * =====================================================
-     * QUANTIDADE
-     * =====================================================
-     */
 
     const quantidade =
         Number(
@@ -1874,26 +2040,7 @@ function solicitarQuantidadeLote(
         );
 
 
-        processandoCodigo =
-            false;
-
-
-        scannerBloqueado =
-            false;
-
-
-        ultimoCodigoLido =
-            "";
-
-
-        ultimoCodigoTempo =
-            0;
-
-
-        limparCampoCodigo();
-
-
-        reiniciarScanner();
+        liberarScannerLote();
 
 
         return;
@@ -1901,47 +2048,23 @@ function solicitarQuantidadeLote(
 
 
     /*
-     * =====================================================
-     * SOMENTE INTEIRO
-     * =====================================================
+     * LOTE trabalha somente com
+     * quantidade inteira.
      */
 
-    const quantidadeInteira =
-        Math.floor(
-            quantidade
-        );
-
-
     if (
-        quantidadeInteira <= 0
+        !Number.isInteger(
+            quantidade
+        )
     ) {
 
         mostrarCollectionStatus(
-            "Quantidade inválida.",
+            "Informe uma quantidade inteira.",
             "error"
         );
 
 
-        processandoCodigo =
-            false;
-
-
-        scannerBloqueado =
-            false;
-
-
-        ultimoCodigoLido =
-            "";
-
-
-        ultimoCodigoTempo =
-            0;
-
-
-        limparCampoCodigo();
-
-
-        reiniciarScanner();
+        liberarScannerLote();
 
 
         return;
@@ -1949,22 +2072,28 @@ function solicitarQuantidadeLote(
 
 
     /*
-     * =====================================================
-     * REGISTRA
-     * =====================================================
+     * REGISTRA A QUANTIDADE
      */
 
     registrarProduto(
         codigo,
-        quantidadeInteira
+        quantidade
     );
 
 
     /*
-     * =====================================================
-     * LIBERA
-     * =====================================================
+     * LIBERA E VOLTA A LER
      */
+
+    liberarScannerLote();
+}
+
+
+/* =========================================================
+   LIBERAR SCANNER DO LOTE
+========================================================= */
+
+function liberarScannerLote() {
 
     processandoCodigo =
         false;
@@ -1985,65 +2114,7 @@ function solicitarQuantidadeLote(
     limparCampoCodigo();
 
 
-    /*
-     * =====================================================
-     * NOVO SCAN
-     * =====================================================
-     */
-
-    reiniciarScanner();
-}
-
-
-/* =========================================================
-   REINICIAR SCANNER
-========================================================= */
-
-function reiniciarScanner() {
-
-    /*
-     * Aguarda o encerramento do
-     * leitor anterior antes de
-     * criar outro.
-     */
-
-    if (
-        !cameraAtiva ||
-        scannerBloqueado
-    ) {
-
-        return;
-    }
-
-
-    const video =
-        document.getElementById(
-            "camera"
-        );
-
-
-    if (!video) {
-
-        return;
-    }
-
-
-    /*
-     * Garante que não exista
-     * leitor antigo.
-     */
-
-    pararLeitorZXing();
-
-
-    /*
-     * Inicia novamente usando
-     * a mesma câmera.
-     */
-
-    iniciarLeitorZXing(
-        video
-    );
+    reiniciarLeitorZXing();
 }
 
 
@@ -2056,22 +2127,21 @@ function registrarProduto(
     quantidade = 1
 ) {
 
-    const ultima =
+    const ultimaLeitura =
         document.getElementById(
             "ultimaLeitura"
         );
 
 
-    if (ultima) {
+    if (ultimaLeitura) {
 
-        ultima.textContent =
+        ultimaLeitura.textContent =
             codigo;
     }
 
 
     const mensagem =
-        sessao.tipoColeta ===
-        "LOTE"
+        quantidade > 1
 
             ? "Lote enviado: " +
               quantidade +
@@ -2125,9 +2195,7 @@ function registrarProduto(
 
 
     /*
-     * =====================================================
-     * ENVIO PARA O APPS SCRIPT
-     * =====================================================
+     * ENVIO PARA A SHEET
      */
 
     fetch(
@@ -2180,13 +2248,19 @@ function registrarProduto(
 
             console.log(
                 "Coleta enviada:",
-                codigo,
-                "Tipo:",
-                sessao.tipoProduto,
-                "Coleta:",
-                sessao.tipoColeta,
-                "Quantidade:",
-                quantidade
+                {
+                    codigo:
+                        codigo,
+
+                    quantidade:
+                        quantidade,
+
+                    tipoProduto:
+                        sessao.tipoProduto,
+
+                    tipoColeta:
+                        sessao.tipoColeta
+                }
             );
         }
     )
@@ -2199,9 +2273,6 @@ function registrarProduto(
             );
         }
     );
-
-
-    limparCampoCodigo();
 }
 
 
@@ -2226,7 +2297,7 @@ function limparCampoCodigo() {
 
 
 /* =========================================================
-   ATIVAR MODO ALTERAR ENDEREÇO
+   ALTERAR ENDEREÇO
 ========================================================= */
 
 function ativarModoEndereco() {
@@ -2301,6 +2372,7 @@ function atualizarBotaoEndereco() {
         botao.textContent =
             "LENDO NOVO ENDEREÇO";
 
+
         botao.disabled =
             true;
 
@@ -2309,6 +2381,7 @@ function atualizarBotaoEndereco() {
         botao.textContent =
             "ALTERAR ENDEREÇO";
 
+
         botao.disabled =
             false;
     }
@@ -2316,7 +2389,7 @@ function atualizarBotaoEndereco() {
 
 
 /* =========================================================
-   PROCESSAR NOVO ENDEREÇO
+   NOVO ENDEREÇO
 ========================================================= */
 
 function processarNovoEndereco(
@@ -2345,22 +2418,43 @@ function processarNovoEndereco(
         false;
 
 
-    document.getElementById(
-        "lblEndereco"
-    ).textContent =
-        novoEndereco;
+    const lblEndereco =
+        document.getElementById(
+            "lblEndereco"
+        );
 
 
-    document.getElementById(
-        "contadorEndereco"
-    ).textContent =
-        "0";
+    if (lblEndereco) {
+
+        lblEndereco.textContent =
+            novoEndereco;
+    }
 
 
-    document.getElementById(
-        "ultimaLeitura"
-    ).textContent =
-        novoEndereco;
+    const contadorEndereco =
+        document.getElementById(
+            "contadorEndereco"
+        );
+
+
+    if (contadorEndereco) {
+
+        contadorEndereco.textContent =
+            "0";
+    }
+
+
+    const ultima =
+        document.getElementById(
+            "ultimaLeitura"
+        );
+
+
+    if (ultima) {
+
+        ultima.textContent =
+            novoEndereco;
+    }
 
 
     mostrarCollectionStatus(
@@ -2378,7 +2472,7 @@ function processarNovoEndereco(
 
 
     /*
-     * SALVA O NOVO ENDEREÇO
+     * SALVA NOVO ENDEREÇO
      */
 
     fetch(
@@ -2423,9 +2517,6 @@ function processarNovoEndereco(
             );
         }
     );
-
-
-    limparCampoCodigo();
 }
 
 
@@ -2443,10 +2534,6 @@ function pararCamera() {
         false;
 
 
-    /*
-     * PARA O LEITOR
-     */
-
     try {
 
         if (
@@ -2461,7 +2548,6 @@ function pararCamera() {
     } catch (erro) {
 
         console.warn(
-            "Erro parando scanner:",
             erro
         );
     }
@@ -2470,10 +2556,6 @@ function pararCamera() {
     scannerControls =
         null;
 
-
-    /*
-     * RESET ZXING
-     */
 
     try {
 
@@ -2489,7 +2571,6 @@ function pararCamera() {
     } catch (erro) {
 
         console.warn(
-            "Erro resetando ZXing:",
             erro
         );
     }
@@ -2498,10 +2579,6 @@ function pararCamera() {
     codeReader =
         null;
 
-
-    /*
-     * DESLIGA CÂMERA
-     */
 
     if (cameraStream) {
 
