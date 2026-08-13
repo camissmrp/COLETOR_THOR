@@ -14,6 +14,7 @@ const sessao = {
     endereco: "",
     tipoProduto: "",
     regraColeta: "",
+    tipoColeta: "UNITARIA",
     totalEndereco: 0,
     totalColeta: 0,
     modoEndereco: false
@@ -26,43 +27,33 @@ const sessao = {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    document
-        .getElementById("btnEntrar")
+    document.getElementById("btnEntrar")
         ?.addEventListener("click", iniciarColeta);
 
-    document
-        .getElementById("btnRegistrar")
+    document.getElementById("btnRegistrar")
         ?.addEventListener("click", processarCodigoDigitado);
 
-    document
-        .getElementById("btnAlterarEndereco")
+    document.getElementById("btnAlterarEndereco")
         ?.addEventListener("click", ativarModoEndereco);
 
-    document
-        .getElementById("codigo")
+    document.getElementById("codigo")
         ?.addEventListener("keydown", e => {
-
             if (e.key === "Enter") {
                 e.preventDefault();
                 processarCodigoDigitado();
             }
-
         });
 
-    document
-        .getElementById("usuario")
+    document.getElementById("usuario")
         ?.addEventListener("change", e => {
             atualizarConfiguracaoUsuario(e.target.value);
         });
 
-    document
-        .getElementById("tipoProduto")
+    document.getElementById("tipoProduto")
         ?.addEventListener("change", atualizarTipoProduto);
 
     mostrarTelaLogin();
-
     carregarConfiguracao();
-
 });
 
 
@@ -91,7 +82,6 @@ async function prepararAudio() {
     } catch (erro) {
         console.warn("Áudio:", erro);
     }
-
 }
 
 
@@ -153,7 +143,6 @@ function emitirBip() {
     } catch (erro) {
         console.warn("Bip:", erro);
     }
-
 }
 
 
@@ -163,29 +152,23 @@ function emitirBip() {
 
 function mostrarTelaLogin() {
 
-    document
-        .getElementById("login")
+    document.getElementById("login")
         ?.classList.remove("hidden");
 
-    document
-        .getElementById("coleta")
+    document.getElementById("coleta")
         ?.classList.add("hidden");
 
     pararCamera();
-
 }
 
 
 function mostrarTelaColeta() {
 
-    document
-        .getElementById("login")
+    document.getElementById("login")
         ?.classList.add("hidden");
 
-    document
-        .getElementById("coleta")
+    document.getElementById("coleta")
         ?.classList.remove("hidden");
-
 }
 
 
@@ -193,49 +176,37 @@ function mostrarTelaColeta() {
    STATUS
 ========================================================= */
 
-function mostrarLoginStatus(
-    mensagem,
-    tipo = ""
-) {
+function mostrarLoginStatus(mensagem, tipo = "") {
 
     const el =
         document.getElementById("loginStatus");
 
     if (!el) return;
 
-    el.textContent =
-        mensagem || "";
+    el.textContent = mensagem || "";
 
     el.className =
         "status" +
         (tipo ? " " + tipo : "");
-
 }
 
 
-function mostrarCollectionStatus(
-    mensagem,
-    tipo = ""
-) {
+function mostrarCollectionStatus(mensagem, tipo = "") {
 
     const el =
         document.getElementById("collectionStatus");
 
     if (!el) return;
 
-    el.textContent =
-        mensagem || "";
+    el.textContent = mensagem || "";
 
     el.className =
         "status" +
         (tipo ? " " + tipo : "");
-
 }
 
 
-function mostrarCameraStatus(
-    mensagem
-) {
+function mostrarCameraStatus(mensagem) {
 
     const el =
         document.getElementById("cameraMessage");
@@ -243,7 +214,6 @@ function mostrarCameraStatus(
     if (el) {
         el.textContent = mensagem;
     }
-
 }
 
 
@@ -279,12 +249,16 @@ async function carregarConfiguracao() {
             await resposta.json();
 
 
-        /* =================================================
-           USUÁRIOS
-        ================================================= */
+        /* USUÁRIOS */
 
         const selectUsuario =
             document.getElementById("usuario");
+
+        if (!selectUsuario) {
+            throw new Error(
+                "Campo usuario não encontrado."
+            );
+        }
 
         selectUsuario.innerHTML = "";
 
@@ -331,20 +305,15 @@ async function carregarConfiguracao() {
                 usuario.nome;
 
             selectUsuario.appendChild(option);
-
         });
 
 
-        /* =================================================
-           TIPOS DE PRODUTO
-        ================================================= */
+        /* TIPOS DE PRODUTO */
 
         carregarTiposProduto();
 
 
-        /* =================================================
-           USUÁRIO INICIAL
-        ================================================= */
+        /* USUÁRIO INICIAL */
 
         atualizarConfiguracaoUsuario(
             usuarios[0].id
@@ -373,9 +342,7 @@ async function carregarConfiguracao() {
         document.getElementById(
             "btnEntrar"
         ).disabled = true;
-
     }
-
 }
 
 
@@ -400,7 +367,6 @@ function carregarTiposProduto() {
         )
             ? configuracao.TiposProduto
             : [];
-
 
     if (!tipos.length) {
 
@@ -428,18 +394,21 @@ function carregarTiposProduto() {
         option.textContent =
             item.tipoProduto;
 
+        /* REGRA */
         option.dataset.regra =
             item.regraColeta || "";
 
-        select.appendChild(option);
+        /* UNITARIA / LOTE */
+        option.dataset.tipoColeta =
+            item.tipoColeta || "UNITARIA";
 
+        select.appendChild(option);
     });
 
 
     select.selectedIndex = 0;
 
     atualizarTipoProduto();
-
 }
 
 
@@ -463,6 +432,7 @@ function atualizarTipoProduto() {
 
     if (!opcao) return;
 
+
     sessao.tipoProduto =
         String(
             opcao.value || ""
@@ -470,12 +440,32 @@ function atualizarTipoProduto() {
         .trim()
         .toUpperCase();
 
+
     sessao.regraColeta =
         String(
             opcao.dataset.regra || ""
         )
         .trim()
         .toUpperCase();
+
+
+    sessao.tipoColeta =
+        String(
+            opcao.dataset.tipoColeta ||
+            "UNITARIA"
+        )
+        .trim()
+        .toUpperCase();
+
+
+    console.log(
+        "Tipo selecionado:",
+        sessao.tipoProduto,
+        "Regra:",
+        sessao.regraColeta,
+        "Tipo coleta:",
+        sessao.tipoColeta
+    );
 
 
     /*
@@ -505,11 +495,8 @@ function atualizarTipoProduto() {
 
             sessao.modoEndereco =
                 false;
-
         }
-
     }
-
 }
 
 
@@ -549,23 +536,21 @@ function atualizarConfiguracaoUsuario(
                         usuarioId
                     ).trim()
             );
-
     }
+
 
     if (inventario) {
 
         inventario.value =
             configUsuario?.inventario || "";
-
     }
+
 
     if (endereco) {
 
         endereco.value =
             configUsuario?.enderecoAtual || "";
-
     }
-
 }
 
 
@@ -648,6 +633,15 @@ async function iniciarColeta() {
     sessao.regraColeta =
         String(
             opcaoTipo?.dataset.regra || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    sessao.tipoColeta =
+        String(
+            opcaoTipo?.dataset.tipoColeta ||
+            "UNITARIA"
         )
         .trim()
         .toUpperCase();
@@ -766,7 +760,6 @@ async function iniciarColeta() {
     mostrarTelaColeta();
 
     await iniciarCamera();
-
 }
 
 
@@ -831,9 +824,7 @@ async function iniciarCamera() {
                             ideal: 30,
                             max: 30
                         }
-
                     }
-
                 });
 
 
@@ -907,11 +898,8 @@ async function iniciarCamera() {
                         "Foco contínuo:",
                         erroFoco
                     );
-
                 }
-
             }
-
         }
 
 
@@ -921,7 +909,6 @@ async function iniciarCamera() {
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
-
 
         video.setAttribute(
             "playsinline",
@@ -935,7 +922,6 @@ async function iniciarCamera() {
 
 
         await video.play();
-
 
         cameraAtiva = true;
 
@@ -973,9 +959,7 @@ async function iniciarCamera() {
             "Use a digitação manual.",
             "error"
         );
-
     }
-
 }
 
 
@@ -1052,7 +1036,6 @@ function iniciarLeitorZXing(video) {
                     receberCodigoDaCamera(
                         codigo
                     );
-
                 }
             )
             .then(controles => {
@@ -1063,7 +1046,6 @@ function iniciarLeitorZXing(video) {
                 console.log(
                     "Scanner iniciado."
                 );
-
             })
             .catch(erro => {
 
@@ -1075,7 +1057,6 @@ function iniciarLeitorZXing(video) {
                 mostrarCameraStatus(
                     "Erro no leitor de código."
                 );
-
             });
 
 
@@ -1089,9 +1070,7 @@ function iniciarLeitorZXing(video) {
         mostrarCameraStatus(
             "Erro ao iniciar leitor."
         );
-
     }
-
 }
 
 
@@ -1099,19 +1078,15 @@ function iniciarLeitorZXing(video) {
    RECEBER CÓDIGO DA CÂMERA
 ========================================================= */
 
-function receberCodigoDaCamera(
-    codigo
-) {
+function receberCodigoDaCamera(codigo) {
 
     const agora =
         Date.now();
-
 
     codigo =
         normalizarCodigo(
             codigo
         );
-
 
     if (!codigo)
         return;
@@ -1128,9 +1103,7 @@ function receberCodigoDaCamera(
         codigo === ultimoCodigoLido &&
         agora - ultimoCodigoTempo < 800
     ) {
-
         return;
-
     }
 
 
@@ -1146,7 +1119,6 @@ function receberCodigoDaCamera(
             "codigo"
         );
 
-
     if (campo) {
         campo.value = codigo;
     }
@@ -1155,7 +1127,6 @@ function receberCodigoDaCamera(
     processarCodigo(
         codigo
     );
-
 }
 
 
@@ -1179,7 +1150,6 @@ function processarCodigoDigitado() {
             campo.value
         );
 
-
     if (!codigo)
         return;
 
@@ -1187,7 +1157,6 @@ function processarCodigoDigitado() {
     processarCodigo(
         codigo
     );
-
 }
 
 
@@ -1195,9 +1164,7 @@ function processarCodigoDigitado() {
    NORMALIZAR
 ========================================================= */
 
-function normalizarCodigo(
-    valor
-) {
+function normalizarCodigo(valor) {
 
     return String(
         valor || ""
@@ -1208,7 +1175,6 @@ function normalizarCodigo(
     )
     .trim()
     .toUpperCase();
-
 }
 
 
@@ -1216,9 +1182,7 @@ function normalizarCodigo(
    PROCESSAR CÓDIGO
 ========================================================= */
 
-function processarCodigo(
-    codigo
-) {
+function processarCodigo(codigo) {
 
     if (!codigo)
         return;
@@ -1243,9 +1207,6 @@ function processarCodigo(
     /*
      * =====================================================
      * MODO ALTERAR ENDEREÇO
-     *
-     * Utilizado para BLOCOS.
-     * O próximo código lido será o endereço.
      * =====================================================
      */
 
@@ -1310,7 +1271,6 @@ function processarCodigo(
 
             return;
         }
-
     }
 
 
@@ -1319,8 +1279,7 @@ function processarCodigo(
      * BLOCOS
      *
      * Qualquer código é produto.
-     * Não existe identificação automática
-     * de endereço.
+     * Endereço é alterado manualmente.
      * =====================================================
      */
 
@@ -1330,25 +1289,171 @@ function processarCodigo(
     ) {
 
         /* qualquer código é aceito */
-
     }
 
 
     /*
      * =====================================================
-     * PRODUTO
+     * OUTROS TIPOS
      *
+     * Para tipos como ALMOXARIFADO,
+     * o código é tratado como produto.
+     * =====================================================
+     */
+
+
+    /*
+     * =====================================================
      * BIP IMEDIATO
-     * ENVIO ASSÍNCRONO
      * =====================================================
      */
 
     emitirBip();
 
-    registrarProduto(
-        codigo
-    );
 
+    /*
+     * =====================================================
+     * COLETA EM LOTE
+     *
+     * Se TipoColeta = LOTE,
+     * pergunta a quantidade somente agora.
+     * =====================================================
+     */
+
+    if (
+        sessao.tipoColeta ===
+        "LOTE"
+    ) {
+
+        solicitarQuantidadeLote(
+            codigo
+        );
+
+        return;
+    }
+
+
+    /*
+     * =====================================================
+     * COLETA UNITÁRIA
+     * =====================================================
+     */
+
+    registrarProduto(
+        codigo,
+        1
+    );
+}
+
+
+/* =========================================================
+   SOLICITAR QUANTIDADE DO LOTE
+========================================================= */
+
+function solicitarQuantidadeLote(
+    codigo
+) {
+
+    /*
+     * Pequeno atraso para não atrapalhar
+     * o bip e a leitura da câmera.
+     */
+
+    setTimeout(() => {
+
+        const resposta =
+            window.prompt(
+                "COLETA EM LOTE\n\n" +
+                "Código: " +
+                codigo +
+                "\n\n" +
+                "Informe a quantidade de peças:"
+            );
+
+
+        /*
+         * Cancelou
+         */
+
+        if (
+            resposta === null
+        ) {
+
+            mostrarCollectionStatus(
+                "Coleta cancelada.",
+                "error"
+            );
+
+            limparCampoCodigo();
+
+            return;
+        }
+
+
+        const quantidade =
+            Number(
+                String(
+                    resposta
+                ).replace(
+                    ",",
+                    "."
+                )
+            );
+
+
+        /*
+         * Validação
+         */
+
+        if (
+            !Number.isFinite(
+                quantidade
+            ) ||
+            quantidade <= 0
+        ) {
+
+            mostrarCollectionStatus(
+                "Quantidade inválida.",
+                "error"
+            );
+
+            limparCampoCodigo();
+
+            return;
+        }
+
+
+        /*
+         * Apenas números inteiros
+         */
+
+        const quantidadeInteira =
+            Math.floor(
+                quantidade
+            );
+
+
+        if (
+            quantidadeInteira <= 0
+        ) {
+
+            mostrarCollectionStatus(
+                "Quantidade inválida.",
+                "error"
+            );
+
+            limparCampoCodigo();
+
+            return;
+        }
+
+
+        registrarProduto(
+            codigo,
+            quantidadeInteira
+        );
+
+    }, 50);
 }
 
 
@@ -1357,7 +1462,8 @@ function processarCodigo(
 ========================================================= */
 
 function registrarProduto(
-    codigo
+    codigo,
+    quantidade = 1
 ) {
 
     document.getElementById(
@@ -1366,20 +1472,31 @@ function registrarProduto(
         codigo;
 
 
+    const mensagem =
+        sessao.tipoColeta === "LOTE"
+            ? "Lote enviado: " +
+              quantidade +
+              " peças."
+            : "Coleta enviada.";
+
+
     mostrarCollectionStatus(
-        "Coleta enviada.",
+        mensagem,
         "success"
     );
 
 
     /*
+     * =====================================================
      * CONTADORES IMEDIATOS
-     *
-     * Não espera a resposta da Sheet.
+     * =====================================================
      */
 
-    sessao.totalEndereco++;
-    sessao.totalColeta++;
+    sessao.totalEndereco +=
+        quantidade;
+
+    sessao.totalColeta +=
+        quantidade;
 
 
     document.getElementById(
@@ -1395,7 +1512,9 @@ function registrarProduto(
 
 
     /*
+     * =====================================================
      * ENVIO ASSÍNCRONO
+     * =====================================================
      */
 
     fetch(
@@ -1433,23 +1552,28 @@ function registrarProduto(
                         "PRODUTO",
 
                     tipoProduto:
-                        sessao.tipoProduto
+                        sessao.tipoProduto,
+
+                    quantidade:
+                        quantidade
 
                 })
-
         }
-
     )
     .then(() => {
 
         console.log(
             "Coleta enviada:",
             codigo,
-            sessao.tipoProduto
+            "Tipo:",
+            sessao.tipoProduto,
+            "Coleta:",
+            sessao.tipoColeta,
+            "Quantidade:",
+            quantidade
         );
 
     })
-
     .catch(erro => {
 
         console.error(
@@ -1460,9 +1584,15 @@ function registrarProduto(
     });
 
 
-    /*
-     * Limpa o campo para próxima leitura.
-     */
+    limparCampoCodigo();
+}
+
+
+/* =========================================================
+   LIMPAR CAMPO
+========================================================= */
+
+function limparCampoCodigo() {
 
     const campo =
         document.getElementById(
@@ -1472,7 +1602,6 @@ function registrarProduto(
     if (campo) {
         campo.value = "";
     }
-
 }
 
 
@@ -1518,9 +1647,7 @@ function ativarModoEndereco() {
         campo.value = "";
 
         campo.focus();
-
     }
-
 }
 
 
@@ -1548,7 +1675,6 @@ function atualizarBotaoEndereco() {
             "none";
 
         return;
-
     }
 
 
@@ -1573,9 +1699,7 @@ function atualizarBotaoEndereco() {
 
         botao.disabled =
             false;
-
     }
-
 }
 
 
@@ -1642,8 +1766,9 @@ function processarNovoEndereco(
 
 
     /*
-     * Salva o novo endereço
-     * na TB_CONFIG.
+     * =====================================================
+     * SALVA NOVO ENDEREÇO
+     * =====================================================
      */
 
     fetch(
@@ -1673,9 +1798,7 @@ function processarNovoEndereco(
 
                     endereco:
                         novoEndereco
-
                 })
-
         }
     )
     .catch(erro => {
@@ -1688,15 +1811,7 @@ function processarNovoEndereco(
     });
 
 
-    const campo =
-        document.getElementById(
-            "codigo"
-        );
-
-    if (campo) {
-        campo.value = "";
-    }
-
+    limparCampoCodigo();
 }
 
 
@@ -1715,13 +1830,11 @@ function pararCamera() {
         ) {
 
             scannerControls.stop();
-
         }
 
     } catch (erro) {
 
         console.warn(erro);
-
     }
 
 
@@ -1737,13 +1850,11 @@ function pararCamera() {
         ) {
 
             codeReader.reset();
-
         }
 
     } catch (erro) {
 
         console.warn(erro);
-
     }
 
 
@@ -1761,7 +1872,6 @@ function pararCamera() {
                 } catch (erro) {}
 
             });
-
     }
 
 
@@ -1782,9 +1892,7 @@ function pararCamera() {
         } catch (e) {}
 
         video.srcObject = null;
-
     }
-
 }
 
 
