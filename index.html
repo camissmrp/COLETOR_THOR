@@ -22,15 +22,107 @@
         href="style.css"
     >
 
+    <style>
+
+        #modalQuantidadeLote {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(0,0,0,.72);
+        }
+
+        #modalQuantidadeLote .quantidade-box {
+            width: 100%;
+            max-width: 380px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 22px;
+            box-sizing: border-box;
+            box-shadow: 0 8px 30px rgba(0,0,0,.35);
+        }
+
+        #modalQuantidadeLote .quantidade-titulo {
+            font-size: 21px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        #modalQuantidadeLote .quantidade-label {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        #codigoLoteCapturado {
+            font-size: 20px;
+            font-weight: 700;
+            word-break: break-all;
+            padding: 10px;
+            background: #f1f1f1;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        #quantidadeLote {
+            width: 100%;
+            font-size: 24px;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #bbb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        #quantidadeLote:focus {
+            outline: none;
+            border-color: #A89483;
+        }
+
+        #erroQuantidadeLote {
+            min-height: 20px;
+            color: #c62828;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .quantidade-botoes {
+            display: flex;
+            gap: 10px;
+        }
+
+        .quantidade-botoes button {
+            flex: 1;
+            padding: 13px;
+            border: 0;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        #cancelarQuantidadeLote {
+            background: #ddd;
+            color: #333;
+        }
+
+        #confirmarQuantidadeLote {
+            background: #A89483;
+            color: #fff;
+        }
+
+    </style>
+
 </head>
 
 
 <body>
 
-
-<!-- =====================================================
-     TELA INICIAL
-===================================================== -->
 
 <div
     id="login"
@@ -53,8 +145,6 @@
     <div class="card login-card">
 
 
-        <!-- USUÁRIO -->
-
         <label for="usuario">
             Usuário
         </label>
@@ -67,8 +157,6 @@
 
         </select>
 
-
-        <!-- INVENTÁRIO -->
 
         <label for="inventario">
             Inventário
@@ -85,8 +173,6 @@
         >
 
 
-        <!-- TIPO DE PRODUTO -->
-
         <label for="tipoProduto">
             Tipo de produto
         </label>
@@ -99,8 +185,6 @@
 
         </select>
 
-
-        <!-- ENDEREÇO -->
 
         <label for="endereco">
             Endereço
@@ -116,8 +200,6 @@
             spellcheck="false"
         >
 
-
-        <!-- BOTÃO -->
 
         <button
             id="btnEntrar"
@@ -139,11 +221,6 @@
 
 </div>
 
-
-
-<!-- =====================================================
-     TELA DE COLETA
-===================================================== -->
 
 <div
     id="coleta"
@@ -167,12 +244,7 @@
     <div class="card collection-card">
 
 
-        <!-- =================================================
-             INFORMAÇÕES DA SESSÃO
-        ================================================= -->
-
         <div class="session-info">
-
 
             <div>
 
@@ -225,15 +297,8 @@
 
             </div>
 
-
         </div>
 
-
-        <!-- =================================================
-             BOTÃO ALTERAR ENDEREÇO
-             
-             Será utilizado principalmente para BLOCOS.
-        ================================================= -->
 
         <button
             id="btnAlterarEndereco"
@@ -247,10 +312,6 @@
 
         <hr>
 
-
-        <!-- =================================================
-             CONTADORES
-        ================================================= -->
 
         <div class="counter-row">
 
@@ -286,10 +347,6 @@
 
         <hr>
 
-
-        <!-- =================================================
-             CÂMERA
-        ================================================= -->
 
         <div
             id="cameraArea"
@@ -349,10 +406,6 @@
         </div>
 
 
-        <!-- =================================================
-             DIGITAÇÃO MANUAL
-        ================================================= -->
-
         <div class="manual-area">
 
 
@@ -385,10 +438,6 @@
         </div>
 
 
-        <!-- =================================================
-             ÚLTIMA LEITURA
-        ================================================= -->
-
         <div class="last-reading">
 
             <span>
@@ -414,22 +463,97 @@
 </div>
 
 
-
 <!-- =====================================================
-     ZXING
+     TELA DE QUANTIDADE - COLETA EM LOTE
 ===================================================== -->
+
+<div
+    id="modalQuantidadeLote"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tituloQuantidadeLote"
+>
+
+    <div class="quantidade-box">
+
+
+        <div
+            id="tituloQuantidadeLote"
+            class="quantidade-titulo"
+        >
+            COLETA EM LOTE
+        </div>
+
+
+        <span class="quantidade-label">
+            Código capturado
+        </span>
+
+
+        <div id="codigoLoteCapturado">
+            -
+        </div>
+
+
+        <label
+            for="quantidadeLote"
+            class="quantidade-label"
+        >
+            Quantidade de peças
+        </label>
+
+
+        <input
+            id="quantidadeLote"
+            type="number"
+            min="1"
+            step="1"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="Digite a quantidade"
+        >
+
+
+        <div
+            id="erroQuantidadeLote"
+            aria-live="polite"
+        ></div>
+
+
+        <div class="quantidade-botoes">
+
+
+            <button
+                id="cancelarQuantidadeLote"
+                type="button"
+            >
+                CANCELAR
+            </button>
+
+
+            <button
+                id="confirmarQuantidadeLote"
+                type="button"
+            >
+                CONFIRMAR
+            </button>
+
+
+        </div>
+
+
+    </div>
+
+</div>
+
 
 <script
     src="https://unpkg.com/@zxing/browser@0.2.1"
 ></script>
 
 
-<!-- CONFIGURAÇÃO -->
-
 <script src="config.js"></script>
 
-
-<!-- SCRIPT PRINCIPAL -->
 
 <script src="script.js"></script>
 
