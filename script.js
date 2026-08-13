@@ -515,7 +515,7 @@ async function iniciarColeta() {
 
 
 /* =========================================================
-   CÂMERA
+   CÂMERA - RESOLUÇÃO MÁXIMA + FOCO CONTÍNUO
 ========================================================= */
 
 async function iniciarCamera() {
@@ -547,6 +547,15 @@ async function iniciarCamera() {
 
     try {
 
+        /*
+         * Primeiro solicitamos a câmera traseira
+         * com alta resolução.
+         *
+         * "ideal" significa:
+         * tente chegar a 1920x1080,
+         * mas não force essa resolução.
+         */
+
         cameraStream =
             await navigator.mediaDevices
                 .getUserMedia({
@@ -554,19 +563,115 @@ async function iniciarCamera() {
                     audio: false,
 
                     video: {
+
                         facingMode: {
                             ideal: "environment"
                         },
 
                         width: {
-                            ideal: 1280
+                            ideal: 1920
                         },
 
                         height: {
-                            ideal: 720
+                            ideal: 1080
+                        },
+
+                        frameRate: {
+                            ideal: 30,
+                            max: 30
                         }
                     }
                 });
+
+
+        /*
+         * CONFIGURAÇÕES REAIS DA CÂMERA
+         *
+         * Verifica o que o aparelho realmente
+         * conseguiu fornecer.
+         */
+
+        const track =
+            cameraStream.getVideoTracks()[0];
+
+        if (track) {
+
+            const capabilities =
+                typeof track.getCapabilities ===
+                "function"
+                    ? track.getCapabilities()
+                    : {};
+
+            const settings =
+                typeof track.getSettings ===
+                "function"
+                    ? track.getSettings()
+                    : {};
+
+            console.log(
+                "Capacidades da câmera:",
+                capabilities
+            );
+
+            console.log(
+                "Configuração utilizada:",
+                settings
+            );
+
+
+            /*
+             * FOCO CONTÍNUO
+             *
+             * Só tenta aplicar se o aparelho
+             * realmente oferecer focusMode.
+             */
+
+            if (
+                capabilities.focusMode &&
+                Array.isArray(
+                    capabilities.focusMode
+                ) &&
+                capabilities.focusMode.includes(
+                    "continuous"
+                )
+            ) {
+
+                try {
+
+                    await track.applyConstraints({
+
+                        advanced: [
+
+                            {
+                                focusMode:
+                                    "continuous"
+                            }
+
+                        ]
+                    });
+
+                    console.log(
+                        "Foco contínuo ativado."
+                    );
+
+                } catch (erroFoco) {
+
+                    console.warn(
+                        "Não foi possível ativar foco contínuo:",
+                        erroFoco
+                    );
+                }
+            }
+
+
+            /*
+             * Algumas câmeras permitem alterar
+             * zoom. Não vamos aplicar zoom
+             * automaticamente, para não perder
+             * campo de visão.
+             */
+        }
+
 
         video.srcObject =
             cameraStream;
@@ -588,6 +693,24 @@ async function iniciarCamera() {
         await video.play();
 
         cameraAtiva = true;
+
+
+        /*
+         * Mostra no console a resolução
+         * efetivamente utilizada.
+         */
+
+        try {
+
+            console.log(
+                "Resolução real:",
+                video.videoWidth +
+                " x " +
+                video.videoHeight
+            );
+
+        } catch (e) {}
+
 
         mostrarCameraStatus(
             "Aponte a câmera para o código de barras"
@@ -641,8 +764,10 @@ function iniciarLeitorZXing(video) {
     try {
 
         /*
-         * MANTIDO O MESMO LEITOR QUE
-         * ESTAVA FUNCIONANDO.
+         * MANTIDO BrowserMultiFormatReader
+         *
+         * Continua aceitando os diferentes
+         * tipos de código que vocês utilizam.
          */
 
         codeReader =
@@ -745,12 +870,10 @@ function receberCodigoDaCamera(
         return;
 
     /*
-     * ISSO NÃO É DUPLICIDADE.
+     * Apenas evita várias leituras do
+     * MESMO FRAME.
      *
-     * Apenas impede o ZXing de enviar
-     * dezenas de vezes o MESMO FRAME
-     * enquanto a etiqueta continua diante
-     * da câmera.
+     * Não é verificação de duplicidade.
      */
 
     if (
@@ -918,10 +1041,6 @@ function registrarProduto(
     codigo
 ) {
 
-    /*
-     * MOSTRA IMEDIATAMENTE
-     */
-
     document.getElementById(
         "ultimaLeitura"
     ).textContent =
@@ -952,9 +1071,7 @@ function registrarProduto(
 
 
     /*
-     * ENVIA PARA O APPS SCRIPT
-     *
-     * NÃO ESPERA RESPOSTA.
+     * ENVIO ASSÍNCRONO
      */
 
     fetch(
@@ -1049,10 +1166,6 @@ function processarNovoEndereco(
         "success"
     );
 
-
-    /*
-     * ATUALIZA ENDEREÇO
-     */
 
     fetch(
         API,
