@@ -9,10 +9,9 @@ let ultimoCodigoTempo = 0;
 
 let audioContext = null;
 
-/* CONTROLE DO SCANNER */
+/* CONTROLE DA COLETA EM LOTE */
 let scannerBloqueado = false;
 let processandoCodigo = false;
-let scannerToken = 0;
 
 
 /* =========================================================
@@ -51,14 +50,12 @@ document.addEventListener(
                 iniciarColeta
             );
 
-
         document
             .getElementById("btnRegistrar")
             ?.addEventListener(
                 "click",
                 processarCodigoDigitado
             );
-
 
         document
             .getElementById("btnAlterarEndereco")
@@ -67,38 +64,32 @@ document.addEventListener(
                 ativarModoEndereco
             );
 
-
         document
             .getElementById("codigo")
             ?.addEventListener(
                 "keydown",
-                evento => {
+                e => {
 
-                    if (
-                        evento.key ===
-                        "Enter"
-                    ) {
+                    if (e.key === "Enter") {
 
-                        evento.preventDefault();
+                        e.preventDefault();
 
                         processarCodigoDigitado();
                     }
                 }
             );
 
-
         document
             .getElementById("usuario")
             ?.addEventListener(
                 "change",
-                evento => {
+                e => {
 
                     atualizarConfiguracaoUsuario(
-                        evento.target.value
+                        e.target.value
                     );
                 }
             );
-
 
         document
             .getElementById("tipoProduto")
@@ -106,7 +97,6 @@ document.addEventListener(
                 "change",
                 atualizarTipoProduto
             );
-
 
         mostrarTelaLogin();
 
@@ -127,16 +117,11 @@ async function prepararAudio() {
             window.AudioContext ||
             window.webkitAudioContext;
 
-        if (!AC)
-            return;
-
+        if (!AC) return;
 
         if (!audioContext) {
-
-            audioContext =
-                new AC();
+            audioContext = new AC();
         }
-
 
         if (
             audioContext.state ===
@@ -164,16 +149,11 @@ function emitirBip() {
             window.AudioContext ||
             window.webkitAudioContext;
 
-        if (!AC)
-            return;
-
+        if (!AC) return;
 
         if (!audioContext) {
-
-            audioContext =
-                new AC();
+            audioContext = new AC();
         }
-
 
         if (
             audioContext.state ===
@@ -183,61 +163,45 @@ function emitirBip() {
             audioContext.resume();
         }
 
-
         const agora =
             audioContext.currentTime;
-
 
         const oscilador =
             audioContext.createOscillator();
 
-
         const ganho =
             audioContext.createGain();
 
-
         oscilador.type =
             "sine";
-
 
         oscilador.frequency.setValueAtTime(
             1800,
             agora
         );
 
-
         ganho.gain.setValueAtTime(
             0.0001,
             agora
         );
-
 
         ganho.gain.exponentialRampToValueAtTime(
             0.30,
             agora + 0.01
         );
 
-
         ganho.gain.exponentialRampToValueAtTime(
             0.0001,
             agora + 0.15
         );
 
-
-        oscilador.connect(
-            ganho
-        );
-
+        oscilador.connect(ganho);
 
         ganho.connect(
             audioContext.destination
         );
 
-
-        oscilador.start(
-            agora
-        );
-
+        oscilador.start(agora);
 
         oscilador.stop(
             agora + 0.15
@@ -265,13 +229,11 @@ function mostrarTelaLogin() {
             "hidden"
         );
 
-
     document
         .getElementById("coleta")
         ?.classList.add(
             "hidden"
         );
-
 
     pararCamera();
 }
@@ -284,7 +246,6 @@ function mostrarTelaColeta() {
         ?.classList.add(
             "hidden"
         );
-
 
     document
         .getElementById("coleta")
@@ -308,14 +269,10 @@ function mostrarLoginStatus(
             "loginStatus"
         );
 
-
-    if (!el)
-        return;
-
+    if (!el) return;
 
     el.textContent =
         mensagem || "";
-
 
     el.className =
         "status" +
@@ -337,14 +294,10 @@ function mostrarCollectionStatus(
             "collectionStatus"
         );
 
-
-    if (!el)
-        return;
-
+    if (!el) return;
 
     el.textContent =
         mensagem || "";
-
 
     el.className =
         "status" +
@@ -364,7 +317,6 @@ function mostrarCameraStatus(
         document.getElementById(
             "cameraMessage"
         );
-
 
     if (el) {
 
@@ -386,7 +338,6 @@ async function carregarConfiguracao() {
             "Carregando configuração..."
         );
 
-
         const resposta =
             await fetch(
                 API +
@@ -398,7 +349,6 @@ async function carregarConfiguracao() {
                 }
             );
 
-
         if (!resposta.ok) {
 
             throw new Error(
@@ -407,16 +357,16 @@ async function carregarConfiguracao() {
             );
         }
 
-
         configuracao =
             await resposta.json();
 
+
+        /* USUÁRIOS */
 
         const selectUsuario =
             document.getElementById(
                 "usuario"
             );
-
 
         if (!selectUsuario) {
 
@@ -424,7 +374,6 @@ async function carregarConfiguracao() {
                 "Campo usuario não encontrado."
             );
         }
-
 
         selectUsuario.innerHTML =
             "";
@@ -445,30 +394,23 @@ async function carregarConfiguracao() {
                     "option"
                 );
 
-
-            option.value =
-                "";
-
+            option.value = "";
 
             option.textContent =
                 "Nenhum usuário disponível";
-
 
             selectUsuario.appendChild(
                 option
             );
 
-
             document.getElementById(
                 "btnEntrar"
             ).disabled = true;
-
 
             mostrarLoginStatus(
                 "Nenhum usuário ativo foi encontrado.",
                 "error"
             );
-
 
             return;
         }
@@ -482,14 +424,11 @@ async function carregarConfiguracao() {
                         "option"
                     );
 
-
                 option.value =
                     usuario.id;
 
-
                 option.textContent =
                     usuario.nome;
-
 
                 selectUsuario.appendChild(
                     option
@@ -498,8 +437,12 @@ async function carregarConfiguracao() {
         );
 
 
+        /* TIPOS DE PRODUTO */
+
         carregarTiposProduto();
 
+
+        /* USUÁRIO INICIAL */
 
         atualizarConfiguracaoUsuario(
             usuarios[0].id
@@ -520,12 +463,10 @@ async function carregarConfiguracao() {
             erro
         );
 
-
         mostrarLoginStatus(
             "Não foi possível carregar a configuração.",
             "error"
         );
-
 
         document.getElementById(
             "btnEntrar"
@@ -545,10 +486,7 @@ function carregarTiposProduto() {
             "tipoProduto"
         );
 
-
-    if (!select)
-        return;
-
+    if (!select) return;
 
     select.innerHTML =
         "";
@@ -569,19 +507,14 @@ function carregarTiposProduto() {
                 "option"
             );
 
-
-        option.value =
-            "";
-
+        option.value = "";
 
         option.textContent =
             "Nenhum tipo disponível";
 
-
         select.appendChild(
             option
         );
-
 
         return;
     }
@@ -595,24 +528,18 @@ function carregarTiposProduto() {
                     "option"
                 );
 
-
             option.value =
                 item.tipoProduto;
-
 
             option.textContent =
                 item.tipoProduto;
 
-
             option.dataset.regra =
-                item.regraColeta ||
-                "";
-
+                item.regraColeta || "";
 
             option.dataset.tipoColeta =
                 item.tipoColeta ||
                 "UNITARIA";
-
 
             select.appendChild(
                 option
@@ -623,7 +550,6 @@ function carregarTiposProduto() {
 
     select.selectedIndex =
         0;
-
 
     atualizarTipoProduto();
 }
@@ -640,9 +566,7 @@ function atualizarTipoProduto() {
             "tipoProduto"
         );
 
-
-    if (!select)
-        return;
+    if (!select) return;
 
 
     const opcao =
@@ -650,9 +574,7 @@ function atualizarTipoProduto() {
             select.selectedIndex
         ];
 
-
-    if (!opcao)
-        return;
+    if (!opcao) return;
 
 
     sessao.tipoProduto =
@@ -697,8 +619,7 @@ function atualizarTipoProduto() {
         );
 
 
-    if (!botao)
-        return;
+    if (!botao) return;
 
 
     if (
@@ -732,7 +653,6 @@ function atualizarConfiguracaoUsuario(
         document.getElementById(
             "inventario"
         );
-
 
     const endereco =
         document.getElementById(
@@ -793,18 +713,15 @@ async function iniciarColeta() {
             "usuario"
         );
 
-
     const inventario =
         document.getElementById(
             "inventario"
         );
 
-
     const endereco =
         document.getElementById(
             "endereco"
         );
-
 
     const tipoProduto =
         document.getElementById(
@@ -936,32 +853,23 @@ async function iniciarColeta() {
     sessao.totalEndereco =
         0;
 
-
     sessao.totalColeta =
         0;
-
 
     sessao.modoEndereco =
         false;
 
-
-    processandoCodigo =
-        false;
-
-
-    scannerBloqueado =
-        false;
-
-
     ultimoCodigoLido =
         "";
-
 
     ultimoCodigoTempo =
         0;
 
+    scannerBloqueado =
+        false;
 
-    scannerToken++;
+    processandoCodigo =
+        false;
 
 
     /* INFORMAÇÕES */
@@ -978,17 +886,10 @@ async function iniciarColeta() {
         sessao.inventario;
 
 
-    const lblTipo =
-        document.getElementById(
-            "lblTipoProduto"
-        );
-
-
-    if (lblTipo) {
-
-        lblTipo.textContent =
-            sessao.tipoProduto;
-    }
+    document.getElementById(
+        "lblTipoProduto"
+    ).textContent =
+        sessao.tipoProduto;
 
 
     document.getElementById(
@@ -1032,7 +933,7 @@ async function iniciarColeta() {
 
 /* =========================================================
    CÂMERA
-   1920x1080 + TRASEIRA + FOCO CONTÍNUO
+   TRASEIRA + 1920x1080 + FOCO CONTÍNUO
 ========================================================= */
 
 async function iniciarCamera() {
@@ -1110,8 +1011,6 @@ async function iniciarCamera() {
                 .getVideoTracks()[0];
 
 
-        /* FOCO CONTÍNUO */
-
         if (track) {
 
             try {
@@ -1141,13 +1040,18 @@ async function iniciarCamera() {
                             }
                         ]
                     });
+
+
+                    console.log(
+                        "Foco contínuo ativado."
+                    );
                 }
 
-            } catch (erro) {
+            } catch (erroFoco) {
 
                 console.warn(
                     "Foco contínuo:",
-                    erro
+                    erroFoco
                 );
             }
         }
@@ -1156,14 +1060,11 @@ async function iniciarCamera() {
         video.srcObject =
             cameraStream;
 
-
         video.autoplay =
             true;
 
-
         video.muted =
             true;
-
 
         video.playsInline =
             true;
@@ -1232,16 +1133,21 @@ async function iniciarCamera() {
 
 
 /* =========================================================
-   INICIAR ZXING
+   ZXING
 ========================================================= */
 
 function iniciarLeitorZXing(
     video
 ) {
 
+    /*
+     * Não iniciar outro leitor
+     * enquanto a coleta em lote
+     * estiver bloqueada.
+     */
+
     if (
-        scannerBloqueado ||
-        processandoCodigo
+        scannerBloqueado
     ) {
         return;
     }
@@ -1256,36 +1162,43 @@ function iniciarLeitorZXing(
             "Leitor não carregado."
         );
 
+        console.error(
+            "ZXingBrowser não encontrado."
+        );
+
         return;
     }
-
-
-    /*
-     * Cada novo scanner recebe um token.
-     */
-
-    const meuToken =
-        ++scannerToken;
 
 
     try {
 
         /*
-         * Garante que não haja
-         * outro leitor ativo.
+         * Se existir leitor anterior,
+         * encerra antes de criar outro.
          */
 
-        pararSomenteLeitor();
+        if (scannerControls) {
+
+            try {
+
+                scannerControls.stop();
+
+            } catch (e) {}
+        }
 
 
-        /*
-         * pararSomenteLeitor() incrementa o token.
-         * Portanto criamos novamente o token
-         * que será válido para este leitor.
-         */
+        scannerControls =
+            null;
 
-        const tokenAtual =
-            scannerToken;
+
+        if (codeReader) {
+
+            try {
+
+                codeReader.reset();
+
+            } catch (e) {}
+        }
 
 
         codeReader =
@@ -1293,134 +1206,120 @@ function iniciarLeitorZXing(
                 .BrowserMultiFormatReader();
 
 
-        const leitor =
-            codeReader;
+        codeReader
+            .decodeFromVideoElement(
+                video,
+
+                (resultado, erro) => {
+
+                    /*
+                     * Se o lote estiver aberto,
+                     * ignora qualquer leitura.
+                     */
+
+                    if (
+                        scannerBloqueado
+                    ) {
+                        return;
+                    }
 
 
-        leitor.decodeFromVideoElement(
-            video,
-
-            (resultado, erro) => {
-
-                /*
-                 * =================================================
-                 * DESCARTAR LEITURAS ANTIGAS
-                 * =================================================
-                 */
-
-                if (
-                    scannerBloqueado ||
-                    processandoCodigo
-                ) {
-                    return;
-                }
+                    if (
+                        processandoCodigo
+                    ) {
+                        return;
+                    }
 
 
-                if (
-                    tokenAtual !==
-                    scannerToken
-                ) {
-                    return;
-                }
+                    if (!resultado)
+                        return;
 
 
-                if (
-                    leitor !==
-                    codeReader
-                ) {
-                    return;
-                }
+                    let codigo =
+                        "";
 
-
-                if (!resultado)
-                    return;
-
-
-                let codigo =
-                    "";
-
-
-                try {
-
-                    codigo =
-                        resultado.getText
-                            ? resultado.getText()
-                            : String(
-                                resultado.text ||
-                                ""
-                            );
-
-                } catch (erro) {
-
-                    return;
-                }
-
-
-                codigo =
-                    normalizarCodigo(
-                        codigo
-                    );
-
-
-                if (!codigo)
-                    return;
-
-
-                receberCodigoDaCamera(
-                    codigo,
-                    tokenAtual
-                );
-            }
-        )
-        .then(
-            controles => {
-
-                /*
-                 * Se esse leitor já ficou
-                 * inválido enquanto inicializava,
-                 * paramos ele imediatamente.
-                 */
-
-                if (
-                    tokenAtual !==
-                    scannerToken ||
-                    scannerBloqueado
-                ) {
 
                     try {
 
-                        controles.stop();
+                        codigo =
+                            resultado.getText
+                                ? resultado.getText()
+                                : resultado.text ||
+                                  "";
 
-                    } catch (e) {}
+                    } catch (e) {
 
-                    return;
+                        console.warn(
+                            "Erro obtendo código:",
+                            e
+                        );
+
+                        return;
+                    }
+
+
+                    codigo =
+                        normalizarCodigo(
+                            codigo
+                        );
+
+
+                    if (!codigo)
+                        return;
+
+
+                    receberCodigoDaCamera(
+                        codigo
+                    );
                 }
+            )
+            .then(
+                controles => {
+
+                    /*
+                     * Se durante a inicialização
+                     * o scanner foi bloqueado,
+                     * não deixa este leitor continuar.
+                     */
+
+                    if (
+                        scannerBloqueado
+                    ) {
+
+                        try {
+
+                            controles.stop();
+
+                        } catch (e) {}
+
+                        return;
+                    }
 
 
-                scannerControls =
-                    controles;
+                    scannerControls =
+                        controles;
 
 
-                console.log(
-                    "Scanner iniciado."
-                );
-            }
-        )
-        .catch(
-            erro => {
-
-                if (
-                    tokenAtual ===
-                    scannerToken
-                ) {
+                    console.log(
+                        "Scanner iniciado."
+                    );
+                }
+            )
+            .catch(
+                erro => {
 
                     console.error(
                         "Erro ZXing:",
                         erro
                     );
+
+
+                    mostrarCameraStatus(
+                        "Erro no leitor de código."
+                    );
                 }
-            }
-        );
+            );
+
 
     } catch (erro) {
 
@@ -1428,43 +1327,39 @@ function iniciarLeitorZXing(
             "Erro criando leitor:",
             erro
         );
+
+
+        mostrarCameraStatus(
+            "Erro ao iniciar leitor."
+        );
     }
 }
 
 
 /* =========================================================
-   PARAR SOMENTE O ZXING
+   PARAR APENAS O LEITOR
+   NÃO DESLIGA A CÂMERA
 ========================================================= */
 
-function pararSomenteLeitor() {
+function pararLeitorZXing() {
 
-    /*
-     * Invalida imediatamente
-     * qualquer callback anterior.
-     */
+    try {
 
-    scannerToken++;
+        if (
+            scannerControls &&
+            typeof scannerControls.stop ===
+            "function"
+        ) {
 
-
-    if (scannerControls) {
-
-        try {
-
-            if (
-                typeof scannerControls.stop ===
-                "function"
-            ) {
-
-                scannerControls.stop();
-            }
-
-        } catch (erro) {
-
-            console.warn(
-                "Erro parando controles:",
-                erro
-            );
+            scannerControls.stop();
         }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro parando scanner:",
+            erro
+        );
     }
 
 
@@ -1472,25 +1367,23 @@ function pararSomenteLeitor() {
         null;
 
 
-    if (codeReader) {
+    try {
 
-        try {
+        if (
+            codeReader &&
+            typeof codeReader.reset ===
+            "function"
+        ) {
 
-            if (
-                typeof codeReader.reset ===
-                "function"
-            ) {
-
-                codeReader.reset();
-            }
-
-        } catch (erro) {
-
-            console.warn(
-                "Erro resetando ZXing:",
-                erro
-            );
+            codeReader.reset();
         }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro resetando ZXing:",
+            erro
+        );
     }
 
 
@@ -1504,31 +1397,19 @@ function pararSomenteLeitor() {
 ========================================================= */
 
 function receberCodigoDaCamera(
-    codigo,
-    token
+    codigo
 ) {
 
     /*
-     * Se estiver em lote,
-     * nenhuma leitura adicional entra.
+     * Não aceitar outra leitura
+     * enquanto estiver processando.
      */
 
     if (
         scannerBloqueado ||
         processandoCodigo
     ) {
-        return;
-    }
 
-
-    /*
-     * Descarta callback antigo.
-     */
-
-    if (
-        token !==
-        scannerToken
-    ) {
         return;
     }
 
@@ -1548,7 +1429,7 @@ function receberCodigoDaCamera(
 
 
     /*
-     * Ignora somente repetição
+     * Evita somente a repetição
      * imediata do mesmo frame.
      *
      * NÃO é duplicidade da coleta.
@@ -1576,14 +1457,16 @@ function receberCodigoDaCamera(
 
 
     /*
-     * IMPORTANTE:
+     * =====================================================
+     * IMPORTANTE
      *
-     * Não colocamos mais o código
-     * no campo manual quando veio
-     * da câmera.
+     * O código lido pela câmera NÃO
+     * será colocado no campo manual.
      *
-     * Isso elimina exatamente o
-     * comportamento que você mostrou.
+     * Isso corrige exatamente o
+     * código que ficava preenchido
+     * atrás da tela de quantidade.
+     * =====================================================
      */
 
     const campo =
@@ -1612,9 +1495,10 @@ function receberCodigoDaCamera(
 function processarCodigoDigitado() {
 
     if (
-        processandoCodigo ||
-        scannerBloqueado
+        scannerBloqueado ||
+        processandoCodigo
     ) {
+
         return;
     }
 
@@ -1646,7 +1530,7 @@ function processarCodigoDigitado() {
 
 
 /* =========================================================
-   NORMALIZAR
+   NORMALIZAR CÓDIGO
 ========================================================= */
 
 function normalizarCodigo(
@@ -1669,26 +1553,18 @@ function normalizarCodigo(
    PROCESSAR CÓDIGO
 ========================================================= */
 
-async function processarCodigo(
+function processarCodigo(
     codigo
 ) {
 
     if (
-        processandoCodigo ||
-        scannerBloqueado
+        !codigo ||
+        scannerBloqueado ||
+        processandoCodigo
     ) {
+
         return;
     }
-
-
-    codigo =
-        normalizarCodigo(
-            codigo
-        );
-
-
-    if (!codigo)
-        return;
 
 
     if (
@@ -1707,252 +1583,195 @@ async function processarCodigo(
     }
 
 
-    /*
-     * TRAVA IMEDIATA.
-     */
-
     processandoCodigo =
         true;
 
 
-    try {
+    /*
+     * =====================================================
+     * MODO ALTERAR ENDEREÇO
+     * =====================================================
+     */
 
-        /* =====================================================
-           ALTERAÇÃO DE ENDEREÇO
-        ===================================================== */
+    if (
+        sessao.modoEndereco
+    ) {
 
-        if (
-            sessao.modoEndereco
-        ) {
-
-            emitirBip();
-
-
-            await processarNovoEndereco(
-                codigo
-            );
-
-
-            return;
-        }
-
-
-        /* =====================================================
-           CHAPAS / RECORTADOS
-        ===================================================== */
-
-        if (
-            sessao.tipoProduto ===
-            "CHAPAS" ||
-
-            sessao.tipoProduto ===
-            "RECORTADOS"
-        ) {
-
-            /*
-             * LETRA = ENDEREÇO
-             */
-
-            if (
-                /^[A-Za-z]/.test(
-                    codigo
-                )
-            ) {
-
-                emitirBip();
-
-
-                await processarNovoEndereco(
-                    codigo
-                );
-
-
-                return;
-            }
-
-
-            /*
-             * PRODUTO = NÚMERO
-             */
-
-            if (
-                !/^\d/.test(
-                    codigo
-                )
-            ) {
-
-                document
-                    .getElementById(
-                        "ultimaLeitura"
-                    )
-                    .textContent =
-                    codigo +
-                    " - INVÁLIDO";
-
-
-                mostrarCollectionStatus(
-                    "Código inválido.",
-                    "error"
-                );
-
-
-                return;
-            }
-        }
-
-
-        /* =====================================================
-           BLOCOS
-        ===================================================== */
-
-        if (
-            sessao.tipoProduto ===
-            "BLOCOS"
-        ) {
-
-            /*
-             * Qualquer código é produto.
-             */
-        }
-
-
-        /* =====================================================
-           BIP
-        ===================================================== */
+        processarNovoEndereco(
+            codigo
+        );
 
         emitirBip();
 
+        processandoCodigo =
+            false;
 
-        /* =====================================================
-           COLETA EM LOTE
-        ===================================================== */
+        limparCampoCodigo();
+
+        return;
+    }
+
+
+    /*
+     * =====================================================
+     * CHAPAS / RECORTADOS
+     *
+     * NÚMERO = PRODUTO
+     * LETRA = ENDEREÇO
+     * =====================================================
+     */
+
+    if (
+        sessao.tipoProduto ===
+        "CHAPAS" ||
+
+        sessao.tipoProduto ===
+        "RECORTADOS"
+    ) {
 
         if (
-            sessao.tipoColeta ===
-            "LOTE"
+            /^[A-Za-z]/.test(
+                codigo
+            )
         ) {
 
-            /*
-             * =================================================
-             * CORREÇÃO PRINCIPAL
-             * =================================================
-             *
-             * Antes de abrir a quantidade:
-             *
-             * 1. bloqueia scanner;
-             * 2. invalida callback antigo;
-             * 3. para ZXing;
-             * 4. limpa campo;
-             * 5. abre quantidade.
-             */
-
-            scannerBloqueado =
-                true;
-
-
-            scannerToken++;
-
-
-            pararSomenteLeitor();
-
-
-            const campo =
-                document.getElementById(
-                    "codigo"
-                );
-
-
-            if (campo) {
-
-                campo.value =
-                    "";
-            }
-
-
-            /*
-             * Agora o ZXing está
-             * completamente fora do fluxo.
-             */
-
-            await solicitarQuantidadeLote(
+            processarNovoEndereco(
                 codigo
             );
 
-
-            /*
-             * Só libera depois
-             * que a janela fechou.
-             */
-
-            scannerBloqueado =
-                false;
-
+            emitirBip();
 
             processandoCodigo =
                 false;
 
-
-            ultimoCodigoLido =
-                "";
-
-
-            ultimoCodigoTempo =
-                0;
-
-
-            /*
-             * Reinicia somente um leitor.
-             */
-
-            if (cameraAtiva) {
-
-                iniciarLeitorZXing(
-                    document.getElementById(
-                        "camera"
-                    )
-                );
-            }
-
+            limparCampoCodigo();
 
             return;
         }
 
 
-        /* =====================================================
-           UNITÁRIA
-        ===================================================== */
-
-        await registrarProduto(
-            codigo,
-            1
-        );
-
-    } catch (erro) {
-
-        console.error(
-            "Erro processando código:",
-            erro
-        );
-
-    } finally {
-
-        /*
-         * Para lote, a liberação
-         * acontece acima.
-         */
-
         if (
-            sessao.tipoColeta !==
-            "LOTE"
+            !/^\d/.test(
+                codigo
+            )
         ) {
+
+            document.getElementById(
+                "ultimaLeitura"
+            ).textContent =
+                codigo +
+                " - INVÁLIDO";
+
+
+            mostrarCollectionStatus(
+                "Código inválido.",
+                "error"
+            );
+
 
             processandoCodigo =
                 false;
-        }
 
+
+            limparCampoCodigo();
+
+            return;
+        }
+    }
+
+
+    /*
+     * =====================================================
+     * BLOCOS
+     *
+     * Qualquer código = PRODUTO
+     * =====================================================
+     */
+
+
+    /*
+     * =====================================================
+     * OUTROS TIPOS
+     *
+     * Tratados como produto.
+     * =====================================================
+     */
+
+
+    /*
+     * =====================================================
+     * BIP
+     * =====================================================
+     */
+
+    emitirBip();
+
+
+    /*
+     * =====================================================
+     * COLETA EM LOTE
+     * =====================================================
+     */
+
+    if (
+        sessao.tipoColeta ===
+        "LOTE"
+    ) {
+
+        /*
+         * PRIMEIRO BLOQUEIA.
+         */
+
+        scannerBloqueado =
+            true;
+
+
+        /*
+         * PARA O ZXING.
+         *
+         * A câmera continua ligada.
+         */
+
+        pararLeitorZXing();
+
+
+        /*
+         * Limpa o campo manual.
+         */
 
         limparCampoCodigo();
+
+
+        /*
+         * Agora abre a quantidade.
+         */
+
+        solicitarQuantidadeLote(
+            codigo
+        );
+
+
+        return;
     }
+
+
+    /*
+     * =====================================================
+     * COLETA UNITÁRIA
+     * =====================================================
+     */
+
+    registrarProduto(
+        codigo,
+        1
+    );
+
+
+    processandoCodigo =
+        false;
+
+
+    limparCampoCodigo();
 }
 
 
@@ -1960,34 +1779,31 @@ async function processarCodigo(
    COLETA EM LOTE
 ========================================================= */
 
-async function solicitarQuantidadeLote(
+function solicitarQuantidadeLote(
     codigo
 ) {
 
     /*
-     * IMPORTANTE:
+     * NÃO existe setTimeout aqui.
      *
-     * Não existe setTimeout aqui.
-     *
-     * O scanner já foi parado antes
-     * desta função ser chamada.
+     * O ZXing já foi parado.
      */
 
     const resposta =
         window.prompt(
-
             "COLETA EM LOTE\n\n" +
-
             "Código: " +
             codigo +
-
             "\n\n" +
-
             "Informe a quantidade de peças:"
         );
 
 
-    /* CANCELAR */
+    /*
+     * =====================================================
+     * CANCELAR
+     * =====================================================
+     */
 
     if (
         resposta ===
@@ -2000,12 +1816,37 @@ async function solicitarQuantidadeLote(
         );
 
 
+        processandoCodigo =
+            false;
+
+
+        scannerBloqueado =
+            false;
+
+
+        ultimoCodigoLido =
+            "";
+
+
+        ultimoCodigoTempo =
+            0;
+
+
         limparCampoCodigo();
+
+
+        reiniciarScanner();
 
 
         return;
     }
 
+
+    /*
+     * =====================================================
+     * QUANTIDADE
+     * =====================================================
+     */
 
     const quantidade =
         Number(
@@ -2033,12 +1874,37 @@ async function solicitarQuantidadeLote(
         );
 
 
+        processandoCodigo =
+            false;
+
+
+        scannerBloqueado =
+            false;
+
+
+        ultimoCodigoLido =
+            "";
+
+
+        ultimoCodigoTempo =
+            0;
+
+
         limparCampoCodigo();
+
+
+        reiniciarScanner();
 
 
         return;
     }
 
+
+    /*
+     * =====================================================
+     * SOMENTE INTEIRO
+     * =====================================================
+     */
 
     const quantidadeInteira =
         Math.floor(
@@ -2056,7 +1922,26 @@ async function solicitarQuantidadeLote(
         );
 
 
+        processandoCodigo =
+            false;
+
+
+        scannerBloqueado =
+            false;
+
+
+        ultimoCodigoLido =
+            "";
+
+
+        ultimoCodigoTempo =
+            0;
+
+
         limparCampoCodigo();
+
+
+        reiniciarScanner();
 
 
         return;
@@ -2064,16 +1949,101 @@ async function solicitarQuantidadeLote(
 
 
     /*
-     * REGISTRA O LOTE
+     * =====================================================
+     * REGISTRA
+     * =====================================================
      */
 
-    await registrarProduto(
+    registrarProduto(
         codigo,
         quantidadeInteira
     );
 
 
+    /*
+     * =====================================================
+     * LIBERA
+     * =====================================================
+     */
+
+    processandoCodigo =
+        false;
+
+
+    scannerBloqueado =
+        false;
+
+
+    ultimoCodigoLido =
+        "";
+
+
+    ultimoCodigoTempo =
+        0;
+
+
     limparCampoCodigo();
+
+
+    /*
+     * =====================================================
+     * NOVO SCAN
+     * =====================================================
+     */
+
+    reiniciarScanner();
+}
+
+
+/* =========================================================
+   REINICIAR SCANNER
+========================================================= */
+
+function reiniciarScanner() {
+
+    /*
+     * Aguarda o encerramento do
+     * leitor anterior antes de
+     * criar outro.
+     */
+
+    if (
+        !cameraAtiva ||
+        scannerBloqueado
+    ) {
+
+        return;
+    }
+
+
+    const video =
+        document.getElementById(
+            "camera"
+        );
+
+
+    if (!video) {
+
+        return;
+    }
+
+
+    /*
+     * Garante que não exista
+     * leitor antigo.
+     */
+
+    pararLeitorZXing();
+
+
+    /*
+     * Inicia novamente usando
+     * a mesma câmera.
+     */
+
+    iniciarLeitorZXing(
+        video
+    );
 }
 
 
@@ -2081,7 +2051,7 @@ async function solicitarQuantidadeLote(
    REGISTRAR PRODUTO
 ========================================================= */
 
-async function registrarProduto(
+function registrarProduto(
     codigo,
     quantidade = 1
 ) {
@@ -2097,6 +2067,23 @@ async function registrarProduto(
         ultima.textContent =
             codigo;
     }
+
+
+    const mensagem =
+        sessao.tipoColeta ===
+        "LOTE"
+
+            ? "Lote enviado: " +
+              quantidade +
+              " peças."
+
+            : "Coleta enviada.";
+
+
+    mostrarCollectionStatus(
+        mensagem,
+        "success"
+    );
 
 
     /*
@@ -2137,107 +2124,81 @@ async function registrarProduto(
     }
 
 
-    const mensagem =
-        sessao.tipoColeta ===
-        "LOTE"
-
-            ? "Lote registrado: " +
-              quantidade +
-              " peças."
-
-            : "Coleta registrada.";
-
-
-    mostrarCollectionStatus(
-        mensagem,
-        "success"
-    );
-
-
     /*
-     * ENVIO PARA APPS SCRIPT
+     * =====================================================
+     * ENVIO PARA O APPS SCRIPT
+     * =====================================================
      */
 
-    try {
+    fetch(
+        API,
+        {
 
-        await fetch(
-            API,
-            {
+            method:
+                "POST",
 
-                method:
-                    "POST",
+            mode:
+                "no-cors",
 
-                mode:
-                    "no-cors",
+            headers: {
 
-                headers: {
+                "Content-Type":
+                    "text/plain;charset=utf-8"
+            },
 
-                    "Content-Type":
-                        "text/plain;charset=utf-8"
-                },
+            body:
+                JSON.stringify({
 
-                body:
-                    JSON.stringify({
+                    usuario:
+                        sessao.usuario,
 
-                        usuario:
-                            sessao.usuario,
+                    nomeUsuario:
+                        sessao.nomeUsuario,
 
-                        nomeUsuario:
-                            sessao.nomeUsuario,
+                    inventario:
+                        sessao.inventario,
 
-                        inventario:
-                            sessao.inventario,
+                    endereco:
+                        sessao.endereco,
 
-                        endereco:
-                            sessao.endereco,
+                    codigo:
+                        codigo,
 
-                        codigo:
-                            codigo,
+                    tipoLeitura:
+                        "PRODUTO",
 
-                        tipoLeitura:
-                            "PRODUTO",
+                    tipoProduto:
+                        sessao.tipoProduto,
 
-                        tipoProduto:
-                            sessao.tipoProduto,
+                    quantidade:
+                        quantidade
+                })
+        }
+    )
+    .then(
+        () => {
 
-                        quantidade:
-                            quantidade
-                    })
-            }
-        );
+            console.log(
+                "Coleta enviada:",
+                codigo,
+                "Tipo:",
+                sessao.tipoProduto,
+                "Coleta:",
+                sessao.tipoColeta,
+                "Quantidade:",
+                quantidade
+            );
+        }
+    )
+    .catch(
+        erro => {
 
-
-        console.log(
-            "Coleta enviada:",
-            {
-                codigo:
-                    codigo,
-
-                quantidade:
-                    quantidade,
-
-                tipoProduto:
-                    sessao.tipoProduto,
-
-                tipoColeta:
-                    sessao.tipoColeta
-            }
-        );
-
-
-    } catch (erro) {
-
-        console.error(
-            "Erro enviando:",
-            erro
-        );
-
-
-        mostrarCollectionStatus(
-            "Erro ao enviar coleta.",
-            "error"
-        );
-    }
+            console.error(
+                "Erro enviando:",
+                erro
+            );
+        }
+    );
 
 
     limparCampoCodigo();
@@ -2265,7 +2226,7 @@ function limparCampoCodigo() {
 
 
 /* =========================================================
-   MODO ALTERAR ENDEREÇO
+   ATIVAR MODO ALTERAR ENDEREÇO
 ========================================================= */
 
 function ativarModoEndereco() {
@@ -2302,7 +2263,7 @@ function ativarModoEndereco() {
 
 
 /* =========================================================
-   BOTÃO ENDEREÇO
+   BOTÃO ALTERAR ENDEREÇO
 ========================================================= */
 
 function atualizarBotaoEndereco() {
@@ -2340,7 +2301,6 @@ function atualizarBotaoEndereco() {
         botao.textContent =
             "LENDO NOVO ENDEREÇO";
 
-
         botao.disabled =
             true;
 
@@ -2348,7 +2308,6 @@ function atualizarBotaoEndereco() {
 
         botao.textContent =
             "ALTERAR ENDEREÇO";
-
 
         botao.disabled =
             false;
@@ -2360,7 +2319,7 @@ function atualizarBotaoEndereco() {
    PROCESSAR NOVO ENDEREÇO
 ========================================================= */
 
-async function processarNovoEndereco(
+function processarNovoEndereco(
     novoEndereco
 ) {
 
@@ -2419,53 +2378,51 @@ async function processarNovoEndereco(
 
 
     /*
-     * SALVA NOVO ENDEREÇO
+     * SALVA O NOVO ENDEREÇO
      */
 
-    try {
+    fetch(
+        API,
+        {
 
-        await fetch(
-            API,
-            {
+            method:
+                "POST",
 
-                method:
-                    "POST",
+            mode:
+                "no-cors",
 
-                mode:
-                    "no-cors",
+            headers: {
 
-                headers: {
+                "Content-Type":
+                    "text/plain;charset=utf-8"
+            },
 
-                    "Content-Type":
-                        "text/plain;charset=utf-8"
-                },
+            body:
+                JSON.stringify({
 
-                body:
-                    JSON.stringify({
+                    acao:
+                        "novoEndereco",
 
-                        acao:
-                            "novoEndereco",
+                    usuario:
+                        sessao.usuario,
 
-                        usuario:
-                            sessao.usuario,
+                    inventario:
+                        sessao.inventario,
 
-                        inventario:
-                            sessao.inventario,
+                    endereco:
+                        novoEndereco
+                })
+        }
+    )
+    .catch(
+        erro => {
 
-                        endereco:
-                            novoEndereco
-                    })
-            }
-        );
-
-
-    } catch (erro) {
-
-        console.error(
-            "Erro endereço:",
-            erro
-        );
-    }
+            console.error(
+                "Erro endereço:",
+                erro
+            );
+        }
+    );
 
 
     limparCampoCodigo();
@@ -2473,25 +2430,78 @@ async function processarNovoEndereco(
 
 
 /* =========================================================
-   PARAR CÂMERA
+   PARAR CÂMERA COMPLETA
 ========================================================= */
 
 function pararCamera() {
-
-    /*
-     * Invalida todos os callbacks
-     * existentes.
-     */
-
-    scannerToken++;
-
 
     scannerBloqueado =
         true;
 
 
-    pararSomenteLeitor();
+    processandoCodigo =
+        false;
 
+
+    /*
+     * PARA O LEITOR
+     */
+
+    try {
+
+        if (
+            scannerControls &&
+            typeof scannerControls.stop ===
+            "function"
+        ) {
+
+            scannerControls.stop();
+        }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro parando scanner:",
+            erro
+        );
+    }
+
+
+    scannerControls =
+        null;
+
+
+    /*
+     * RESET ZXING
+     */
+
+    try {
+
+        if (
+            codeReader &&
+            typeof codeReader.reset ===
+            "function"
+        ) {
+
+            codeReader.reset();
+        }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro resetando ZXing:",
+            erro
+        );
+    }
+
+
+    codeReader =
+        null;
+
+
+    /*
+     * DESLIGA CÂMERA
+     */
 
     if (cameraStream) {
 
@@ -2504,7 +2514,7 @@ function pararCamera() {
 
                         track.stop();
 
-                    } catch (e) {}
+                    } catch (erro) {}
                 }
             );
     }
@@ -2544,7 +2554,7 @@ function pararCamera() {
 
 
 /* =========================================================
-   EVENTOS DA PÁGINA
+   EVENTOS
 ========================================================= */
 
 window.addEventListener(
