@@ -9,21 +9,29 @@ let ultimoCodigoTempo = 0;
 
 let audioContext = null;
 
-/* CONTROLE DO LEITOR */
-let scannerToken = 0;
+/* CONTROLE DO SCANNER */
 let scannerBloqueado = false;
 let processandoCodigo = false;
+let scannerToken = 0;
+
+
+/* =========================================================
+   SESSÃO
+========================================================= */
 
 const sessao = {
     usuario: "",
     nomeUsuario: "",
     inventario: "",
     endereco: "",
+
     tipoProduto: "",
     regraColeta: "",
     tipoColeta: "UNITARIA",
+
     totalEndereco: 0,
     totalColeta: 0,
+
     modoEndereco: false
 };
 
@@ -32,38 +40,79 @@ const sessao = {
    INICIALIZAÇÃO
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-    document.getElementById("btnEntrar")
-        ?.addEventListener("click", iniciarColeta);
+        document
+            .getElementById("btnEntrar")
+            ?.addEventListener(
+                "click",
+                iniciarColeta
+            );
 
-    document.getElementById("btnRegistrar")
-        ?.addEventListener("click", processarCodigoDigitado);
 
-    document.getElementById("btnAlterarEndereco")
-        ?.addEventListener("click", ativarModoEndereco);
+        document
+            .getElementById("btnRegistrar")
+            ?.addEventListener(
+                "click",
+                processarCodigoDigitado
+            );
 
-    document.getElementById("codigo")
-        ?.addEventListener("keydown", e => {
 
-            if (e.key === "Enter") {
-                e.preventDefault();
-                processarCodigoDigitado();
-            }
+        document
+            .getElementById("btnAlterarEndereco")
+            ?.addEventListener(
+                "click",
+                ativarModoEndereco
+            );
 
-        });
 
-    document.getElementById("usuario")
-        ?.addEventListener("change", e => {
-            atualizarConfiguracaoUsuario(e.target.value);
-        });
+        document
+            .getElementById("codigo")
+            ?.addEventListener(
+                "keydown",
+                evento => {
 
-    document.getElementById("tipoProduto")
-        ?.addEventListener("change", atualizarTipoProduto);
+                    if (
+                        evento.key ===
+                        "Enter"
+                    ) {
 
-    mostrarTelaLogin();
-    carregarConfiguracao();
-});
+                        evento.preventDefault();
+
+                        processarCodigoDigitado();
+                    }
+                }
+            );
+
+
+        document
+            .getElementById("usuario")
+            ?.addEventListener(
+                "change",
+                evento => {
+
+                    atualizarConfiguracaoUsuario(
+                        evento.target.value
+                    );
+                }
+            );
+
+
+        document
+            .getElementById("tipoProduto")
+            ?.addEventListener(
+                "change",
+                atualizarTipoProduto
+            );
+
+
+        mostrarTelaLogin();
+
+        carregarConfiguracao();
+    }
+);
 
 
 /* =========================================================
@@ -78,18 +127,31 @@ async function prepararAudio() {
             window.AudioContext ||
             window.webkitAudioContext;
 
-        if (!AC) return;
+        if (!AC)
+            return;
+
 
         if (!audioContext) {
-            audioContext = new AC();
+
+            audioContext =
+                new AC();
         }
 
-        if (audioContext.state === "suspended") {
+
+        if (
+            audioContext.state ===
+            "suspended"
+        ) {
+
             await audioContext.resume();
         }
 
-    } catch (e) {
-        console.warn("Áudio:", e);
+    } catch (erro) {
+
+        console.warn(
+            "Áudio:",
+            erro
+        );
     }
 }
 
@@ -102,55 +164,91 @@ function emitirBip() {
             window.AudioContext ||
             window.webkitAudioContext;
 
-        if (!AC) return;
+        if (!AC)
+            return;
+
 
         if (!audioContext) {
-            audioContext = new AC();
+
+            audioContext =
+                new AC();
         }
 
-        if (audioContext.state === "suspended") {
+
+        if (
+            audioContext.state ===
+            "suspended"
+        ) {
+
             audioContext.resume();
         }
+
 
         const agora =
             audioContext.currentTime;
 
+
         const oscilador =
             audioContext.createOscillator();
+
 
         const ganho =
             audioContext.createGain();
 
-        oscilador.type = "sine";
+
+        oscilador.type =
+            "sine";
+
 
         oscilador.frequency.setValueAtTime(
             1800,
             agora
         );
 
+
         ganho.gain.setValueAtTime(
             0.0001,
             agora
         );
+
 
         ganho.gain.exponentialRampToValueAtTime(
             0.30,
             agora + 0.01
         );
 
+
         ganho.gain.exponentialRampToValueAtTime(
             0.0001,
             agora + 0.15
         );
 
-        oscilador.connect(ganho);
-        ganho.connect(audioContext.destination);
 
-        oscilador.start(agora);
-        oscilador.stop(agora + 0.15);
+        oscilador.connect(
+            ganho
+        );
 
-    } catch (e) {
-        console.warn("Bip:", e);
+
+        ganho.connect(
+            audioContext.destination
+        );
+
+
+        oscilador.start(
+            agora
+        );
+
+
+        oscilador.stop(
+            agora + 0.15
+        );
+
+    } catch (erro) {
+
+        console.warn(
+            "Bip:",
+            erro
+        );
     }
 }
 
@@ -161,11 +259,19 @@ function emitirBip() {
 
 function mostrarTelaLogin() {
 
-    document.getElementById("login")
-        ?.classList.remove("hidden");
+    document
+        .getElementById("login")
+        ?.classList.remove(
+            "hidden"
+        );
 
-    document.getElementById("coleta")
-        ?.classList.add("hidden");
+
+    document
+        .getElementById("coleta")
+        ?.classList.add(
+            "hidden"
+        );
+
 
     pararCamera();
 }
@@ -173,11 +279,18 @@ function mostrarTelaLogin() {
 
 function mostrarTelaColeta() {
 
-    document.getElementById("login")
-        ?.classList.add("hidden");
+    document
+        .getElementById("login")
+        ?.classList.add(
+            "hidden"
+        );
 
-    document.getElementById("coleta")
-        ?.classList.remove("hidden");
+
+    document
+        .getElementById("coleta")
+        ?.classList.remove(
+            "hidden"
+        );
 }
 
 
@@ -185,43 +298,78 @@ function mostrarTelaColeta() {
    STATUS
 ========================================================= */
 
-function mostrarLoginStatus(mensagem, tipo = "") {
+function mostrarLoginStatus(
+    mensagem,
+    tipo = ""
+) {
 
     const el =
-        document.getElementById("loginStatus");
+        document.getElementById(
+            "loginStatus"
+        );
 
-    if (!el) return;
 
-    el.textContent = mensagem || "";
+    if (!el)
+        return;
+
+
+    el.textContent =
+        mensagem || "";
+
 
     el.className =
         "status" +
-        (tipo ? " " + tipo : "");
+        (
+            tipo
+                ? " " + tipo
+                : ""
+        );
 }
 
 
-function mostrarCollectionStatus(mensagem, tipo = "") {
+function mostrarCollectionStatus(
+    mensagem,
+    tipo = ""
+) {
 
     const el =
-        document.getElementById("collectionStatus");
+        document.getElementById(
+            "collectionStatus"
+        );
 
-    if (!el) return;
 
-    el.textContent = mensagem || "";
+    if (!el)
+        return;
+
+
+    el.textContent =
+        mensagem || "";
+
 
     el.className =
         "status" +
-        (tipo ? " " + tipo : "");
+        (
+            tipo
+                ? " " + tipo
+                : ""
+        );
 }
 
 
-function mostrarCameraStatus(mensagem) {
+function mostrarCameraStatus(
+    mensagem
+) {
 
     const el =
-        document.getElementById("cameraMessage");
+        document.getElementById(
+            "cameraMessage"
+        );
+
 
     if (el) {
-        el.textContent = mensagem;
+
+        el.textContent =
+            mensagem;
     }
 }
 
@@ -238,36 +386,48 @@ async function carregarConfiguracao() {
             "Carregando configuração..."
         );
 
+
         const resposta =
             await fetch(
                 API +
                 "?acao=config&ts=" +
                 Date.now(),
                 {
-                    cache: "no-store"
+                    cache:
+                        "no-store"
                 }
             );
 
+
         if (!resposta.ok) {
+
             throw new Error(
-                "HTTP " + resposta.status
+                "HTTP " +
+                resposta.status
             );
         }
+
 
         configuracao =
             await resposta.json();
 
 
         const selectUsuario =
-            document.getElementById("usuario");
+            document.getElementById(
+                "usuario"
+            );
+
 
         if (!selectUsuario) {
+
             throw new Error(
                 "Campo usuario não encontrado."
             );
         }
 
-        selectUsuario.innerHTML = "";
+
+        selectUsuario.innerHTML =
+            "";
 
 
         const usuarios =
@@ -281,44 +441,65 @@ async function carregarConfiguracao() {
         if (!usuarios.length) {
 
             const option =
-                document.createElement("option");
+                document.createElement(
+                    "option"
+                );
 
-            option.value = "";
+
+            option.value =
+                "";
+
+
             option.textContent =
                 "Nenhum usuário disponível";
 
-            selectUsuario.appendChild(option);
+
+            selectUsuario.appendChild(
+                option
+            );
+
 
             document.getElementById(
                 "btnEntrar"
             ).disabled = true;
+
 
             mostrarLoginStatus(
                 "Nenhum usuário ativo foi encontrado.",
                 "error"
             );
 
+
             return;
         }
 
 
-        usuarios.forEach(usuario => {
+        usuarios.forEach(
+            usuario => {
 
-            const option =
-                document.createElement("option");
+                const option =
+                    document.createElement(
+                        "option"
+                    );
 
-            option.value =
-                usuario.id;
 
-            option.textContent =
-                usuario.nome;
+                option.value =
+                    usuario.id;
 
-            selectUsuario.appendChild(option);
 
-        });
+                option.textContent =
+                    usuario.nome;
+
+
+                selectUsuario.appendChild(
+                    option
+                );
+            }
+        );
 
 
         carregarTiposProduto();
+
 
         atualizarConfiguracaoUsuario(
             usuarios[0].id
@@ -329,8 +510,8 @@ async function carregarConfiguracao() {
             "btnEntrar"
         ).disabled = false;
 
-        mostrarLoginStatus("");
 
+        mostrarLoginStatus("");
 
     } catch (erro) {
 
@@ -339,10 +520,12 @@ async function carregarConfiguracao() {
             erro
         );
 
+
         mostrarLoginStatus(
             "Não foi possível carregar a configuração.",
             "error"
         );
+
 
         document.getElementById(
             "btnEntrar"
@@ -362,9 +545,13 @@ function carregarTiposProduto() {
             "tipoProduto"
         );
 
-    if (!select) return;
 
-    select.innerHTML = "";
+    if (!select)
+        return;
+
+
+    select.innerHTML =
+        "";
 
 
     const tipos =
@@ -378,49 +565,72 @@ function carregarTiposProduto() {
     if (!tipos.length) {
 
         const option =
-            document.createElement("option");
+            document.createElement(
+                "option"
+            );
 
-        option.value = "";
+
+        option.value =
+            "";
+
 
         option.textContent =
             "Nenhum tipo disponível";
 
-        select.appendChild(option);
+
+        select.appendChild(
+            option
+        );
+
 
         return;
     }
 
 
-    tipos.forEach(item => {
+    tipos.forEach(
+        item => {
 
-        const option =
-            document.createElement("option");
-
-        option.value =
-            item.tipoProduto;
-
-        option.textContent =
-            item.tipoProduto;
-
-        option.dataset.regra =
-            item.regraColeta || "";
-
-        option.dataset.tipoColeta =
-            item.tipoColeta || "UNITARIA";
-
-        select.appendChild(option);
-
-    });
+            const option =
+                document.createElement(
+                    "option"
+                );
 
 
-    select.selectedIndex = 0;
+            option.value =
+                item.tipoProduto;
+
+
+            option.textContent =
+                item.tipoProduto;
+
+
+            option.dataset.regra =
+                item.regraColeta ||
+                "";
+
+
+            option.dataset.tipoColeta =
+                item.tipoColeta ||
+                "UNITARIA";
+
+
+            select.appendChild(
+                option
+            );
+        }
+    );
+
+
+    select.selectedIndex =
+        0;
+
 
     atualizarTipoProduto();
 }
 
 
 /* =========================================================
-   ATUALIZAR TIPO
+   ATUALIZAR TIPO DE PRODUTO
 ========================================================= */
 
 function atualizarTipoProduto() {
@@ -430,7 +640,9 @@ function atualizarTipoProduto() {
             "tipoProduto"
         );
 
-    if (!select) return;
+
+    if (!select)
+        return;
 
 
     const opcao =
@@ -438,7 +650,9 @@ function atualizarTipoProduto() {
             select.selectedIndex
         ];
 
-    if (!opcao) return;
+
+    if (!opcao)
+        return;
 
 
     sessao.tipoProduto =
@@ -451,7 +665,8 @@ function atualizarTipoProduto() {
 
     sessao.regraColeta =
         String(
-            opcao.dataset.regra || ""
+            opcao.dataset.regra ||
+            ""
         )
         .trim()
         .toUpperCase();
@@ -466,36 +681,47 @@ function atualizarTipoProduto() {
         .toUpperCase();
 
 
+    console.log(
+        "Tipo:",
+        sessao.tipoProduto,
+        "Regra:",
+        sessao.regraColeta,
+        "Coleta:",
+        sessao.tipoColeta
+    );
+
+
     const botao =
         document.getElementById(
             "btnAlterarEndereco"
         );
 
 
-    if (botao) {
+    if (!botao)
+        return;
 
-        if (
-            sessao.tipoProduto ===
-            "BLOCOS"
-        ) {
 
-            botao.style.display =
-                "block";
+    if (
+        sessao.tipoProduto ===
+        "BLOCOS"
+    ) {
 
-        } else {
+        botao.style.display =
+            "block";
 
-            botao.style.display =
-                "none";
+    } else {
 
-            sessao.modoEndereco =
-                false;
-        }
+        botao.style.display =
+            "none";
+
+        sessao.modoEndereco =
+            false;
     }
 }
 
 
 /* =========================================================
-   CONFIGURAÇÃO USUÁRIO
+   CONFIGURAÇÃO DO USUÁRIO
 ========================================================= */
 
 function atualizarConfiguracaoUsuario(
@@ -507,13 +733,15 @@ function atualizarConfiguracaoUsuario(
             "inventario"
         );
 
+
     const endereco =
         document.getElementById(
             "endereco"
         );
 
 
-    let configUsuario = null;
+    let configUsuario =
+        null;
 
 
     if (
@@ -525,9 +753,11 @@ function atualizarConfiguracaoUsuario(
         configUsuario =
             configuracao.Configuracoes.find(
                 item =>
+
                     String(
                         item.usuario
                     ).trim() ===
+
                     String(
                         usuarioId
                     ).trim()
@@ -538,14 +768,16 @@ function atualizarConfiguracaoUsuario(
     if (inventario) {
 
         inventario.value =
-            configUsuario?.inventario || "";
+            configUsuario?.inventario ||
+            "";
     }
 
 
     if (endereco) {
 
         endereco.value =
-            configUsuario?.enderecoAtual || "";
+            configUsuario?.enderecoAtual ||
+            "";
     }
 }
 
@@ -561,15 +793,18 @@ async function iniciarColeta() {
             "usuario"
         );
 
+
     const inventario =
         document.getElementById(
             "inventario"
         );
 
+
     const endereco =
         document.getElementById(
             "endereco"
         );
+
 
     const tipoProduto =
         document.getElementById(
@@ -628,7 +863,8 @@ async function iniciarColeta() {
 
     sessao.regraColeta =
         String(
-            opcaoTipo?.dataset.regra || ""
+            opcaoTipo?.dataset.regra ||
+            ""
         )
         .trim()
         .toUpperCase();
@@ -642,6 +878,8 @@ async function iniciarColeta() {
         .trim()
         .toUpperCase();
 
+
+    /* VALIDAÇÕES */
 
     if (!sessao.usuario) {
 
@@ -693,18 +931,40 @@ async function iniciarColeta() {
     }
 
 
-    sessao.totalEndereco = 0;
-    sessao.totalColeta = 0;
-    sessao.modoEndereco = false;
+    /* RESET */
 
-    ultimoCodigoLido = "";
-    ultimoCodigoTempo = 0;
+    sessao.totalEndereco =
+        0;
 
-    processandoCodigo = false;
-    scannerBloqueado = false;
+
+    sessao.totalColeta =
+        0;
+
+
+    sessao.modoEndereco =
+        false;
+
+
+    processandoCodigo =
+        false;
+
+
+    scannerBloqueado =
+        false;
+
+
+    ultimoCodigoLido =
+        "";
+
+
+    ultimoCodigoTempo =
+        0;
+
 
     scannerToken++;
 
+
+    /* INFORMAÇÕES */
 
     document.getElementById(
         "lblUsuario"
@@ -718,10 +978,17 @@ async function iniciarColeta() {
         sessao.inventario;
 
 
-    document.getElementById(
-        "lblTipoProduto"
-    ).textContent =
-        sessao.tipoProduto;
+    const lblTipo =
+        document.getElementById(
+            "lblTipoProduto"
+        );
+
+
+    if (lblTipo) {
+
+        lblTipo.textContent =
+            sessao.tipoProduto;
+    }
 
 
     document.getElementById(
@@ -748,11 +1015,16 @@ async function iniciarColeta() {
         "-";
 
 
-    mostrarCollectionStatus("");
+    mostrarCollectionStatus(
+        ""
+    );
+
 
     atualizarBotaoEndereco();
 
+
     mostrarTelaColeta();
+
 
     await iniciarCamera();
 }
@@ -760,11 +1032,13 @@ async function iniciarColeta() {
 
 /* =========================================================
    CÂMERA
+   1920x1080 + TRASEIRA + FOCO CONTÍNUO
 ========================================================= */
 
 async function iniciarCamera() {
 
-    if (cameraAtiva) return;
+    if (cameraAtiva)
+        return;
 
 
     const video =
@@ -772,7 +1046,9 @@ async function iniciarCamera() {
             "camera"
         );
 
-    if (!video) return;
+
+    if (!video)
+        return;
 
 
     if (
@@ -781,7 +1057,7 @@ async function iniciarCamera() {
     ) {
 
         mostrarCameraStatus(
-            "Câmera não disponível."
+            "Câmera não disponível neste navegador."
         );
 
         return;
@@ -804,20 +1080,26 @@ async function iniciarCamera() {
                     video: {
 
                         facingMode: {
-                            ideal: "environment"
+                            ideal:
+                                "environment"
                         },
 
                         width: {
-                            ideal: 1920
+                            ideal:
+                                1920
                         },
 
                         height: {
-                            ideal: 1080
+                            ideal:
+                                1080
                         },
 
                         frameRate: {
-                            ideal: 30,
-                            max: 30
+                            ideal:
+                                30,
+
+                            max:
+                                30
                         }
                     }
                 });
@@ -828,28 +1110,30 @@ async function iniciarCamera() {
                 .getVideoTracks()[0];
 
 
+        /* FOCO CONTÍNUO */
+
         if (track) {
 
-            const capabilities =
-                typeof track.getCapabilities ===
-                "function"
-                    ? track.getCapabilities()
-                    : {};
+            try {
+
+                const capabilities =
+                    track.getCapabilities
+                        ? track.getCapabilities()
+                        : {};
 
 
-            if (
-                capabilities.focusMode &&
-                Array.isArray(
-                    capabilities.focusMode
-                ) &&
-                capabilities.focusMode.includes(
-                    "continuous"
-                )
-            ) {
-
-                try {
+                if (
+                    capabilities.focusMode &&
+                    Array.isArray(
+                        capabilities.focusMode
+                    ) &&
+                    capabilities.focusMode.includes(
+                        "continuous"
+                    )
+                ) {
 
                     await track.applyConstraints({
+
                         advanced: [
                             {
                                 focusMode:
@@ -857,14 +1141,14 @@ async function iniciarCamera() {
                             }
                         ]
                     });
-
-                } catch (e) {
-
-                    console.warn(
-                        "Foco:",
-                        e
-                    );
                 }
+
+            } catch (erro) {
+
+                console.warn(
+                    "Foco contínuo:",
+                    erro
+                );
             }
         }
 
@@ -872,15 +1156,24 @@ async function iniciarCamera() {
         video.srcObject =
             cameraStream;
 
-        video.autoplay = true;
-        video.muted = true;
-        video.playsInline = true;
+
+        video.autoplay =
+            true;
+
+
+        video.muted =
+            true;
+
+
+        video.playsInline =
+            true;
 
 
         video.setAttribute(
             "playsinline",
             "true"
         );
+
 
         video.setAttribute(
             "webkit-playsinline",
@@ -891,7 +1184,8 @@ async function iniciarCamera() {
         await video.play();
 
 
-        cameraAtiva = true;
+        cameraAtiva =
+            true;
 
 
         console.log(
@@ -907,7 +1201,9 @@ async function iniciarCamera() {
         );
 
 
-        iniciarLeitorZXing(video);
+        iniciarLeitorZXing(
+            video
+        );
 
 
     } catch (erro) {
@@ -917,10 +1213,19 @@ async function iniciarCamera() {
             erro
         );
 
-        cameraAtiva = false;
+
+        cameraAtiva =
+            false;
+
 
         mostrarCameraStatus(
             "Não foi possível abrir a câmera."
+        );
+
+
+        mostrarCollectionStatus(
+            "Use a digitação manual.",
+            "error"
         );
     }
 }
@@ -930,19 +1235,14 @@ async function iniciarCamera() {
    INICIAR ZXING
 ========================================================= */
 
-function iniciarLeitorZXing(video) {
+function iniciarLeitorZXing(
+    video
+) {
 
-    /*
-     * Cada leitor recebe um token.
-     * Se esse token deixar de ser o atual,
-     * qualquer leitura dele será ignorada.
-     */
-
-    const meuToken =
-        ++scannerToken;
-
-
-    if (scannerBloqueado) {
+    if (
+        scannerBloqueado ||
+        processandoCodigo
+    ) {
         return;
     }
 
@@ -961,127 +1261,157 @@ function iniciarLeitorZXing(video) {
 
 
     /*
-     * Garante que não exista outro leitor.
+     * Cada novo scanner recebe um token.
      */
 
-    pararSomenteLeitor();
+    const meuToken =
+        ++scannerToken;
 
 
     try {
+
+        /*
+         * Garante que não haja
+         * outro leitor ativo.
+         */
+
+        pararSomenteLeitor();
+
+
+        /*
+         * pararSomenteLeitor() incrementa o token.
+         * Portanto criamos novamente o token
+         * que será válido para este leitor.
+         */
+
+        const tokenAtual =
+            scannerToken;
+
 
         codeReader =
             new ZXingBrowser
                 .BrowserMultiFormatReader();
 
 
-        const leitorAtual =
+        const leitor =
             codeReader;
 
 
-        leitorAtual
-            .decodeFromVideoElement(
-                video,
-                (resultado, erro) => {
+        leitor.decodeFromVideoElement(
+            video,
 
-                    /*
-                     * =================================================
-                     * FILTROS IMPORTANTES
-                     * =================================================
-                     */
-
-                    if (
-                        scannerBloqueado
-                    ) {
-                        return;
-                    }
-
-
-                    if (
-                        meuToken !==
-                        scannerToken
-                    ) {
-                        return;
-                    }
-
-
-                    if (
-                        leitorAtual !==
-                        codeReader
-                    ) {
-                        return;
-                    }
-
-
-                    if (!resultado) {
-                        return;
-                    }
-
-
-                    let codigo = "";
-
-
-                    try {
-
-                        codigo =
-                            resultado.getText
-                                ? resultado.getText()
-                                : resultado.text || "";
-
-                    } catch (e) {
-
-                        return;
-                    }
-
-
-                    codigo =
-                        normalizarCodigo(
-                            codigo
-                        );
-
-
-                    if (!codigo) {
-                        return;
-                    }
-
-
-                    receberCodigoDaCamera(
-                        codigo,
-                        meuToken
-                    );
-                }
-            )
-            .then(controles => {
+            (resultado, erro) => {
 
                 /*
-                 * Só aceita o controle se esse
-                 * ainda for o leitor atual.
+                 * =================================================
+                 * DESCARTAR LEITURAS ANTIGAS
+                 * =================================================
                  */
 
                 if (
-                    meuToken ===
-                    scannerToken &&
-                    !scannerBloqueado &&
-                    leitorAtual ===
-                    codeReader
+                    scannerBloqueado ||
+                    processandoCodigo
                 ) {
-
-                    scannerControls =
-                        controles;
-
-                } else {
-
-                    try {
-                        controles.stop();
-                    } catch (e) {}
+                    return;
                 }
 
-            })
-            .catch(erro => {
 
                 if (
-                    meuToken ===
-                    scannerToken &&
-                    !scannerBloqueado
+                    tokenAtual !==
+                    scannerToken
+                ) {
+                    return;
+                }
+
+
+                if (
+                    leitor !==
+                    codeReader
+                ) {
+                    return;
+                }
+
+
+                if (!resultado)
+                    return;
+
+
+                let codigo =
+                    "";
+
+
+                try {
+
+                    codigo =
+                        resultado.getText
+                            ? resultado.getText()
+                            : String(
+                                resultado.text ||
+                                ""
+                            );
+
+                } catch (erro) {
+
+                    return;
+                }
+
+
+                codigo =
+                    normalizarCodigo(
+                        codigo
+                    );
+
+
+                if (!codigo)
+                    return;
+
+
+                receberCodigoDaCamera(
+                    codigo,
+                    tokenAtual
+                );
+            }
+        )
+        .then(
+            controles => {
+
+                /*
+                 * Se esse leitor já ficou
+                 * inválido enquanto inicializava,
+                 * paramos ele imediatamente.
+                 */
+
+                if (
+                    tokenAtual !==
+                    scannerToken ||
+                    scannerBloqueado
+                ) {
+
+                    try {
+
+                        controles.stop();
+
+                    } catch (e) {}
+
+                    return;
+                }
+
+
+                scannerControls =
+                    controles;
+
+
+                console.log(
+                    "Scanner iniciado."
+                );
+            }
+        )
+        .catch(
+            erro => {
+
+                if (
+                    tokenAtual ===
+                    scannerToken
                 ) {
 
                     console.error(
@@ -1089,13 +1419,13 @@ function iniciarLeitorZXing(video) {
                         erro
                     );
                 }
-            });
-
+            }
+        );
 
     } catch (erro) {
 
         console.error(
-            "Erro criando ZXing:",
+            "Erro criando leitor:",
             erro
         );
     }
@@ -1103,14 +1433,14 @@ function iniciarLeitorZXing(video) {
 
 
 /* =========================================================
-   PARAR SOMENTE O LEITOR
+   PARAR SOMENTE O ZXING
 ========================================================= */
 
 function pararSomenteLeitor() {
 
     /*
-     * Invalida imediatamente todos os callbacks
-     * dos leitores anteriores.
+     * Invalida imediatamente
+     * qualquer callback anterior.
      */
 
     scannerToken++;
@@ -1128,12 +1458,18 @@ function pararSomenteLeitor() {
                 scannerControls.stop();
             }
 
-        } catch (e) {}
+        } catch (erro) {
 
+            console.warn(
+                "Erro parando controles:",
+                erro
+            );
+        }
     }
 
 
-    scannerControls = null;
+    scannerControls =
+        null;
 
 
     if (codeReader) {
@@ -1148,12 +1484,18 @@ function pararSomenteLeitor() {
                 codeReader.reset();
             }
 
-        } catch (e) {}
+        } catch (erro) {
 
+            console.warn(
+                "Erro resetando ZXing:",
+                erro
+            );
+        }
     }
 
 
-    codeReader = null;
+    codeReader =
+        null;
 }
 
 
@@ -1163,27 +1505,30 @@ function pararSomenteLeitor() {
 
 function receberCodigoDaCamera(
     codigo,
-    tokenRecebido
+    token
 ) {
 
     /*
-     * DESCARTA QUALQUER LEITURA ANTIGA.
+     * Se estiver em lote,
+     * nenhuma leitura adicional entra.
      */
 
     if (
         scannerBloqueado ||
         processandoCodigo
     ) {
-
         return;
     }
 
 
+    /*
+     * Descarta callback antigo.
+     */
+
     if (
-        tokenRecebido !==
+        token !==
         scannerToken
     ) {
-
         return;
     }
 
@@ -1198,18 +1543,21 @@ function receberCodigoDaCamera(
         );
 
 
-    if (!codigo) {
+    if (!codigo)
         return;
-    }
 
 
     /*
-     * Evita apenas o mesmo frame.
+     * Ignora somente repetição
+     * imediata do mesmo frame.
+     *
+     * NÃO é duplicidade da coleta.
      */
 
     if (
         codigo ===
         ultimoCodigoLido &&
+
         agora -
         ultimoCodigoTempo <
         800
@@ -1222,9 +1570,21 @@ function receberCodigoDaCamera(
     ultimoCodigoLido =
         codigo;
 
+
     ultimoCodigoTempo =
         agora;
 
+
+    /*
+     * IMPORTANTE:
+     *
+     * Não colocamos mais o código
+     * no campo manual quando veio
+     * da câmera.
+     *
+     * Isso elimina exatamente o
+     * comportamento que você mostrou.
+     */
 
     const campo =
         document.getElementById(
@@ -1233,8 +1593,9 @@ function receberCodigoDaCamera(
 
 
     if (campo) {
+
         campo.value =
-            codigo;
+            "";
     }
 
 
@@ -1250,7 +1611,10 @@ function receberCodigoDaCamera(
 
 function processarCodigoDigitado() {
 
-    if (processandoCodigo) {
+    if (
+        processandoCodigo ||
+        scannerBloqueado
+    ) {
         return;
     }
 
@@ -1261,7 +1625,8 @@ function processarCodigoDigitado() {
         );
 
 
-    if (!campo) return;
+    if (!campo)
+        return;
 
 
     const codigo =
@@ -1270,7 +1635,8 @@ function processarCodigoDigitado() {
         );
 
 
-    if (!codigo) return;
+    if (!codigo)
+        return;
 
 
     processarCodigo(
@@ -1283,7 +1649,9 @@ function processarCodigoDigitado() {
    NORMALIZAR
 ========================================================= */
 
-function normalizarCodigo(valor) {
+function normalizarCodigo(
+    valor
+) {
 
     return String(
         valor || ""
@@ -1309,7 +1677,6 @@ async function processarCodigo(
         processandoCodigo ||
         scannerBloqueado
     ) {
-
         return;
     }
 
@@ -1320,9 +1687,8 @@ async function processarCodigo(
         );
 
 
-    if (!codigo) {
+    if (!codigo)
         return;
-    }
 
 
     if (
@@ -1341,155 +1707,201 @@ async function processarCodigo(
     }
 
 
-    processandoCodigo = true;
+    /*
+     * TRAVA IMEDIATA.
+     */
+
+    processandoCodigo =
+        true;
 
 
-    /* =====================================================
-       ALTERAR ENDEREÇO
-    ===================================================== */
+    try {
 
-    if (sessao.modoEndereco) {
-
-        emitirBip();
-
-        processarNovoEndereco(
-            codigo
-        );
-
-        processandoCodigo =
-            false;
-
-        focarCampoCodigo();
-
-        return;
-    }
-
-
-    /* =====================================================
-       CHAPAS / RECORTADOS
-    ===================================================== */
-
-    if (
-        sessao.tipoProduto ===
-        "CHAPAS" ||
-
-        sessao.tipoProduto ===
-        "RECORTADOS"
-    ) {
+        /* =====================================================
+           ALTERAÇÃO DE ENDEREÇO
+        ===================================================== */
 
         if (
-            /^[A-Za-z]/.test(
-                codigo
-            )
+            sessao.modoEndereco
         ) {
 
             emitirBip();
 
-            processarNovoEndereco(
+
+            await processarNovoEndereco(
                 codigo
             );
 
-            processandoCodigo =
-                false;
-
-            focarCampoCodigo();
 
             return;
         }
 
+
+        /* =====================================================
+           CHAPAS / RECORTADOS
+        ===================================================== */
 
         if (
-            !/^\d/.test(
-                codigo
-            )
+            sessao.tipoProduto ===
+            "CHAPAS" ||
+
+            sessao.tipoProduto ===
+            "RECORTADOS"
         ) {
 
-            document.getElementById(
-                "ultimaLeitura"
-            ).textContent =
-                codigo +
-                " - INVÁLIDO";
+            /*
+             * LETRA = ENDEREÇO
+             */
+
+            if (
+                /^[A-Za-z]/.test(
+                    codigo
+                )
+            ) {
+
+                emitirBip();
 
 
-            mostrarCollectionStatus(
-                "Código inválido.",
-                "error"
-            );
+                await processarNovoEndereco(
+                    codigo
+                );
 
 
-            processandoCodigo =
-                false;
+                return;
+            }
 
-            focarCampoCodigo();
 
-            return;
+            /*
+             * PRODUTO = NÚMERO
+             */
+
+            if (
+                !/^\d/.test(
+                    codigo
+                )
+            ) {
+
+                document
+                    .getElementById(
+                        "ultimaLeitura"
+                    )
+                    .textContent =
+                    codigo +
+                    " - INVÁLIDO";
+
+
+                mostrarCollectionStatus(
+                    "Código inválido.",
+                    "error"
+                );
+
+
+                return;
+            }
         }
-    }
 
 
-    /* =====================================================
-       BIP
-    ===================================================== */
+        /* =====================================================
+           BLOCOS
+        ===================================================== */
 
-    emitirBip();
+        if (
+            sessao.tipoProduto ===
+            "BLOCOS"
+        ) {
 
-
-    /* =====================================================
-       LOTE
-    ===================================================== */
-
-    if (
-        sessao.tipoColeta ===
-        "LOTE"
-    ) {
-
-        /*
-         * =================================================
-         * AQUI ESTÁ A CORREÇÃO DEFINITIVA
-         * =================================================
-         *
-         * 1. Bloqueia novas leituras.
-         * 2. Invalida o token atual.
-         * 3. Para o ZXing.
-         * 4. Abre a quantidade.
-         *
-         * Qualquer callback antigo será descartado.
-         */
-
-        scannerBloqueado = true;
-
-        scannerToken++;
-
-        pararSomenteLeitor();
+            /*
+             * Qualquer código é produto.
+             */
+        }
 
 
-        try {
+        /* =====================================================
+           BIP
+        ===================================================== */
+
+        emitirBip();
+
+
+        /* =====================================================
+           COLETA EM LOTE
+        ===================================================== */
+
+        if (
+            sessao.tipoColeta ===
+            "LOTE"
+        ) {
+
+            /*
+             * =================================================
+             * CORREÇÃO PRINCIPAL
+             * =================================================
+             *
+             * Antes de abrir a quantidade:
+             *
+             * 1. bloqueia scanner;
+             * 2. invalida callback antigo;
+             * 3. para ZXing;
+             * 4. limpa campo;
+             * 5. abre quantidade.
+             */
+
+            scannerBloqueado =
+                true;
+
+
+            scannerToken++;
+
+
+            pararSomenteLeitor();
+
+
+            const campo =
+                document.getElementById(
+                    "codigo"
+                );
+
+
+            if (campo) {
+
+                campo.value =
+                    "";
+            }
+
+
+            /*
+             * Agora o ZXing está
+             * completamente fora do fluxo.
+             */
 
             await solicitarQuantidadeLote(
                 codigo
             );
 
-        } finally {
 
             /*
-             * Só agora liberamos uma nova leitura.
+             * Só libera depois
+             * que a janela fechou.
              */
-
-            processandoCodigo =
-                false;
 
             scannerBloqueado =
                 false;
 
-            ultimoCodigoLido = "";
-            ultimoCodigoTempo = 0;
+
+            processandoCodigo =
+                false;
 
 
-            focarCampoCodigo();
+            ultimoCodigoLido =
+                "";
+
+
+            ultimoCodigoTempo =
+                0;
 
 
             /*
-             * Reinicia UM único leitor.
+             * Reinicia somente um leitor.
              */
 
             if (cameraAtiva) {
@@ -1500,36 +1912,52 @@ async function processarCodigo(
                     )
                 );
             }
+
+
+            return;
         }
 
 
-        return;
-    }
+        /* =====================================================
+           UNITÁRIA
+        ===================================================== */
 
-
-    /* =====================================================
-       UNITÁRIA
-    ===================================================== */
-
-    try {
-
-        registrarProduto(
+        await registrarProduto(
             codigo,
             1
         );
 
+    } catch (erro) {
+
+        console.error(
+            "Erro processando código:",
+            erro
+        );
+
     } finally {
 
-        processandoCodigo =
-            false;
+        /*
+         * Para lote, a liberação
+         * acontece acima.
+         */
 
-        focarCampoCodigo();
+        if (
+            sessao.tipoColeta !==
+            "LOTE"
+        ) {
+
+            processandoCodigo =
+                false;
+        }
+
+
+        limparCampoCodigo();
     }
 }
 
 
 /* =========================================================
-   QUANTIDADE DO LOTE
+   COLETA EM LOTE
 ========================================================= */
 
 async function solicitarQuantidadeLote(
@@ -1537,17 +1965,24 @@ async function solicitarQuantidadeLote(
 ) {
 
     /*
-     * O ZXing está PARADO aqui.
+     * IMPORTANTE:
      *
-     * Não usamos setTimeout.
+     * Não existe setTimeout aqui.
+     *
+     * O scanner já foi parado antes
+     * desta função ser chamada.
      */
 
     const resposta =
         window.prompt(
+
             "COLETA EM LOTE\n\n" +
+
             "Código: " +
             codigo +
+
             "\n\n" +
+
             "Informe a quantidade de peças:"
         );
 
@@ -1564,7 +1999,9 @@ async function solicitarQuantidadeLote(
             "error"
         );
 
+
         limparCampoCodigo();
+
 
         return;
     }
@@ -1595,7 +2032,9 @@ async function solicitarQuantidadeLote(
             "error"
         );
 
+
         limparCampoCodigo();
+
 
         return;
     }
@@ -1616,13 +2055,19 @@ async function solicitarQuantidadeLote(
             "error"
         );
 
+
         limparCampoCodigo();
+
 
         return;
     }
 
 
-    registrarProduto(
+    /*
+     * REGISTRA O LOTE
+     */
+
+    await registrarProduto(
         codigo,
         quantidadeInteira
     );
@@ -1636,15 +2081,60 @@ async function solicitarQuantidadeLote(
    REGISTRAR PRODUTO
 ========================================================= */
 
-function registrarProduto(
+async function registrarProduto(
     codigo,
     quantidade = 1
 ) {
 
-    document.getElementById(
-        "ultimaLeitura"
-    ).textContent =
-        codigo;
+    const ultima =
+        document.getElementById(
+            "ultimaLeitura"
+        );
+
+
+    if (ultima) {
+
+        ultima.textContent =
+            codigo;
+    }
+
+
+    /*
+     * CONTADORES
+     */
+
+    sessao.totalEndereco +=
+        quantidade;
+
+
+    sessao.totalColeta +=
+        quantidade;
+
+
+    const contadorEndereco =
+        document.getElementById(
+            "contadorEndereco"
+        );
+
+
+    const contadorTotal =
+        document.getElementById(
+            "contadorTotal"
+        );
+
+
+    if (contadorEndereco) {
+
+        contadorEndereco.textContent =
+            sessao.totalEndereco;
+    }
+
+
+    if (contadorTotal) {
+
+        contadorTotal.textContent =
+            sessao.totalColeta;
+    }
 
 
     const mensagem =
@@ -1655,7 +2145,7 @@ function registrarProduto(
               quantidade +
               " peças."
 
-            : "Coleta enviada.";
+            : "Coleta registrada.";
 
 
     mostrarCollectionStatus(
@@ -1664,91 +2154,90 @@ function registrarProduto(
     );
 
 
-    /* CONTADORES */
+    /*
+     * ENVIO PARA APPS SCRIPT
+     */
 
-    sessao.totalEndereco +=
-        quantidade;
+    try {
 
-    sessao.totalColeta +=
-        quantidade;
+        await fetch(
+            API,
+            {
 
+                method:
+                    "POST",
 
-    document.getElementById(
-        "contadorEndereco"
-    ).textContent =
-        sessao.totalEndereco;
+                mode:
+                    "no-cors",
 
+                headers: {
 
-    document.getElementById(
-        "contadorTotal"
-    ).textContent =
-        sessao.totalColeta;
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
 
+                body:
+                    JSON.stringify({
 
-    /* =====================================================
-       ENVIO PARA APPS SCRIPT
-    ===================================================== */
+                        usuario:
+                            sessao.usuario,
 
-    fetch(
-        API,
-        {
+                        nomeUsuario:
+                            sessao.nomeUsuario,
 
-            method: "POST",
+                        inventario:
+                            sessao.inventario,
 
-            mode: "no-cors",
+                        endereco:
+                            sessao.endereco,
 
-            headers: {
-                "Content-Type":
-                    "text/plain;charset=utf-8"
-            },
+                        codigo:
+                            codigo,
 
-            body:
-                JSON.stringify({
+                        tipoLeitura:
+                            "PRODUTO",
 
-                    usuario:
-                        sessao.usuario,
+                        tipoProduto:
+                            sessao.tipoProduto,
 
-                    nomeUsuario:
-                        sessao.nomeUsuario,
+                        quantidade:
+                            quantidade
+                    })
+            }
+        );
 
-                    inventario:
-                        sessao.inventario,
-
-                    endereco:
-                        sessao.endereco,
-
-                    codigo:
-                        codigo,
-
-                    tipoLeitura:
-                        "PRODUTO",
-
-                    tipoProduto:
-                        sessao.tipoProduto,
-
-                    quantidade:
-                        quantidade
-
-                })
-        }
-    )
-    .then(() => {
 
         console.log(
             "Coleta enviada:",
-            codigo,
-            "Quantidade:",
-            quantidade
+            {
+                codigo:
+                    codigo,
+
+                quantidade:
+                    quantidade,
+
+                tipoProduto:
+                    sessao.tipoProduto,
+
+                tipoColeta:
+                    sessao.tipoColeta
+            }
         );
 
-    })
-    .catch(erro => {
+
+    } catch (erro) {
 
         console.error(
             "Erro enviando:",
             erro
         );
-    });
+
+
+        mostrarCollectionStatus(
+            "Erro ao enviar coleta.",
+            "error"
+        );
+    }
 
 
     limparCampoCodigo();
@@ -1766,32 +2255,17 @@ function limparCampoCodigo() {
             "codigo"
         );
 
-    if (campo) {
-        campo.value = "";
-    }
-}
-
-
-function focarCampoCodigo() {
-
-    const campo =
-        document.getElementById(
-            "codigo"
-        );
 
     if (campo) {
 
-        setTimeout(() => {
-
-            campo.focus();
-
-        }, 50);
+        campo.value =
+            "";
     }
 }
 
 
 /* =========================================================
-   ALTERAR ENDEREÇO
+   MODO ALTERAR ENDEREÇO
 ========================================================= */
 
 function ativarModoEndereco() {
@@ -1823,18 +2297,7 @@ function ativarModoEndereco() {
     );
 
 
-    const campo =
-        document.getElementById(
-            "codigo"
-        );
-
-
-    if (campo) {
-
-        campo.value = "";
-
-        campo.focus();
-    }
+    limparCampoCodigo();
 }
 
 
@@ -1850,7 +2313,8 @@ function atualizarBotaoEndereco() {
         );
 
 
-    if (!botao) return;
+    if (!botao)
+        return;
 
 
     if (
@@ -1876,6 +2340,7 @@ function atualizarBotaoEndereco() {
         botao.textContent =
             "LENDO NOVO ENDEREÇO";
 
+
         botao.disabled =
             true;
 
@@ -1884,6 +2349,7 @@ function atualizarBotaoEndereco() {
         botao.textContent =
             "ALTERAR ENDEREÇO";
 
+
         botao.disabled =
             false;
     }
@@ -1891,10 +2357,10 @@ function atualizarBotaoEndereco() {
 
 
 /* =========================================================
-   NOVO ENDEREÇO
+   PROCESSAR NOVO ENDEREÇO
 ========================================================= */
 
-function processarNovoEndereco(
+async function processarNovoEndereco(
     novoEndereco
 ) {
 
@@ -1904,9 +2370,8 @@ function processarNovoEndereco(
         );
 
 
-    if (!novoEndereco) {
+    if (!novoEndereco)
         return;
-    }
 
 
     sessao.endereco =
@@ -1953,44 +2418,54 @@ function processarNovoEndereco(
     atualizarBotaoEndereco();
 
 
-    fetch(
-        API,
-        {
+    /*
+     * SALVA NOVO ENDEREÇO
+     */
 
-            method: "POST",
+    try {
 
-            mode: "no-cors",
+        await fetch(
+            API,
+            {
 
-            headers: {
-                "Content-Type":
-                    "text/plain;charset=utf-8"
-            },
+                method:
+                    "POST",
 
-            body:
-                JSON.stringify({
+                mode:
+                    "no-cors",
 
-                    acao:
-                        "novoEndereco",
+                headers: {
 
-                    usuario:
-                        sessao.usuario,
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
 
-                    inventario:
-                        sessao.inventario,
+                body:
+                    JSON.stringify({
 
-                    endereco:
-                        novoEndereco
-                })
-        }
-    )
-    .catch(erro => {
+                        acao:
+                            "novoEndereco",
+
+                        usuario:
+                            sessao.usuario,
+
+                        inventario:
+                            sessao.inventario,
+
+                        endereco:
+                            novoEndereco
+                    })
+            }
+        );
+
+
+    } catch (erro) {
 
         console.error(
             "Erro endereço:",
             erro
         );
-
-    });
+    }
 
 
     limparCampoCodigo();
@@ -1998,18 +2473,21 @@ function processarNovoEndereco(
 
 
 /* =========================================================
-   PARAR CÂMERA COMPLETA
+   PARAR CÂMERA
 ========================================================= */
 
 function pararCamera() {
 
     /*
-     * Invalida TODOS os leitores existentes.
+     * Invalida todos os callbacks
+     * existentes.
      */
 
     scannerToken++;
 
-    scannerBloqueado = true;
+
+    scannerBloqueado =
+        true;
 
 
     pararSomenteLeitor();
@@ -2019,18 +2497,22 @@ function pararCamera() {
 
         cameraStream
             .getTracks()
-            .forEach(track => {
+            .forEach(
+                track => {
 
-                try {
-                    track.stop();
-                } catch (e) {}
+                    try {
 
-            });
+                        track.stop();
+
+                    } catch (e) {}
+                }
+            );
     }
 
 
     cameraStream =
         null;
+
 
     cameraAtiva =
         false;
@@ -2045,8 +2527,11 @@ function pararCamera() {
     if (video) {
 
         try {
+
             video.pause();
+
         } catch (e) {}
+
 
         video.srcObject =
             null;
@@ -2059,13 +2544,14 @@ function pararCamera() {
 
 
 /* =========================================================
-   EVENTOS
+   EVENTOS DA PÁGINA
 ========================================================= */
 
 window.addEventListener(
     "pagehide",
     pararCamera
 );
+
 
 window.addEventListener(
     "beforeunload",
