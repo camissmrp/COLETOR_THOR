@@ -40,6 +40,23 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.getElementById("tipoProduto")?.addEventListener("change",atualizarTipoProduto);
 
+    document.getElementById("cancelarQuantidadeLote")?.addEventListener(
+        "click",
+        cancelarQuantidadeLote
+    );
+
+    document.getElementById("confirmarQuantidadeLote")?.addEventListener(
+        "click",
+        confirmarQuantidadeLote
+    );
+
+    document.getElementById("quantidadeLote")?.addEventListener("keydown",e=>{
+        if(e.key==="Enter"){
+            e.preventDefault();
+            confirmarQuantidadeLote();
+        }
+    });
+
     mostrarTelaLogin();
     carregarConfiguracao();
 });
@@ -48,8 +65,12 @@ async function prepararAudio(){
     try{
         const AC=window.AudioContext||window.webkitAudioContext;
         if(!AC)return;
+
         if(!audioContext)audioContext=new AC();
-        if(audioContext.state==="suspended")await audioContext.resume();
+
+        if(audioContext.state==="suspended"){
+            await audioContext.resume();
+        }
     }catch(erro){
         console.warn("Áudio:",erro);
     }
@@ -59,8 +80,12 @@ function emitirBip(){
     try{
         const AC=window.AudioContext||window.webkitAudioContext;
         if(!AC)return;
+
         if(!audioContext)audioContext=new AC();
-        if(audioContext.state==="suspended")audioContext.resume();
+
+        if(audioContext.state==="suspended"){
+            audioContext.resume();
+        }
 
         const agora=audioContext.currentTime;
         const oscilador=audioContext.createOscillator();
@@ -97,6 +122,7 @@ function mostrarTelaColeta(){
 function mostrarLoginStatus(mensagem,tipo=""){
     const el=document.getElementById("loginStatus");
     if(!el)return;
+
     el.textContent=mensagem||"";
     el.className="status"+(tipo?" "+tipo:"");
 }
@@ -104,6 +130,7 @@ function mostrarLoginStatus(mensagem,tipo=""){
 function mostrarCollectionStatus(mensagem,tipo=""){
     const el=document.getElementById("collectionStatus");
     if(!el)return;
+
     el.textContent=mensagem||"";
     el.className="status"+(tipo?" "+tipo:"");
 }
@@ -122,13 +149,17 @@ async function carregarConfiguracao(){
             {cache:"no-store"}
         );
 
-        if(!resposta.ok)throw new Error("HTTP "+resposta.status);
+        if(!resposta.ok){
+            throw new Error("HTTP "+resposta.status);
+        }
 
         configuracao=await resposta.json();
 
         const selectUsuario=document.getElementById("usuario");
 
-        if(!selectUsuario)throw new Error("Campo usuario não encontrado.");
+        if(!selectUsuario){
+            throw new Error("Campo usuario não encontrado.");
+        }
 
         selectUsuario.innerHTML="";
 
@@ -138,8 +169,10 @@ async function carregarConfiguracao(){
 
         if(!usuarios.length){
             const option=document.createElement("option");
+
             option.value="";
             option.textContent="Nenhum usuário disponível";
+
             selectUsuario.appendChild(option);
 
             document.getElementById("btnEntrar").disabled=true;
@@ -154,8 +187,10 @@ async function carregarConfiguracao(){
 
         usuarios.forEach(usuario=>{
             const option=document.createElement("option");
+
             option.value=usuario.id;
             option.textContent=usuario.nome;
+
             selectUsuario.appendChild(option);
         });
 
@@ -191,8 +226,10 @@ function carregarTiposProduto(){
 
     if(!tipos.length){
         const option=document.createElement("option");
+
         option.value="";
         option.textContent="Nenhum tipo disponível";
+
         select.appendChild(option);
         return;
     }
@@ -202,6 +239,7 @@ function carregarTiposProduto(){
 
         option.value=item.tipoProduto;
         option.textContent=item.tipoProduto;
+
         option.dataset.regra=item.regraColeta||"";
         option.dataset.tipoColeta=item.tipoColeta||"UNITARIA";
 
@@ -231,8 +269,8 @@ function atualizarTipoProduto(){
     sessao.tipoColeta=String(
         opcao.dataset.tipoColeta||"UNITARIA"
     )
-    .trim()
-    .toUpperCase();
+        .trim()
+        .toUpperCase();
 
     const botao=document.getElementById("btnAlterarEndereco");
     if(!botao)return;
@@ -301,8 +339,8 @@ async function iniciarColeta(){
     sessao.tipoColeta=String(
         opcaoTipo?.dataset.tipoColeta||"UNITARIA"
     )
-    .trim()
-    .toUpperCase();
+        .trim()
+        .toUpperCase();
 
     if(!sessao.usuario){
         mostrarLoginStatus("Selecione um usuário.","error");
@@ -368,6 +406,7 @@ async function iniciarCamera(){
         mostrarCameraStatus(
             "Câmera não disponível neste navegador."
         );
+
         return;
     }
 
@@ -437,10 +476,10 @@ async function iniciarCamera(){
                     console.log("Foco contínuo ativado.");
                 }
 
-            }catch(erroFoco){
+            }catch(erroCamera){
                 console.warn(
                     "Configuração da câmera:",
-                    erroFoco
+                    erroCamera
                 );
             }
         }
@@ -530,6 +569,7 @@ function iniciarLeitorZXing(video){
                         "Erro obtendo código:",
                         e
                     );
+
                     return;
                 }
 
@@ -545,6 +585,7 @@ function iniciarLeitorZXing(video){
                 try{
                     controles.stop();
                 }catch(e){}
+
                 return;
             }
 
@@ -668,6 +709,12 @@ function normalizarCodigo(valor){
         .toUpperCase();
 }
 
+
+/* =====================================================
+   PROCESSAMENTO PRINCIPAL
+   A REGRA VEM DA TB_TIPOS_PRODUTO
+===================================================== */
+
 function processarCodigo(codigo){
     if(
         !codigo||
@@ -687,33 +734,54 @@ function processarCodigo(codigo){
             "Sessão inválida.",
             "error"
         );
+
         return;
     }
 
     processandoCodigo=true;
 
+
+    /* MODO MANUAL DE ALTERAÇÃO DE ENDEREÇO */
+
     if(sessao.modoEndereco){
         processarNovoEndereco(codigo);
+
         emitirBip();
+
         processandoCodigo=false;
         limparCampoCodigo();
+
         return;
     }
 
-    if(
-        sessao.tipoProduto==="CHAPAS"||
-        sessao.tipoProduto==="RECORTADOS"
-    ){
 
-        if(/^[A-Za-z]/.test(codigo)){
+    /* =================================================
+       REGRA DE COLETA
+       
+       NUMERO_PRODUTO:
+       número = produto
+       letra = endereço
+
+       MANUAL:
+       tudo = produto
+    ================================================= */
+
+    if(sessao.regraColeta==="NUMERO_PRODUTO"){
+
+        if(/^[A-Z]/.test(codigo)){
+
             processarNovoEndereco(codigo);
+
             emitirBip();
+
             processandoCodigo=false;
             limparCampoCodigo();
+
             return;
         }
 
         if(!/^\d/.test(codigo)){
+
             document.getElementById(
                 "ultimaLeitura"
             ).textContent=
@@ -731,134 +799,100 @@ function processarCodigo(codigo){
         }
     }
 
+
+    /* =================================================
+       CÓDIGO CONFIRMADO COMO PRODUTO
+    ================================================= */
+
     emitirBip();
 
+
+    /* =================================================
+       TIPO DE COLETA
+       
+       LOTE:
+       abre quantidade
+
+       UNITARIA:
+       registra 1
+    ================================================= */
+
     if(sessao.tipoColeta==="LOTE"){
+
         scannerBloqueado=true;
+
         pararLeitorZXing();
+
         limparCampoCodigo();
+
         solicitarQuantidadeLote(codigo);
+
         return;
     }
+
 
     registrarProduto(codigo,1);
 
     processandoCodigo=false;
+
     limparCampoCodigo();
 }
 
+
+/* =====================================================
+   MODAL DE QUANTIDADE
+   O HTML JÁ POSSUI A JANELA
+===================================================== */
+
 function solicitarQuantidadeLote(codigo){
-    let modal=document.getElementById(
+
+    const modal=document.getElementById(
         "modalQuantidadeLote"
     );
 
-    if(!modal){
-        modal=document.createElement("div");
-
-        modal.id="modalQuantidadeLote";
-
-        modal.style.cssText=
-            "position:fixed;inset:0;z-index:99999;"+
-            "background:rgba(0,0,0,.72);"+
-            "display:flex;align-items:center;"+
-            "justify-content:center;padding:20px;"+
-            "box-sizing:border-box";
-
-        modal.innerHTML=
-            '<div style="width:100%;max-width:380px;'+
-            'background:#fff;border-radius:16px;'+
-            'padding:22px;box-sizing:border-box;'+
-            'box-shadow:0 8px 30px rgba(0,0,0,.35)">'+
-
-            '<div style="font-size:21px;font-weight:700;'+
-            'margin-bottom:8px">COLETA EM LOTE</div>'+
-
-            '<div style="font-size:14px;color:#666;'+
-            'margin-bottom:5px">Código capturado</div>'+
-
-            '<div id="codigoLoteCapturado" style="'+
-            'font-size:20px;font-weight:700;'+
-            'word-break:break-all;padding:10px;'+
-            'background:#f1f1f1;border-radius:8px;'+
-            'margin-bottom:16px"></div>'+
-
-            '<label for="quantidadeLote" style="'+
-            'display:block;font-size:14px;font-weight:600;'+
-            'margin-bottom:6px">Quantidade de peças</label>'+
-
-            '<input id="quantidadeLote" type="number" min="1"'+
-            ' step="1" inputmode="numeric" autocomplete="off"'+
-            ' style="width:100%;font-size:24px;padding:12px;'+
-            'box-sizing:border-box;border:1px solid #bbb;'+
-            'border-radius:8px;margin-bottom:14px">'+
-
-            '<div id="erroQuantidadeLote" style="'+
-            'min-height:20px;color:#c62828;font-size:13px;'+
-            'margin-bottom:8px"></div>'+
-
-            '<div style="display:flex;gap:10px">'+
-
-            '<button id="cancelarQuantidadeLote" type="button"'+
-            ' style="flex:1;padding:13px;border:0;'+
-            'border-radius:8px;background:#ddd;font-weight:700">'+
-            'CANCELAR</button>'+
-
-            '<button id="confirmarQuantidadeLote" type="button"'+
-            ' style="flex:1;padding:13px;border:0;'+
-            'border-radius:8px;background:#1976d2;'+
-            'color:#fff;font-weight:700">'+
-            'CONFIRMAR</button>'+
-
-            '</div></div>';
-
-        document.body.appendChild(modal);
-
-        document.getElementById(
-            "cancelarQuantidadeLote"
-        ).onclick=
-            cancelarQuantidadeLote;
-
-        document.getElementById(
-            "confirmarQuantidadeLote"
-        ).onclick=
-            confirmarQuantidadeLote;
-
-        document.getElementById(
-            "quantidadeLote"
-        ).addEventListener(
-            "keydown",
-            e=>{
-                if(e.key==="Enter"){
-                    confirmarQuantidadeLote();
-                }
-            }
-        );
-    }
-
-    modal.dataset.codigo=codigo;
-    modal.style.display="flex";
-
-    document.getElementById(
-        "codigoLoteCapturado"
-    ).textContent=codigo;
-
     const campo=document.getElementById(
         "quantidadeLote"
+    );
+
+    const codigoCapturado=document.getElementById(
+        "codigoLoteCapturado"
     );
 
     const erro=document.getElementById(
         "erroQuantidadeLote"
     );
 
+    if(!modal||!campo||!codigoCapturado||!erro){
+
+        console.error(
+            "Elementos da coleta em lote não encontrados."
+        );
+
+        scannerBloqueado=false;
+        processandoCodigo=false;
+
+        reiniciarScanner();
+
+        return;
+    }
+
+    modal.dataset.codigo=codigo;
+
+    codigoCapturado.textContent=codigo;
+
     campo.value="";
     erro.textContent="";
+
+    modal.style.display="flex";
 
     setTimeout(()=>{
         campo.focus();
     },100);
 }
 
+
 function cancelarQuantidadeLote(){
+
     fecharQuantidadeLote();
 
     mostrarCollectionStatus(
@@ -868,6 +902,7 @@ function cancelarQuantidadeLote(){
 
     processandoCodigo=false;
     scannerBloqueado=false;
+
     ultimoCodigoLido="";
     ultimoCodigoTempo=0;
 
@@ -876,7 +911,9 @@ function cancelarQuantidadeLote(){
     reiniciarScanner();
 }
 
+
 function confirmarQuantidadeLote(){
+
     const modal=document.getElementById(
         "modalQuantidadeLote"
     );
@@ -892,6 +929,11 @@ function confirmarQuantidadeLote(){
     const erro=document.getElementById(
         "erroQuantidadeLote"
     );
+
+    if(!codigo){
+        erro.textContent="Código não encontrado.";
+        return;
+    }
 
     const quantidade=Number(
         String(campo.value||"")
@@ -920,6 +962,7 @@ function confirmarQuantidadeLote(){
 
     processandoCodigo=false;
     scannerBloqueado=false;
+
     ultimoCodigoLido="";
     ultimoCodigoTempo=0;
 
@@ -928,17 +971,22 @@ function confirmarQuantidadeLote(){
     reiniciarScanner();
 }
 
+
 function fecharQuantidadeLote(){
+
     const modal=document.getElementById(
         "modalQuantidadeLote"
     );
 
     if(modal){
         modal.style.display="none";
+        modal.dataset.codigo="";
     }
 }
 
+
 function reiniciarScanner(){
+
     if(
         !cameraAtiva||
         scannerBloqueado
@@ -957,10 +1005,16 @@ function reiniciarScanner(){
     iniciarLeitorZXing(video);
 }
 
+
+/* =====================================================
+   REGISTRO DO PRODUTO
+===================================================== */
+
 function registrarProduto(
     codigo,
     quantidade=1
 ){
+
     const ultima=document.getElementById(
         "ultimaLeitura"
     );
@@ -1004,6 +1058,7 @@ function registrarProduto(
             sessao.totalColeta;
     }
 
+
     fetch(
         API,
         {
@@ -1016,6 +1071,7 @@ function registrarProduto(
             },
 
             body:JSON.stringify({
+
                 usuario:
                     sessao.usuario,
 
@@ -1048,6 +1104,8 @@ function registrarProduto(
             codigo,
             "Tipo:",
             sessao.tipoProduto,
+            "Regra:",
+            sessao.regraColeta,
             "Coleta:",
             sessao.tipoColeta,
             "Quantidade:",
@@ -1064,7 +1122,13 @@ function registrarProduto(
     limparCampoCodigo();
 }
 
+
+/* =====================================================
+   ENDEREÇO
+===================================================== */
+
 function limparCampoCodigo(){
+
     const campo=document.getElementById(
         "codigo"
     );
@@ -1074,10 +1138,10 @@ function limparCampoCodigo(){
     }
 }
 
+
 function ativarModoEndereco(){
-    if(
-        sessao.tipoProduto!=="BLOCOS"
-    ){
+
+    if(sessao.tipoProduto!=="BLOCOS"){
         return;
     }
 
@@ -1097,16 +1161,16 @@ function ativarModoEndereco(){
     limparCampoCodigo();
 }
 
+
 function atualizarBotaoEndereco(){
+
     const botao=document.getElementById(
         "btnAlterarEndereco"
     );
 
     if(!botao)return;
 
-    if(
-        sessao.tipoProduto!=="BLOCOS"
-    ){
+    if(sessao.tipoProduto!=="BLOCOS"){
         botao.style.display="none";
         return;
     }
@@ -1114,11 +1178,14 @@ function atualizarBotaoEndereco(){
     botao.style.display="block";
 
     if(sessao.modoEndereco){
+
         botao.textContent=
             "LENDO NOVO ENDEREÇO";
 
         botao.disabled=true;
+
     }else{
+
         botao.textContent=
             "ALTERAR ENDEREÇO";
 
@@ -1126,9 +1193,11 @@ function atualizarBotaoEndereco(){
     }
 }
 
+
 function processarNovoEndereco(
     novoEndereco
 ){
+
     novoEndereco=
         normalizarCodigo(
             novoEndereco
@@ -1166,6 +1235,7 @@ function processarNovoEndereco(
 
     atualizarBotaoEndereco();
 
+
     fetch(
         API,
         {
@@ -1178,6 +1248,7 @@ function processarNovoEndereco(
             },
 
             body:JSON.stringify({
+
                 acao:
                     "novoEndereco",
 
@@ -1202,7 +1273,13 @@ function processarNovoEndereco(
     limparCampoCodigo();
 }
 
+
+/* =====================================================
+   CÂMERA
+===================================================== */
+
 function pararCamera(){
+
     scannerBloqueado=true;
     processandoCodigo=false;
 
@@ -1239,6 +1316,7 @@ function pararCamera(){
     codeReader=null;
 
     if(cameraStream){
+
         cameraStream
             .getTracks()
             .forEach(track=>{
@@ -1256,6 +1334,7 @@ function pararCamera(){
     );
 
     if(video){
+
         try{
             video.pause();
         }catch(e){}
