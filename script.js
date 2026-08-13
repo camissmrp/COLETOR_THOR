@@ -40,23 +40,6 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.getElementById("tipoProduto")?.addEventListener("change",atualizarTipoProduto);
 
-    document.getElementById("cancelarQuantidadeLote")?.addEventListener(
-        "click",
-        cancelarQuantidadeLote
-    );
-
-    document.getElementById("confirmarQuantidadeLote")?.addEventListener(
-        "click",
-        confirmarQuantidadeLote
-    );
-
-    document.getElementById("quantidadeLote")?.addEventListener("keydown",e=>{
-        if(e.key==="Enter"){
-            e.preventDefault();
-            confirmarQuantidadeLote();
-        }
-    });
-
     mostrarTelaLogin();
     carregarConfiguracao();
 });
@@ -195,11 +178,9 @@ async function carregarConfiguracao(){
         });
 
         carregarTiposProduto();
-
         atualizarConfiguracaoUsuario(usuarios[0].id);
 
         document.getElementById("btnEntrar").disabled=false;
-
         mostrarLoginStatus("");
 
     }catch(erro){
@@ -247,7 +228,6 @@ function carregarTiposProduto(){
     });
 
     select.selectedIndex=0;
-
     atualizarTipoProduto();
 }
 
@@ -396,7 +376,6 @@ async function iniciarCamera(){
     if(cameraAtiva)return;
 
     const video=document.getElementById("camera");
-
     if(!video)return;
 
     if(
@@ -712,7 +691,6 @@ function normalizarCodigo(valor){
 
 /* =====================================================
    PROCESSAMENTO PRINCIPAL
-   A REGRA VEM DA TB_TIPOS_PRODUTO
 ===================================================== */
 
 function processarCodigo(codigo){
@@ -741,9 +719,10 @@ function processarCodigo(codigo){
     processandoCodigo=true;
 
 
-    /* MODO MANUAL DE ALTERAÇÃO DE ENDEREÇO */
+    /* ALTERAÇÃO MANUAL DE ENDEREÇO */
 
     if(sessao.modoEndereco){
+
         processarNovoEndereco(codigo);
 
         emitirBip();
@@ -755,18 +734,11 @@ function processarCodigo(codigo){
     }
 
 
-    /* =================================================
-       REGRA DE COLETA
-       
-       NUMERO_PRODUTO:
-       número = produto
-       letra = endereço
-
-       MANUAL:
-       tudo = produto
-    ================================================= */
+    /* REGRA VINDO DA TB_TIPOS_PRODUTO */
 
     if(sessao.regraColeta==="NUMERO_PRODUTO"){
+
+        /* LETRA = ENDEREÇO */
 
         if(/^[A-Z]/.test(codigo)){
 
@@ -779,6 +751,9 @@ function processarCodigo(codigo){
 
             return;
         }
+
+
+        /* CÓDIGO INVÁLIDO */
 
         if(!/^\d/.test(codigo)){
 
@@ -800,22 +775,12 @@ function processarCodigo(codigo){
     }
 
 
-    /* =================================================
-       CÓDIGO CONFIRMADO COMO PRODUTO
-    ================================================= */
+    /* PRODUTO */
 
     emitirBip();
 
 
-    /* =================================================
-       TIPO DE COLETA
-       
-       LOTE:
-       abre quantidade
-
-       UNITARIA:
-       registra 1
-    ================================================= */
+    /* COLETA EM LOTE */
 
     if(sessao.tipoColeta==="LOTE"){
 
@@ -831,6 +796,8 @@ function processarCodigo(codigo){
     }
 
 
+    /* COLETA UNITÁRIA */
+
     registrarProduto(codigo,1);
 
     processandoCodigo=false;
@@ -840,8 +807,7 @@ function processarCodigo(codigo){
 
 
 /* =====================================================
-   MODAL DE QUANTIDADE
-   O HTML JÁ POSSUI A JANELA
+   COLETA EM LOTE
 ===================================================== */
 
 function solicitarQuantidadeLote(codigo){
@@ -862,10 +828,24 @@ function solicitarQuantidadeLote(codigo){
         "erroQuantidadeLote"
     );
 
-    if(!modal||!campo||!codigoCapturado||!erro){
+    const btnCancelar=document.getElementById(
+        "cancelarQuantidadeLote"
+    );
+
+    const btnConfirmar=document.getElementById(
+        "confirmarQuantidadeLote"
+    );
+
+
+    if(
+        !modal||
+        !campo||
+        !codigoCapturado||
+        !erro
+    ){
 
         console.error(
-            "Elementos da coleta em lote não encontrados."
+            "Modal de lote não encontrado."
         );
 
         scannerBloqueado=false;
@@ -876,6 +856,9 @@ function solicitarQuantidadeLote(codigo){
         return;
     }
 
+
+    /* GUARDA O CÓDIGO */
+
     modal.dataset.codigo=codigo;
 
     codigoCapturado.textContent=codigo;
@@ -883,22 +866,92 @@ function solicitarQuantidadeLote(codigo){
     campo.value="";
     erro.textContent="";
 
+
+    /* ABRE A TELA */
+
     modal.style.display="flex";
 
+
+    /*
+       IMPORTANTE:
+       os eventos são atribuídos aqui,
+       no momento em que o modal abre.
+    */
+
+    if(btnCancelar){
+
+        btnCancelar.onclick=function(e){
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            cancelarQuantidadeLote();
+        };
+    }
+
+
+    if(btnConfirmar){
+
+        btnConfirmar.onclick=function(e){
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            confirmarQuantidadeLote();
+        };
+    }
+
+
+    campo.onkeydown=function(e){
+
+        if(e.key==="Enter"){
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            confirmarQuantidadeLote();
+        }
+    };
+
+
     setTimeout(()=>{
+
         campo.focus();
-    },100);
+
+    },150);
 }
 
 
 function cancelarQuantidadeLote(){
 
-    fecharQuantidadeLote();
-
-    mostrarCollectionStatus(
-        "Coleta cancelada.",
-        "error"
+    const modal=document.getElementById(
+        "modalQuantidadeLote"
     );
+
+    if(modal){
+
+        modal.style.display="none";
+        modal.dataset.codigo="";
+    }
+
+
+    const campo=document.getElementById(
+        "quantidadeLote"
+    );
+
+    if(campo){
+        campo.value="";
+    }
+
+
+    const erro=document.getElementById(
+        "erroQuantidadeLote"
+    );
+
+    if(erro){
+        erro.textContent="";
+    }
+
 
     processandoCodigo=false;
     scannerBloqueado=false;
@@ -907,6 +960,18 @@ function cancelarQuantidadeLote(){
     ultimoCodigoTempo=0;
 
     limparCampoCodigo();
+
+
+    mostrarCollectionStatus(
+        "Coleta cancelada.",
+        "error"
+    );
+
+
+    mostrarCameraStatus(
+        "Aponte a câmera para o código de barras"
+    );
+
 
     reiniciarScanner();
 }
@@ -918,10 +983,6 @@ function confirmarQuantidadeLote(){
         "modalQuantidadeLote"
     );
 
-    if(!modal)return;
-
-    const codigo=modal.dataset.codigo||"";
-
     const campo=document.getElementById(
         "quantidadeLote"
     );
@@ -930,10 +991,34 @@ function confirmarQuantidadeLote(){
         "erroQuantidadeLote"
     );
 
-    if(!codigo){
-        erro.textContent="Código não encontrado.";
+
+    if(
+        !modal||
+        !campo||
+        !erro
+    ){
+
+        console.error(
+            "Campos da coleta em lote não encontrados."
+        );
+
         return;
     }
+
+
+    const codigo=normalizarCodigo(
+        modal.dataset.codigo||""
+    );
+
+
+    if(!codigo){
+
+        erro.textContent=
+            "Código não encontrado.";
+
+        return;
+    }
+
 
     const quantidade=Number(
         String(campo.value||"")
@@ -941,10 +1026,12 @@ function confirmarQuantidadeLote(){
             .trim()
     );
 
+
     if(
         !Number.isInteger(quantidade)||
         quantidade<=0
     ){
+
         erro.textContent=
             "Informe uma quantidade inteira maior que zero.";
 
@@ -953,12 +1040,31 @@ function confirmarQuantidadeLote(){
         return;
     }
 
-    fecharQuantidadeLote();
+
+    /*
+       FECHA O MODAL PRIMEIRO
+    */
+
+    modal.style.display="none";
+    modal.dataset.codigo="";
+
+    campo.value="";
+    erro.textContent="";
+
+
+    /*
+       REGISTRA A COLETA
+    */
 
     registrarProduto(
         codigo,
         quantidade
     );
+
+
+    /*
+       LIBERA O LEITOR
+    */
 
     processandoCodigo=false;
     scannerBloqueado=false;
@@ -967,6 +1073,12 @@ function confirmarQuantidadeLote(){
     ultimoCodigoTempo=0;
 
     limparCampoCodigo();
+
+
+    mostrarCameraStatus(
+        "Aponte a câmera para o código de barras"
+    );
+
 
     reiniciarScanner();
 }
@@ -979,6 +1091,7 @@ function fecharQuantidadeLote(){
     );
 
     if(modal){
+
         modal.style.display="none";
         modal.dataset.codigo="";
     }
@@ -1007,7 +1120,7 @@ function reiniciarScanner(){
 
 
 /* =====================================================
-   REGISTRO DO PRODUTO
+   REGISTRO
 ===================================================== */
 
 function registrarProduto(
@@ -1023,6 +1136,7 @@ function registrarProduto(
         ultima.textContent=codigo;
     }
 
+
     const mensagem=
         sessao.tipoColeta==="LOTE"
             ?"Lote enviado: "+
@@ -1030,13 +1144,16 @@ function registrarProduto(
              " peças."
             :"Coleta enviada.";
 
+
     mostrarCollectionStatus(
         mensagem,
         "success"
     );
 
+
     sessao.totalEndereco+=quantidade;
     sessao.totalColeta+=quantidade;
+
 
     const contadorEndereco=
         document.getElementById(
@@ -1048,10 +1165,12 @@ function registrarProduto(
             "contadorTotal"
         );
 
+
     if(contadorEndereco){
         contadorEndereco.textContent=
             sessao.totalEndereco;
     }
+
 
     if(contadorTotal){
         contadorTotal.textContent=
@@ -1099,6 +1218,7 @@ function registrarProduto(
         }
     )
     .then(()=>{
+
         console.log(
             "Coleta enviada:",
             codigo,
@@ -1111,13 +1231,17 @@ function registrarProduto(
             "Quantidade:",
             quantidade
         );
+
     })
     .catch(erro=>{
+
         console.error(
             "Erro enviando:",
             erro
         );
+
     });
+
 
     limparCampoCodigo();
 }
@@ -1170,12 +1294,17 @@ function atualizarBotaoEndereco(){
 
     if(!botao)return;
 
+
     if(sessao.tipoProduto!=="BLOCOS"){
+
         botao.style.display="none";
+
         return;
     }
 
+
     botao.style.display="block";
+
 
     if(sessao.modoEndereco){
 
@@ -1203,35 +1332,43 @@ function processarNovoEndereco(
             novoEndereco
         );
 
+
     if(!novoEndereco)return;
+
 
     sessao.endereco=novoEndereco;
     sessao.totalEndereco=0;
     sessao.modoEndereco=false;
+
 
     document.getElementById(
         "lblEndereco"
     ).textContent=
         novoEndereco;
 
+
     document.getElementById(
         "contadorEndereco"
     ).textContent=
         "0";
+
 
     document.getElementById(
         "ultimaLeitura"
     ).textContent=
         novoEndereco;
 
+
     mostrarCollectionStatus(
         "Endereço alterado.",
         "success"
     );
 
+
     mostrarCameraStatus(
         "Aponte a câmera para o código de barras"
     );
+
 
     atualizarBotaoEndereco();
 
@@ -1264,11 +1401,14 @@ function processarNovoEndereco(
         }
     )
     .catch(erro=>{
+
         console.error(
             "Erro endereço:",
             erro
         );
+
     });
+
 
     limparCampoCodigo();
 }
@@ -1283,55 +1423,73 @@ function pararCamera(){
     scannerBloqueado=true;
     processandoCodigo=false;
 
+
     try{
+
         if(
             scannerControls&&
             typeof scannerControls.stop==="function"
         ){
+
             scannerControls.stop();
         }
+
     }catch(erro){
+
         console.warn(
             "Erro parando scanner:",
             erro
         );
     }
 
+
     scannerControls=null;
 
+
     try{
+
         if(
             codeReader&&
             typeof codeReader.reset==="function"
         ){
+
             codeReader.reset();
         }
+
     }catch(erro){
+
         console.warn(
             "Erro resetando ZXing:",
             erro
         );
     }
 
+
     codeReader=null;
+
 
     if(cameraStream){
 
         cameraStream
             .getTracks()
             .forEach(track=>{
+
                 try{
                     track.stop();
                 }catch(erro){}
+
             });
     }
+
 
     cameraStream=null;
     cameraAtiva=false;
 
+
     const video=document.getElementById(
         "camera"
     );
+
 
     if(video){
 
@@ -1342,13 +1500,16 @@ function pararCamera(){
         video.srcObject=null;
     }
 
+
     scannerBloqueado=false;
 }
+
 
 window.addEventListener(
     "pagehide",
     pararCamera
 );
+
 
 window.addEventListener(
     "beforeunload",
