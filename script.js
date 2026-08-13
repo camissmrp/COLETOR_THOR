@@ -3,9 +3,12 @@ let cameraStream = null;
 let scannerControls = null;
 let codeReader = null;
 let cameraAtiva = false;
+
 let ultimoCodigoLido = "";
 let ultimoCodigoTempo = 0;
+
 let audioContext = null;
+let processandoCodigo = false;
 
 const sessao = {
     usuario: "",
@@ -38,10 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("codigo")
         ?.addEventListener("keydown", e => {
+
             if (e.key === "Enter") {
                 e.preventDefault();
                 processarCodigoDigitado();
             }
+
         });
 
     document.getElementById("usuario")
@@ -305,6 +310,7 @@ async function carregarConfiguracao() {
                 usuario.nome;
 
             selectUsuario.appendChild(option);
+
         });
 
 
@@ -325,7 +331,6 @@ async function carregarConfiguracao() {
         ).disabled = false;
 
         mostrarLoginStatus("");
-
 
     } catch (erro) {
 
@@ -394,15 +399,14 @@ function carregarTiposProduto() {
         option.textContent =
             item.tipoProduto;
 
-        /* REGRA */
         option.dataset.regra =
             item.regraColeta || "";
 
-        /* UNITARIA / LOTE */
         option.dataset.tipoColeta =
             item.tipoColeta || "UNITARIA";
 
         select.appendChild(option);
+
     });
 
 
@@ -457,21 +461,6 @@ function atualizarTipoProduto() {
         .trim()
         .toUpperCase();
 
-
-    console.log(
-        "Tipo selecionado:",
-        sessao.tipoProduto,
-        "Regra:",
-        sessao.regraColeta,
-        "Tipo coleta:",
-        sessao.tipoColeta
-    );
-
-
-    /*
-     * Apenas BLOCOS utiliza
-     * alteração manual de endereço.
-     */
 
     const botao =
         document.getElementById(
@@ -561,24 +550,16 @@ function atualizarConfiguracaoUsuario(
 async function iniciarColeta() {
 
     const usuario =
-        document.getElementById(
-            "usuario"
-        );
+        document.getElementById("usuario");
 
     const inventario =
-        document.getElementById(
-            "inventario"
-        );
+        document.getElementById("inventario");
 
     const endereco =
-        document.getElementById(
-            "endereco"
-        );
+        document.getElementById("endereco");
 
     const tipoProduto =
-        document.getElementById(
-            "tipoProduto"
-        );
+        document.getElementById("tipoProduto");
 
 
     await prepararAudio();
@@ -647,8 +628,6 @@ async function iniciarColeta() {
         .toUpperCase();
 
 
-    /* VALIDAÇÕES */
-
     if (!sessao.usuario) {
 
         mostrarLoginStatus(
@@ -699,8 +678,6 @@ async function iniciarColeta() {
     }
 
 
-    /* RESET */
-
     sessao.totalEndereco = 0;
     sessao.totalColeta = 0;
     sessao.modoEndereco = false;
@@ -708,8 +685,8 @@ async function iniciarColeta() {
     ultimoCodigoLido = "";
     ultimoCodigoTempo = 0;
 
+    processandoCodigo = false;
 
-    /* INFORMAÇÕES */
 
     document.getElementById(
         "lblUsuario"
@@ -765,7 +742,7 @@ async function iniciarColeta() {
 
 /* =========================================================
    CÂMERA
-   RESOLUÇÃO ALTA + TRASEIRA + FOCO CONTÍNUO
+   RESOLUÇÃO MÁXIMA + TRASEIRA + FOCO CONTÍNUO
 ========================================================= */
 
 async function iniciarCamera() {
@@ -773,9 +750,7 @@ async function iniciarCamera() {
     if (cameraAtiva) return;
 
     const video =
-        document.getElementById(
-            "camera"
-        );
+        document.getElementById("camera");
 
     if (!video) return;
 
@@ -842,26 +817,17 @@ async function iniciarCamera() {
                     : {};
 
 
-            const settings =
-                typeof track.getSettings ===
-                "function"
-                    ? track.getSettings()
-                    : {};
-
-
             console.log(
-                "Capacidades da câmera:",
+                "Capacidades:",
                 capabilities
             );
 
 
             console.log(
-                "Configuração utilizada:",
-                settings
+                "Configuração:",
+                track.getSettings()
             );
 
-
-            /* FOCO CONTÍNUO */
 
             if (
                 capabilities.focusMode &&
@@ -876,27 +842,19 @@ async function iniciarCamera() {
                 try {
 
                     await track.applyConstraints({
-
                         advanced: [
-
                             {
                                 focusMode:
                                     "continuous"
                             }
-
                         ]
-
                     });
 
-                    console.log(
-                        "Foco contínuo ativado."
-                    );
-
-                } catch (erroFoco) {
+                } catch (erro) {
 
                     console.warn(
                         "Foco contínuo:",
-                        erroFoco
+                        erro
                     );
                 }
             }
@@ -927,7 +885,7 @@ async function iniciarCamera() {
 
 
         console.log(
-            "Resolução real:",
+            "Resolução:",
             video.videoWidth +
             " x " +
             video.videoHeight
@@ -940,7 +898,6 @@ async function iniciarCamera() {
 
 
         iniciarLeitorZXing(video);
-
 
     } catch (erro) {
 
@@ -998,8 +955,21 @@ function iniciarLeitorZXing(video) {
                 video,
                 (resultado, erro) => {
 
-                    if (!resultado)
+                    /*
+                     * CORREÇÃO IMPORTANTE:
+                     * enquanto houver processamento de lote,
+                     * ignoramos completamente qualquer leitura
+                     * que ainda esteja pendente no ZXing.
+                     */
+
+                    if (processandoCodigo) {
                         return;
+                    }
+
+
+                    if (!resultado) {
+                        return;
+                    }
 
 
                     let codigo = "";
@@ -1029,8 +999,9 @@ function iniciarLeitorZXing(video) {
                         );
 
 
-                    if (!codigo)
+                    if (!codigo) {
                         return;
+                    }
 
 
                     receberCodigoDaCamera(
@@ -1046,6 +1017,7 @@ function iniciarLeitorZXing(video) {
                 console.log(
                     "Scanner iniciado."
                 );
+
             })
             .catch(erro => {
 
@@ -1075,26 +1047,123 @@ function iniciarLeitorZXing(video) {
 
 
 /* =========================================================
+   PAUSAR ZXING
+========================================================= */
+
+function pausarLeitorZXing() {
+
+    try {
+
+        if (
+            scannerControls &&
+            typeof scannerControls.stop ===
+            "function"
+        ) {
+
+            scannerControls.stop();
+        }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro pausando scanner:",
+            erro
+        );
+    }
+
+
+    scannerControls = null;
+
+
+    try {
+
+        if (
+            codeReader &&
+            typeof codeReader.reset ===
+            "function"
+        ) {
+
+            codeReader.reset();
+        }
+
+    } catch (erro) {
+
+        console.warn(
+            "Erro resetando ZXing:",
+            erro
+        );
+    }
+
+
+    codeReader = null;
+}
+
+
+/* =========================================================
+   REINICIAR ZXING
+========================================================= */
+
+function continuarLeitorZXing() {
+
+    if (!cameraAtiva) return;
+
+    const video =
+        document.getElementById("camera");
+
+    if (!video) return;
+
+
+    /*
+     * Pequeno intervalo apenas para garantir
+     * que o leitor anterior terminou.
+     */
+
+    setTimeout(() => {
+
+        if (!cameraAtiva) return;
+
+        if (processandoCodigo) return;
+
+        iniciarLeitorZXing(video);
+
+    }, 150);
+}
+
+
+/* =========================================================
    RECEBER CÓDIGO DA CÂMERA
 ========================================================= */
 
 function receberCodigoDaCamera(codigo) {
 
+    /*
+     * Se estiver processando um lote,
+     * ignora qualquer nova leitura.
+     */
+
+    if (processandoCodigo) {
+        return;
+    }
+
+
     const agora =
         Date.now();
+
 
     codigo =
         normalizarCodigo(
             codigo
         );
 
-    if (!codigo)
+
+    if (!codigo) {
         return;
+    }
 
 
     /*
-     * Evita apenas a repetição do mesmo
-     * frame da câmera.
+     * Evita somente leituras repetidas
+     * do mesmo frame.
      *
      * NÃO é verificação de duplicidade.
      */
@@ -1103,6 +1172,7 @@ function receberCodigoDaCamera(codigo) {
         codigo === ultimoCodigoLido &&
         agora - ultimoCodigoTempo < 800
     ) {
+
         return;
     }
 
@@ -1119,8 +1189,10 @@ function receberCodigoDaCamera(codigo) {
             "codigo"
         );
 
+
     if (campo) {
-        campo.value = codigo;
+        campo.value =
+            codigo;
     }
 
 
@@ -1136,13 +1208,20 @@ function receberCodigoDaCamera(codigo) {
 
 function processarCodigoDigitado() {
 
+    if (processandoCodigo) {
+        return;
+    }
+
+
     const campo =
         document.getElementById(
             "codigo"
         );
 
-    if (!campo)
+
+    if (!campo) {
         return;
+    }
 
 
     const codigo =
@@ -1150,8 +1229,10 @@ function processarCodigoDigitado() {
             campo.value
         );
 
-    if (!codigo)
+
+    if (!codigo) {
         return;
+    }
 
 
     processarCodigo(
@@ -1182,10 +1263,26 @@ function normalizarCodigo(valor) {
    PROCESSAR CÓDIGO
 ========================================================= */
 
-function processarCodigo(codigo) {
+async function processarCodigo(codigo) {
 
-    if (!codigo)
+    /*
+     * TRAVA PRINCIPAL
+     */
+
+    if (processandoCodigo) {
         return;
+    }
+
+
+    codigo =
+        normalizarCodigo(
+            codigo
+        );
+
+
+    if (!codigo) {
+        return;
+    }
 
 
     if (
@@ -1205,31 +1302,38 @@ function processarCodigo(codigo) {
 
 
     /*
-     * =====================================================
-     * MODO ALTERAR ENDEREÇO
-     * =====================================================
+     * A partir daqui nenhuma outra leitura
+     * será processada até terminar.
      */
 
+    processandoCodigo = true;
+
+
+    /* =====================================================
+       MODO ALTERAR ENDEREÇO
+    ===================================================== */
+
     if (sessao.modoEndereco) {
+
+        emitirBip();
 
         processarNovoEndereco(
             codigo
         );
 
-        emitirBip();
+        processandoCodigo = false;
+
+        focarCampoCodigo();
 
         return;
     }
 
 
-    /*
-     * =====================================================
-     * CHAPAS / RECORTADOS
-     *
-     * Número = produto
-     * Letra = endereço
-     * =====================================================
-     */
+    /* =====================================================
+       CHAPAS / RECORTADOS
+       Número = produto
+       Letra = endereço
+    ===================================================== */
 
     if (
         sessao.tipoProduto ===
@@ -1243,11 +1347,15 @@ function processarCodigo(codigo) {
             /^[A-Za-z]/.test(codigo)
         ) {
 
+            emitirBip();
+
             processarNovoEndereco(
                 codigo
             );
 
-            emitirBip();
+            processandoCodigo = false;
+
+            focarCampoCodigo();
 
             return;
         }
@@ -1257,11 +1365,17 @@ function processarCodigo(codigo) {
             !/^\d/.test(codigo)
         ) {
 
-            document.getElementById(
-                "ultimaLeitura"
-            ).textContent =
-                codigo +
-                " - INVÁLIDO";
+            const ultima =
+                document.getElementById(
+                    "ultimaLeitura"
+                );
+
+            if (ultima) {
+
+                ultima.textContent =
+                    codigo +
+                    " - INVÁLIDO";
+            }
 
 
             mostrarCollectionStatus(
@@ -1269,80 +1383,102 @@ function processarCodigo(codigo) {
                 "error"
             );
 
+            processandoCodigo = false;
+
+            focarCampoCodigo();
+
             return;
         }
     }
 
 
-    /*
-     * =====================================================
-     * BLOCOS
-     *
-     * Qualquer código é produto.
-     * Endereço é alterado manualmente.
-     * =====================================================
-     */
+    /* =====================================================
+       BLOCOS
+       Qualquer código = produto
+       Endereço manual
+    ===================================================== */
 
     if (
         sessao.tipoProduto ===
         "BLOCOS"
     ) {
 
-        /* qualquer código é aceito */
+        /* Qualquer código é aceito */
     }
 
 
-    /*
-     * =====================================================
-     * OUTROS TIPOS
-     *
-     * Para tipos como ALMOXARIFADO,
-     * o código é tratado como produto.
-     * =====================================================
-     */
-
-
-    /*
-     * =====================================================
-     * BIP IMEDIATO
-     * =====================================================
-     */
+    /* =====================================================
+       BIP
+    ===================================================== */
 
     emitirBip();
 
 
-    /*
-     * =====================================================
-     * COLETA EM LOTE
-     *
-     * Se TipoColeta = LOTE,
-     * pergunta a quantidade somente agora.
-     * =====================================================
-     */
+    /* =====================================================
+       COLETA EM LOTE
+    ===================================================== */
 
     if (
         sessao.tipoColeta ===
         "LOTE"
     ) {
 
-        solicitarQuantidadeLote(
+        /*
+         * AQUI ESTÁ A CORREÇÃO.
+         *
+         * Primeiro paramos completamente o ZXing.
+         */
+
+        pausarLeitorZXing();
+
+
+        /*
+         * Agora abrimos a quantidade.
+         *
+         * Nenhuma leitura da câmera poderá
+         * abrir outra janela enquanto isso.
+         */
+
+        await solicitarQuantidadeLote(
             codigo
         );
+
+
+        /*
+         * Libera o processamento.
+         */
+
+        processandoCodigo = false;
+
+
+        /*
+         * Reinicia o leitor somente depois
+         * que a janela de quantidade fechou
+         * e o registro terminou.
+         */
+
+        continuarLeitorZXing();
+
+
+        focarCampoCodigo();
 
         return;
     }
 
 
-    /*
-     * =====================================================
-     * COLETA UNITÁRIA
-     * =====================================================
-     */
+    /* =====================================================
+       COLETA UNITÁRIA
+    ===================================================== */
 
-    registrarProduto(
+    await registrarProduto(
         codigo,
         1
     );
+
+
+    processandoCodigo = false;
+
+    focarCampoCodigo();
 }
 
 
@@ -1350,110 +1486,104 @@ function processarCodigo(codigo) {
    SOLICITAR QUANTIDADE DO LOTE
 ========================================================= */
 
-function solicitarQuantidadeLote(
+async function solicitarQuantidadeLote(
     codigo
 ) {
 
     /*
-     * Pequeno atraso para não atrapalhar
-     * o bip e a leitura da câmera.
+     * IMPORTANTE:
+     *
+     * O ZXing já foi parado antes desta função.
+     *
+     * Não usamos mais setTimeout.
      */
 
-    setTimeout(() => {
 
-        const resposta =
-            window.prompt(
-                "COLETA EM LOTE\n\n" +
-                "Código: " +
-                codigo +
-                "\n\n" +
-                "Informe a quantidade de peças:"
-            );
-
-
-        /*
-         * Cancelou
-         */
-
-        if (
-            resposta === null
-        ) {
-
-            mostrarCollectionStatus(
-                "Coleta cancelada.",
-                "error"
-            );
-
-            limparCampoCodigo();
-
-            return;
-        }
-
-
-        const quantidade =
-            Number(
-                String(
-                    resposta
-                ).replace(
-                    ",",
-                    "."
-                )
-            );
-
-
-        /*
-         * Validação
-         */
-
-        if (
-            !Number.isFinite(
-                quantidade
-            ) ||
-            quantidade <= 0
-        ) {
-
-            mostrarCollectionStatus(
-                "Quantidade inválida.",
-                "error"
-            );
-
-            limparCampoCodigo();
-
-            return;
-        }
-
-
-        /*
-         * Apenas números inteiros
-         */
-
-        const quantidadeInteira =
-            Math.floor(
-                quantidade
-            );
-
-
-        if (
-            quantidadeInteira <= 0
-        ) {
-
-            mostrarCollectionStatus(
-                "Quantidade inválida.",
-                "error"
-            );
-
-            limparCampoCodigo();
-
-            return;
-        }
-
-
-        registrarProduto(
-            codigo,
-            quantidadeInteira
+    const resposta =
+        window.prompt(
+            "COLETA EM LOTE\n\n" +
+            "Código: " +
+            codigo +
+            "\n\n" +
+            "Informe a quantidade de peças:"
         );
 
-    }, 50);
+
+    /* CANCELADO */
+
+    if (resposta === null) {
+
+        mostrarCollectionStatus(
+            "Coleta cancelada.",
+            "error"
+        );
+
+        limparCampoCodigo();
+
+        return;
+    }
+
+
+    /* QUANTIDADE */
+
+    const quantidade =
+        Number(
+            String(resposta)
+                .replace(",", ".")
+                .trim()
+        );
+
+
+    if (
+        !Number.isFinite(
+            quantidade
+        ) ||
+        quantidade <= 0
+    ) {
+
+        mostrarCollectionStatus(
+            "Quantidade inválida.",
+            "error"
+        );
+
+        limparCampoCodigo();
+
+        return;
+    }
+
+
+    const quantidadeInteira =
+        Math.floor(
+            quantidade
+        );
+
+
+    if (
+        quantidadeInteira <= 0
+    ) {
+
+        mostrarCollectionStatus(
+            "Quantidade inválida.",
+            "error"
+        );
+
+        limparCampoCodigo();
+
+        return;
+    }
+
+
+    /*
+     * REGISTRA O LOTE
+     */
+
+    await registrarProduto(
+        codigo,
+        quantidadeInteira
+    );
+
+
+    limparCampoCodigo();
 }
 
 
@@ -1461,7 +1591,7 @@ function solicitarQuantidadeLote(
    REGISTRAR PRODUTO
 ========================================================= */
 
-function registrarProduto(
+async function registrarProduto(
     codigo,
     quantidade = 1
 ) {
@@ -1486,11 +1616,7 @@ function registrarProduto(
     );
 
 
-    /*
-     * =====================================================
-     * CONTADORES IMEDIATOS
-     * =====================================================
-     */
+    /* CONTADORES */
 
     sessao.totalEndereco +=
         quantidade;
@@ -1512,55 +1638,54 @@ function registrarProduto(
 
 
     /*
-     * =====================================================
-     * ENVIO ASSÍNCRONO
-     * =====================================================
+     * ENVIO PARA APPS SCRIPT
      */
 
-    fetch(
-        API,
-        {
+    try {
 
-            method: "POST",
+        await fetch(
+            API,
+            {
 
-            mode: "no-cors",
+                method: "POST",
 
-            headers: {
-                "Content-Type":
-                    "text/plain;charset=utf-8"
-            },
+                mode: "no-cors",
 
-            body:
-                JSON.stringify({
+                headers: {
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
 
-                    usuario:
-                        sessao.usuario,
+                body:
+                    JSON.stringify({
 
-                    nomeUsuario:
-                        sessao.nomeUsuario,
+                        usuario:
+                            sessao.usuario,
 
-                    inventario:
-                        sessao.inventario,
+                        nomeUsuario:
+                            sessao.nomeUsuario,
 
-                    endereco:
-                        sessao.endereco,
+                        inventario:
+                            sessao.inventario,
 
-                    codigo:
-                        codigo,
+                        endereco:
+                            sessao.endereco,
 
-                    tipoLeitura:
-                        "PRODUTO",
+                        codigo:
+                            codigo,
 
-                    tipoProduto:
-                        sessao.tipoProduto,
+                        tipoLeitura:
+                            "PRODUTO",
 
-                    quantidade:
-                        quantidade
+                        tipoProduto:
+                            sessao.tipoProduto,
 
-                })
-        }
-    )
-    .then(() => {
+                        quantidade:
+                            quantidade
+                    })
+            }
+        );
+
 
         console.log(
             "Coleta enviada:",
@@ -1573,15 +1698,19 @@ function registrarProduto(
             quantidade
         );
 
-    })
-    .catch(erro => {
+
+    } catch (erro) {
 
         console.error(
             "Erro enviando:",
             erro
         );
 
-    });
+        mostrarCollectionStatus(
+            "Erro ao enviar coleta.",
+            "error"
+        );
+    }
 
 
     limparCampoCodigo();
@@ -1601,6 +1730,23 @@ function limparCampoCodigo() {
 
     if (campo) {
         campo.value = "";
+    }
+}
+
+
+function focarCampoCodigo() {
+
+    const campo =
+        document.getElementById(
+            "codigo"
+        );
+
+    if (campo) {
+
+        setTimeout(() => {
+            campo.focus();
+        }, 50);
+
     }
 }
 
@@ -1642,6 +1788,7 @@ function ativarModoEndereco() {
             "codigo"
         );
 
+
     if (campo) {
 
         campo.value = "";
@@ -1662,8 +1809,7 @@ function atualizarBotaoEndereco() {
             "btnAlterarEndereco"
         );
 
-    if (!botao)
-        return;
+    if (!botao) return;
 
 
     if (
@@ -1707,7 +1853,7 @@ function atualizarBotaoEndereco() {
    NOVO ENDEREÇO
 ========================================================= */
 
-function processarNovoEndereco(
+async function processarNovoEndereco(
     novoEndereco
 ) {
 
@@ -1717,8 +1863,9 @@ function processarNovoEndereco(
         );
 
 
-    if (!novoEndereco)
+    if (!novoEndereco) {
         return;
+    }
 
 
     sessao.endereco =
@@ -1765,50 +1912,46 @@ function processarNovoEndereco(
     atualizarBotaoEndereco();
 
 
-    /*
-     * =====================================================
-     * SALVA NOVO ENDEREÇO
-     * =====================================================
-     */
+    try {
 
-    fetch(
-        API,
-        {
+        await fetch(
+            API,
+            {
 
-            method: "POST",
+                method: "POST",
 
-            mode: "no-cors",
+                mode: "no-cors",
 
-            headers: {
-                "Content-Type":
-                    "text/plain;charset=utf-8"
-            },
+                headers: {
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
 
-            body:
-                JSON.stringify({
+                body:
+                    JSON.stringify({
 
-                    acao:
-                        "novoEndereco",
+                        acao:
+                            "novoEndereco",
 
-                    usuario:
-                        sessao.usuario,
+                        usuario:
+                            sessao.usuario,
 
-                    inventario:
-                        sessao.inventario,
+                        inventario:
+                            sessao.inventario,
 
-                    endereco:
-                        novoEndereco
-                })
-        }
-    )
-    .catch(erro => {
+                        endereco:
+                            novoEndereco
+                    })
+            }
+        );
+
+    } catch (erro) {
 
         console.error(
             "Erro endereço:",
             erro
         );
-
-    });
+    }
 
 
     limparCampoCodigo();
@@ -1876,7 +2019,10 @@ function pararCamera() {
 
 
     cameraStream = null;
+
     cameraAtiva = false;
+
+    processandoCodigo = false;
 
 
     const video =
