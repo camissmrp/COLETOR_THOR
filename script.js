@@ -3,7 +3,6 @@ let cameraStream = null;
 let scannerControls = null;
 let codeReader = null;
 let cameraAtiva = false;
-let processandoCodigo = false;
 let ultimoCodigoLido = "";
 let ultimoCodigoTempo = 0;
 let audioContext = null;
@@ -13,8 +12,11 @@ const sessao = {
     nomeUsuario: "",
     inventario: "",
     endereco: "",
+    tipoProduto: "",
+    regraColeta: "",
     totalEndereco: 0,
-    totalColeta: 0
+    totalColeta: 0,
+    modoEndereco: false
 };
 
 
@@ -33,6 +35,10 @@ document.addEventListener("DOMContentLoaded", () => {
         ?.addEventListener("click", processarCodigoDigitado);
 
     document
+        .getElementById("btnAlterarEndereco")
+        ?.addEventListener("click", ativarModoEndereco);
+
+    document
         .getElementById("codigo")
         ?.addEventListener("keydown", e => {
 
@@ -46,16 +52,17 @@ document.addEventListener("DOMContentLoaded", () => {
     document
         .getElementById("usuario")
         ?.addEventListener("change", e => {
-
-            atualizarConfiguracaoUsuario(
-                e.target.value
-            );
-
+            atualizarConfiguracaoUsuario(e.target.value);
         });
+
+    document
+        .getElementById("tipoProduto")
+        ?.addEventListener("change", atualizarTipoProduto);
 
     mostrarTelaLogin();
 
     carregarConfiguracao();
+
 });
 
 
@@ -77,17 +84,14 @@ async function prepararAudio() {
             audioContext = new AC();
         }
 
-        if (
-            audioContext.state === "suspended"
-        ) {
+        if (audioContext.state === "suspended") {
             await audioContext.resume();
         }
 
     } catch (erro) {
-
         console.warn("Áudio:", erro);
-
     }
+
 }
 
 
@@ -105,9 +109,7 @@ function emitirBip() {
             audioContext = new AC();
         }
 
-        if (
-            audioContext.state === "suspended"
-        ) {
+        if (audioContext.state === "suspended") {
             audioContext.resume();
         }
 
@@ -143,18 +145,15 @@ function emitirBip() {
         );
 
         oscilador.connect(ganho);
-        ganho.connect(
-            audioContext.destination
-        );
+        ganho.connect(audioContext.destination);
 
         oscilador.start(agora);
         oscilador.stop(agora + 0.15);
 
     } catch (erro) {
-
         console.warn("Bip:", erro);
-
     }
+
 }
 
 
@@ -173,6 +172,7 @@ function mostrarTelaLogin() {
         ?.classList.add("hidden");
 
     pararCamera();
+
 }
 
 
@@ -185,6 +185,7 @@ function mostrarTelaColeta() {
     document
         .getElementById("coleta")
         ?.classList.remove("hidden");
+
 }
 
 
@@ -198,17 +199,17 @@ function mostrarLoginStatus(
 ) {
 
     const el =
-        document.getElementById(
-            "loginStatus"
-        );
+        document.getElementById("loginStatus");
 
     if (!el) return;
 
-    el.textContent = mensagem || "";
+    el.textContent =
+        mensagem || "";
 
     el.className =
         "status" +
         (tipo ? " " + tipo : "");
+
 }
 
 
@@ -218,17 +219,17 @@ function mostrarCollectionStatus(
 ) {
 
     const el =
-        document.getElementById(
-            "collectionStatus"
-        );
+        document.getElementById("collectionStatus");
 
     if (!el) return;
 
-    el.textContent = mensagem || "";
+    el.textContent =
+        mensagem || "";
 
     el.className =
         "status" +
         (tipo ? " " + tipo : "");
+
 }
 
 
@@ -237,13 +238,12 @@ function mostrarCameraStatus(
 ) {
 
     const el =
-        document.getElementById(
-            "cameraMessage"
-        );
+        document.getElementById("cameraMessage");
 
     if (el) {
         el.textContent = mensagem;
     }
+
 }
 
 
@@ -271,20 +271,22 @@ async function carregarConfiguracao() {
 
         if (!resposta.ok) {
             throw new Error(
-                "HTTP " +
-                resposta.status
+                "HTTP " + resposta.status
             );
         }
 
         configuracao =
             await resposta.json();
 
-        const select =
-            document.getElementById(
-                "usuario"
-            );
 
-        select.innerHTML = "";
+        /* =================================================
+           USUÁRIOS
+        ================================================= */
+
+        const selectUsuario =
+            document.getElementById("usuario");
+
+        selectUsuario.innerHTML = "";
 
         const usuarios =
             Array.isArray(
@@ -296,15 +298,13 @@ async function carregarConfiguracao() {
         if (!usuarios.length) {
 
             const option =
-                document.createElement(
-                    "option"
-                );
+                document.createElement("option");
 
             option.value = "";
             option.textContent =
                 "Nenhum usuário disponível";
 
-            select.appendChild(option);
+            selectUsuario.appendChild(option);
 
             document.getElementById(
                 "btnEntrar"
@@ -318,28 +318,45 @@ async function carregarConfiguracao() {
             return;
         }
 
+
         usuarios.forEach(usuario => {
 
             const option =
-                document.createElement(
-                    "option"
-                );
+                document.createElement("option");
 
-            option.value = usuario.id;
-            option.textContent = usuario.nome;
+            option.value =
+                usuario.id;
 
-            select.appendChild(option);
+            option.textContent =
+                usuario.nome;
+
+            selectUsuario.appendChild(option);
+
         });
+
+
+        /* =================================================
+           TIPOS DE PRODUTO
+        ================================================= */
+
+        carregarTiposProduto();
+
+
+        /* =================================================
+           USUÁRIO INICIAL
+        ================================================= */
 
         atualizarConfiguracaoUsuario(
             usuarios[0].id
         );
+
 
         document.getElementById(
             "btnEntrar"
         ).disabled = false;
 
         mostrarLoginStatus("");
+
 
     } catch (erro) {
 
@@ -356,9 +373,149 @@ async function carregarConfiguracao() {
         document.getElementById(
             "btnEntrar"
         ).disabled = true;
+
     }
+
 }
 
+
+/* =========================================================
+   TIPOS DE PRODUTO
+========================================================= */
+
+function carregarTiposProduto() {
+
+    const select =
+        document.getElementById(
+            "tipoProduto"
+        );
+
+    if (!select) return;
+
+    select.innerHTML = "";
+
+    const tipos =
+        Array.isArray(
+            configuracao.TiposProduto
+        )
+            ? configuracao.TiposProduto
+            : [];
+
+
+    if (!tipos.length) {
+
+        const option =
+            document.createElement("option");
+
+        option.value = "";
+        option.textContent =
+            "Nenhum tipo disponível";
+
+        select.appendChild(option);
+
+        return;
+    }
+
+
+    tipos.forEach(item => {
+
+        const option =
+            document.createElement("option");
+
+        option.value =
+            item.tipoProduto;
+
+        option.textContent =
+            item.tipoProduto;
+
+        option.dataset.regra =
+            item.regraColeta || "";
+
+        select.appendChild(option);
+
+    });
+
+
+    select.selectedIndex = 0;
+
+    atualizarTipoProduto();
+
+}
+
+
+/* =========================================================
+   ATUALIZAR TIPO DE PRODUTO
+========================================================= */
+
+function atualizarTipoProduto() {
+
+    const select =
+        document.getElementById(
+            "tipoProduto"
+        );
+
+    if (!select) return;
+
+    const opcao =
+        select.options[
+            select.selectedIndex
+        ];
+
+    if (!opcao) return;
+
+    sessao.tipoProduto =
+        String(
+            opcao.value || ""
+        )
+        .trim()
+        .toUpperCase();
+
+    sessao.regraColeta =
+        String(
+            opcao.dataset.regra || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    /*
+     * Apenas BLOCOS utiliza
+     * alteração manual de endereço.
+     */
+
+    const botao =
+        document.getElementById(
+            "btnAlterarEndereco"
+        );
+
+    if (botao) {
+
+        if (
+            sessao.tipoProduto ===
+            "BLOCOS"
+        ) {
+
+            botao.style.display =
+                "block";
+
+        } else {
+
+            botao.style.display =
+                "none";
+
+            sessao.modoEndereco =
+                false;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   CONFIGURAÇÃO DO USUÁRIO
+========================================================= */
 
 function atualizarConfiguracaoUsuario(
     usuarioId
@@ -385,16 +542,30 @@ function atualizarConfiguracaoUsuario(
         configUsuario =
             configuracao.Configuracoes.find(
                 item =>
-                    String(item.usuario).trim() ===
-                    String(usuarioId).trim()
+                    String(
+                        item.usuario
+                    ).trim() ===
+                    String(
+                        usuarioId
+                    ).trim()
             );
+
     }
 
-    inventario.value =
-        configUsuario?.inventario || "";
+    if (inventario) {
 
-    endereco.value =
-        configUsuario?.enderecoAtual || "";
+        inventario.value =
+            configUsuario?.inventario || "";
+
+    }
+
+    if (endereco) {
+
+        endereco.value =
+            configUsuario?.enderecoAtual || "";
+
+    }
+
 }
 
 
@@ -405,35 +576,52 @@ function atualizarConfiguracaoUsuario(
 async function iniciarColeta() {
 
     const usuario =
-        document.getElementById("usuario");
+        document.getElementById(
+            "usuario"
+        );
 
     const inventario =
-        document.getElementById("inventario");
+        document.getElementById(
+            "inventario"
+        );
 
     const endereco =
-        document.getElementById("endereco");
+        document.getElementById(
+            "endereco"
+        );
+
+    const tipoProduto =
+        document.getElementById(
+            "tipoProduto"
+        );
+
 
     await prepararAudio();
 
-    const opcao =
+
+    const opcaoUsuario =
         usuario.options[
             usuario.selectedIndex
         ];
+
 
     sessao.usuario =
         String(
             usuario.value || ""
         ).trim();
 
+
     sessao.nomeUsuario =
-        opcao
-            ? opcao.textContent.trim()
+        opcaoUsuario
+            ? opcaoUsuario.textContent.trim()
             : "";
+
 
     sessao.inventario =
         String(
             inventario.value || ""
         ).trim();
+
 
     sessao.endereco =
         String(
@@ -441,6 +629,31 @@ async function iniciarColeta() {
         )
         .trim()
         .toUpperCase();
+
+
+    sessao.tipoProduto =
+        String(
+            tipoProduto.value || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    const opcaoTipo =
+        tipoProduto.options[
+            tipoProduto.selectedIndex
+        ];
+
+
+    sessao.regraColeta =
+        String(
+            opcaoTipo?.dataset.regra || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    /* VALIDAÇÕES */
 
     if (!sessao.usuario) {
 
@@ -451,6 +664,7 @@ async function iniciarColeta() {
 
         return;
     }
+
 
     if (!sessao.inventario) {
 
@@ -464,6 +678,20 @@ async function iniciarColeta() {
         return;
     }
 
+
+    if (!sessao.tipoProduto) {
+
+        mostrarLoginStatus(
+            "Selecione o tipo de produto.",
+            "error"
+        );
+
+        tipoProduto.focus();
+
+        return;
+    }
+
+
     if (!sessao.endereco) {
 
         mostrarLoginStatus(
@@ -476,46 +704,75 @@ async function iniciarColeta() {
         return;
     }
 
+
+    /* RESET */
+
     sessao.totalEndereco = 0;
     sessao.totalColeta = 0;
+    sessao.modoEndereco = false;
+
+    ultimoCodigoLido = "";
+    ultimoCodigoTempo = 0;
+
+
+    /* INFORMAÇÕES */
 
     document.getElementById(
         "lblUsuario"
     ).textContent =
         sessao.nomeUsuario;
 
+
     document.getElementById(
         "lblInventario"
     ).textContent =
         sessao.inventario;
+
+
+    document.getElementById(
+        "lblTipoProduto"
+    ).textContent =
+        sessao.tipoProduto;
+
 
     document.getElementById(
         "lblEndereco"
     ).textContent =
         sessao.endereco;
 
+
     document.getElementById(
         "contadorEndereco"
-    ).textContent = "0";
+    ).textContent =
+        "0";
+
 
     document.getElementById(
         "contadorTotal"
-    ).textContent = "0";
+    ).textContent =
+        "0";
+
 
     document.getElementById(
         "ultimaLeitura"
-    ).textContent = "-";
+    ).textContent =
+        "-";
+
 
     mostrarCollectionStatus("");
+
+    atualizarBotaoEndereco();
 
     mostrarTelaColeta();
 
     await iniciarCamera();
+
 }
 
 
 /* =========================================================
-   CÂMERA - RESOLUÇÃO MÁXIMA + FOCO CONTÍNUO
+   CÂMERA
+   RESOLUÇÃO ALTA + TRASEIRA + FOCO CONTÍNUO
 ========================================================= */
 
 async function iniciarCamera() {
@@ -529,6 +786,7 @@ async function iniciarCamera() {
 
     if (!video) return;
 
+
     if (
         !navigator.mediaDevices ||
         !navigator.mediaDevices.getUserMedia
@@ -541,20 +799,13 @@ async function iniciarCamera() {
         return;
     }
 
+
     mostrarCameraStatus(
         "Abrindo câmera..."
     );
 
-    try {
 
-        /*
-         * Primeiro solicitamos a câmera traseira
-         * com alta resolução.
-         *
-         * "ideal" significa:
-         * tente chegar a 1920x1080,
-         * mas não force essa resolução.
-         */
+    try {
 
         cameraStream =
             await navigator.mediaDevices
@@ -580,19 +831,16 @@ async function iniciarCamera() {
                             ideal: 30,
                             max: 30
                         }
+
                     }
+
                 });
 
 
-        /*
-         * CONFIGURAÇÕES REAIS DA CÂMERA
-         *
-         * Verifica o que o aparelho realmente
-         * conseguiu fornecer.
-         */
-
         const track =
-            cameraStream.getVideoTracks()[0];
+            cameraStream
+                .getVideoTracks()[0];
+
 
         if (track) {
 
@@ -602,16 +850,19 @@ async function iniciarCamera() {
                     ? track.getCapabilities()
                     : {};
 
+
             const settings =
                 typeof track.getSettings ===
                 "function"
                     ? track.getSettings()
                     : {};
 
+
             console.log(
                 "Capacidades da câmera:",
                 capabilities
             );
+
 
             console.log(
                 "Configuração utilizada:",
@@ -619,12 +870,7 @@ async function iniciarCamera() {
             );
 
 
-            /*
-             * FOCO CONTÍNUO
-             *
-             * Só tenta aplicar se o aparelho
-             * realmente oferecer focusMode.
-             */
+            /* FOCO CONTÍNUO */
 
             if (
                 capabilities.focusMode &&
@@ -648,6 +894,7 @@ async function iniciarCamera() {
                             }
 
                         ]
+
                     });
 
                     console.log(
@@ -657,19 +904,14 @@ async function iniciarCamera() {
                 } catch (erroFoco) {
 
                     console.warn(
-                        "Não foi possível ativar foco contínuo:",
+                        "Foco contínuo:",
                         erroFoco
                     );
+
                 }
+
             }
 
-
-            /*
-             * Algumas câmeras permitem alterar
-             * zoom. Não vamos aplicar zoom
-             * automaticamente, para não perder
-             * campo de visão.
-             */
         }
 
 
@@ -679,6 +921,7 @@ async function iniciarCamera() {
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
+
 
         video.setAttribute(
             "playsinline",
@@ -690,33 +933,28 @@ async function iniciarCamera() {
             "true"
         );
 
+
         await video.play();
+
 
         cameraAtiva = true;
 
 
-        /*
-         * Mostra no console a resolução
-         * efetivamente utilizada.
-         */
-
-        try {
-
-            console.log(
-                "Resolução real:",
-                video.videoWidth +
-                " x " +
-                video.videoHeight
-            );
-
-        } catch (e) {}
+        console.log(
+            "Resolução real:",
+            video.videoWidth +
+            " x " +
+            video.videoHeight
+        );
 
 
         mostrarCameraStatus(
             "Aponte a câmera para o código de barras"
         );
 
+
         iniciarLeitorZXing(video);
+
 
     } catch (erro) {
 
@@ -735,12 +973,14 @@ async function iniciarCamera() {
             "Use a digitação manual.",
             "error"
         );
+
     }
+
 }
 
 
 /* =========================================================
-   LEITOR DE CÓDIGO
+   ZXING
 ========================================================= */
 
 function iniciarLeitorZXing(video) {
@@ -761,18 +1001,13 @@ function iniciarLeitorZXing(video) {
         return;
     }
 
-    try {
 
-        /*
-         * MANTIDO BrowserMultiFormatReader
-         *
-         * Continua aceitando os diferentes
-         * tipos de código que vocês utilizam.
-         */
+    try {
 
         codeReader =
             new ZXingBrowser
                 .BrowserMultiFormatReader();
+
 
         codeReader
             .decodeFromVideoElement(
@@ -782,7 +1017,9 @@ function iniciarLeitorZXing(video) {
                     if (!resultado)
                         return;
 
+
                     let codigo = "";
+
 
                     try {
 
@@ -801,17 +1038,21 @@ function iniciarLeitorZXing(video) {
                         return;
                     }
 
+
                     codigo =
                         normalizarCodigo(
                             codigo
                         );
 
+
                     if (!codigo)
                         return;
+
 
                     receberCodigoDaCamera(
                         codigo
                     );
+
                 }
             )
             .then(controles => {
@@ -834,7 +1075,9 @@ function iniciarLeitorZXing(video) {
                 mostrarCameraStatus(
                     "Erro no leitor de código."
                 );
+
             });
+
 
     } catch (erro) {
 
@@ -846,12 +1089,14 @@ function iniciarLeitorZXing(video) {
         mostrarCameraStatus(
             "Erro ao iniciar leitor."
         );
+
     }
+
 }
 
 
 /* =========================================================
-   RECEBER LEITURA
+   RECEBER CÓDIGO DA CÂMERA
 ========================================================= */
 
 function receberCodigoDaCamera(
@@ -861,27 +1106,33 @@ function receberCodigoDaCamera(
     const agora =
         Date.now();
 
+
     codigo =
         normalizarCodigo(
             codigo
         );
 
+
     if (!codigo)
         return;
 
+
     /*
-     * Apenas evita várias leituras do
-     * MESMO FRAME.
+     * Evita apenas a repetição do mesmo
+     * frame da câmera.
      *
-     * Não é verificação de duplicidade.
+     * NÃO é verificação de duplicidade.
      */
 
     if (
         codigo === ultimoCodigoLido &&
         agora - ultimoCodigoTempo < 800
     ) {
+
         return;
+
     }
+
 
     ultimoCodigoLido =
         codigo;
@@ -889,18 +1140,22 @@ function receberCodigoDaCamera(
     ultimoCodigoTempo =
         agora;
 
+
     const campo =
         document.getElementById(
             "codigo"
         );
 
+
     if (campo) {
         campo.value = codigo;
     }
 
+
     processarCodigo(
         codigo
     );
+
 }
 
 
@@ -918,17 +1173,21 @@ function processarCodigoDigitado() {
     if (!campo)
         return;
 
+
     const codigo =
         normalizarCodigo(
             campo.value
         );
 
+
     if (!codigo)
         return;
+
 
     processarCodigo(
         codigo
     );
+
 }
 
 
@@ -943,12 +1202,13 @@ function normalizarCodigo(
     return String(
         valor || ""
     )
-        .replace(
-            /[\r\n\t]/g,
-            ""
-        )
-        .trim()
-        .toUpperCase();
+    .replace(
+        /[\r\n\t]/g,
+        ""
+    )
+    .trim()
+    .toUpperCase();
+
 }
 
 
@@ -963,10 +1223,12 @@ function processarCodigo(
     if (!codigo)
         return;
 
+
     if (
         !sessao.usuario ||
         !sessao.inventario ||
-        !sessao.endereco
+        !sessao.endereco ||
+        !sessao.tipoProduto
     ) {
 
         mostrarCollectionStatus(
@@ -979,12 +1241,15 @@ function processarCodigo(
 
 
     /*
-     * ENDEREÇO
+     * =====================================================
+     * MODO ALTERAR ENDEREÇO
+     *
+     * Utilizado para BLOCOS.
+     * O próximo código lido será o endereço.
+     * =====================================================
      */
 
-    if (
-        /^[A-Za-z]/.test(codigo)
-    ) {
+    if (sessao.modoEndereco) {
 
         processarNovoEndereco(
             codigo
@@ -997,32 +1262,85 @@ function processarCodigo(
 
 
     /*
-     * PRODUTO
+     * =====================================================
+     * CHAPAS / RECORTADOS
+     *
+     * Número = produto
+     * Letra = endereço
+     * =====================================================
      */
 
     if (
-        !/^\d/.test(codigo)
+        sessao.tipoProduto ===
+        "CHAPAS" ||
+
+        sessao.tipoProduto ===
+        "RECORTADOS"
     ) {
 
-        document.getElementById(
-            "ultimaLeitura"
-        ).textContent =
-            codigo +
-            " - INVÁLIDO";
+        if (
+            /^[A-Za-z]/.test(codigo)
+        ) {
 
-        mostrarCollectionStatus(
-            "Código inválido.",
-            "error"
-        );
+            processarNovoEndereco(
+                codigo
+            );
 
-        return;
+            emitirBip();
+
+            return;
+        }
+
+
+        if (
+            !/^\d/.test(codigo)
+        ) {
+
+            document.getElementById(
+                "ultimaLeitura"
+            ).textContent =
+                codigo +
+                " - INVÁLIDO";
+
+
+            mostrarCollectionStatus(
+                "Código inválido.",
+                "error"
+            );
+
+            return;
+        }
+
     }
 
 
     /*
-     * LEU:
+     * =====================================================
+     * BLOCOS
+     *
+     * Qualquer código é produto.
+     * Não existe identificação automática
+     * de endereço.
+     * =====================================================
+     */
+
+    if (
+        sessao.tipoProduto ===
+        "BLOCOS"
+    ) {
+
+        /* qualquer código é aceito */
+
+    }
+
+
+    /*
+     * =====================================================
+     * PRODUTO
+     *
      * BIP IMEDIATO
      * ENVIO ASSÍNCRONO
+     * =====================================================
      */
 
     emitirBip();
@@ -1030,6 +1348,7 @@ function processarCodigo(
     registrarProduto(
         codigo
     );
+
 }
 
 
@@ -1046,6 +1365,7 @@ function registrarProduto(
     ).textContent =
         codigo;
 
+
     mostrarCollectionStatus(
         "Coleta enviada.",
         "success"
@@ -1053,16 +1373,20 @@ function registrarProduto(
 
 
     /*
-     * CONTADORES
+     * CONTADORES IMEDIATOS
+     *
+     * Não espera a resposta da Sheet.
      */
 
     sessao.totalEndereco++;
     sessao.totalColeta++;
 
+
     document.getElementById(
         "contadorEndereco"
     ).textContent =
         sessao.totalEndereco;
+
 
     document.getElementById(
         "contadorTotal"
@@ -1077,6 +1401,7 @@ function registrarProduto(
     fetch(
         API,
         {
+
             method: "POST",
 
             mode: "no-cors",
@@ -1105,25 +1430,152 @@ function registrarProduto(
                         codigo,
 
                     tipoLeitura:
-                        "PRODUTO"
+                        "PRODUTO",
+
+                    tipoProduto:
+                        sessao.tipoProduto
+
                 })
+
         }
+
     )
     .then(() => {
 
         console.log(
             "Coleta enviada:",
-            codigo
+            codigo,
+            sessao.tipoProduto
         );
 
     })
+
     .catch(erro => {
 
         console.error(
             "Erro enviando:",
             erro
         );
+
     });
+
+
+    /*
+     * Limpa o campo para próxima leitura.
+     */
+
+    const campo =
+        document.getElementById(
+            "codigo"
+        );
+
+    if (campo) {
+        campo.value = "";
+    }
+
+}
+
+
+/* =========================================================
+   ATIVAR MODO ALTERAR ENDEREÇO
+========================================================= */
+
+function ativarModoEndereco() {
+
+    if (
+        sessao.tipoProduto !==
+        "BLOCOS"
+    ) {
+        return;
+    }
+
+
+    sessao.modoEndereco =
+        true;
+
+
+    atualizarBotaoEndereco();
+
+
+    mostrarCollectionStatus(
+        "Leia o código do novo endereço.",
+        "success"
+    );
+
+
+    mostrarCameraStatus(
+        "LEIA O CÓDIGO DO NOVO ENDEREÇO"
+    );
+
+
+    const campo =
+        document.getElementById(
+            "codigo"
+        );
+
+    if (campo) {
+
+        campo.value = "";
+
+        campo.focus();
+
+    }
+
+}
+
+
+/* =========================================================
+   ATUALIZAR BOTÃO DE ENDEREÇO
+========================================================= */
+
+function atualizarBotaoEndereco() {
+
+    const botao =
+        document.getElementById(
+            "btnAlterarEndereco"
+        );
+
+    if (!botao)
+        return;
+
+
+    if (
+        sessao.tipoProduto !==
+        "BLOCOS"
+    ) {
+
+        botao.style.display =
+            "none";
+
+        return;
+
+    }
+
+
+    botao.style.display =
+        "block";
+
+
+    if (
+        sessao.modoEndereco
+    ) {
+
+        botao.textContent =
+            "LENDO NOVO ENDEREÇO";
+
+        botao.disabled =
+            true;
+
+    } else {
+
+        botao.textContent =
+            "ALTERAR ENDEREÇO";
+
+        botao.disabled =
+            false;
+
+    }
+
 }
 
 
@@ -1140,26 +1592,40 @@ function processarNovoEndereco(
             novoEndereco
         );
 
+
+    if (!novoEndereco)
+        return;
+
+
     sessao.endereco =
         novoEndereco;
 
+
     sessao.totalEndereco =
         0;
+
+
+    sessao.modoEndereco =
+        false;
+
 
     document.getElementById(
         "lblEndereco"
     ).textContent =
         novoEndereco;
 
+
     document.getElementById(
         "contadorEndereco"
     ).textContent =
         "0";
 
+
     document.getElementById(
         "ultimaLeitura"
     ).textContent =
         novoEndereco;
+
 
     mostrarCollectionStatus(
         "Endereço alterado.",
@@ -1167,9 +1633,23 @@ function processarNovoEndereco(
     );
 
 
+    mostrarCameraStatus(
+        "Aponte a câmera para o código de barras"
+    );
+
+
+    atualizarBotaoEndereco();
+
+
+    /*
+     * Salva o novo endereço
+     * na TB_CONFIG.
+     */
+
     fetch(
         API,
         {
+
             method: "POST",
 
             mode: "no-cors",
@@ -1193,7 +1673,9 @@ function processarNovoEndereco(
 
                     endereco:
                         novoEndereco
+
                 })
+
         }
     )
     .catch(erro => {
@@ -1202,7 +1684,19 @@ function processarNovoEndereco(
             "Erro endereço:",
             erro
         );
+
     });
+
+
+    const campo =
+        document.getElementById(
+            "codigo"
+        );
+
+    if (campo) {
+        campo.value = "";
+    }
+
 }
 
 
@@ -1217,16 +1711,19 @@ function pararCamera() {
         if (
             scannerControls &&
             typeof scannerControls.stop ===
-                "function"
+            "function"
         ) {
 
             scannerControls.stop();
+
         }
 
     } catch (erro) {
 
         console.warn(erro);
+
     }
+
 
     scannerControls = null;
 
@@ -1236,16 +1733,19 @@ function pararCamera() {
         if (
             codeReader &&
             typeof codeReader.reset ===
-                "function"
+            "function"
         ) {
 
             codeReader.reset();
+
         }
 
     } catch (erro) {
 
         console.warn(erro);
+
     }
+
 
     codeReader = null;
 
@@ -1259,16 +1759,21 @@ function pararCamera() {
                 try {
                     track.stop();
                 } catch (erro) {}
+
             });
+
     }
+
 
     cameraStream = null;
     cameraAtiva = false;
+
 
     const video =
         document.getElementById(
             "camera"
         );
+
 
     if (video) {
 
@@ -1277,7 +1782,9 @@ function pararCamera() {
         } catch (e) {}
 
         video.srcObject = null;
+
     }
+
 }
 
 
