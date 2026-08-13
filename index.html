@@ -15,22 +15,7 @@
         content="#A89483"
     >
 
-    <meta
-        name="apple-mobile-web-app-capable"
-        content="yes"
-    >
-
-    <meta
-        name="apple-mobile-web-app-status-bar-style"
-        content="default"
-    >
-
     <title>Coletor THOR</title>
-
-
-    <!-- ==================================================
-         CSS
-    ================================================== -->
 
     <link
         rel="stylesheet"
@@ -52,8 +37,6 @@
     class="screen"
 >
 
-    <!-- CABEÇALHO -->
-
     <div class="brand">
 
         <img
@@ -67,8 +50,6 @@
     </div>
 
 
-    <!-- CARD DE LOGIN -->
-
     <div class="card login-card">
 
 
@@ -78,9 +59,7 @@
             Usuário
         </label>
 
-        <select
-            id="usuario"
-        >
+        <select id="usuario">
 
             <option value="">
                 Carregando...
@@ -102,9 +81,23 @@
             autocomplete="off"
             autocapitalize="characters"
             autocorrect="off"
-            autocorrect="off"
             spellcheck="false"
         >
+
+
+        <!-- TIPO DE PRODUTO -->
+
+        <label for="tipoProduto">
+            Tipo de produto
+        </label>
+
+        <select id="tipoProduto">
+
+            <option value="">
+                Carregando...
+            </option>
+
+        </select>
 
 
         <!-- ENDEREÇO -->
@@ -124,9 +117,7 @@
         >
 
 
-        <!-- =================================================
-             BOTÃO INICIAR
-        ================================================= -->
+        <!-- BOTÃO -->
 
         <button
             id="btnEntrar"
@@ -136,8 +127,6 @@
             INICIAR COLETA
         </button>
 
-
-        <!-- STATUS -->
 
         <div
             id="loginStatus"
@@ -162,8 +151,6 @@
 >
 
 
-    <!-- CABEÇALHO -->
-
     <div class="brand collection-brand">
 
         <img
@@ -177,8 +164,6 @@
     </div>
 
 
-    <!-- CARD DE COLETA -->
-
     <div class="card collection-card">
 
 
@@ -188,8 +173,6 @@
 
         <div class="session-info">
 
-
-            <!-- USUÁRIO -->
 
             <div>
 
@@ -204,8 +187,6 @@
             </div>
 
 
-            <!-- INVENTÁRIO -->
-
             <div>
 
                 <span>
@@ -219,7 +200,18 @@
             </div>
 
 
-            <!-- ENDEREÇO -->
+            <div>
+
+                <span>
+                    Tipo de produto:
+                </span>
+
+                <strong id="lblTipoProduto">
+                    -
+                </strong>
+
+            </div>
+
 
             <div>
 
@@ -237,8 +229,23 @@
         </div>
 
 
-        <hr>
+        <!-- =================================================
+             BOTÃO ALTERAR ENDEREÇO
+             
+             Será utilizado principalmente para BLOCOS.
+        ================================================= -->
 
+        <button
+            id="btnAlterarEndereco"
+            class="btn-secondary"
+            type="button"
+            style="display:none;"
+        >
+            ALTERAR ENDEREÇO
+        </button>
+
+
+        <hr>
 
 
         <!-- =================================================
@@ -247,8 +254,6 @@
 
         <div class="counter-row">
 
-
-            <!-- CONTADOR DO ENDEREÇO -->
 
             <div class="counter-box">
 
@@ -262,8 +267,6 @@
 
             </div>
 
-
-            <!-- CONTADOR TOTAL -->
 
             <div class="counter-box">
 
@@ -284,7 +287,6 @@
         <hr>
 
 
-
         <!-- =================================================
              CÂMERA
         ================================================= -->
@@ -294,11 +296,8 @@
             class="camera-area"
         >
 
-
             <div class="camera-container">
 
-
-                <!-- VÍDEO DA CÂMERA -->
 
                 <video
                     id="camera"
@@ -311,8 +310,6 @@
                 ></video>
 
 
-                <!-- MOLDURA DE LEITURA -->
-
                 <div
                     class="scanner-overlay"
                     aria-hidden="true"
@@ -320,33 +317,18 @@
 
                     <div class="scanner-frame">
 
+                        <span class="corner top-left"></span>
 
-                        <span
-                            class="corner top-left"
-                        ></span>
+                        <span class="corner top-right"></span>
 
+                        <span class="corner bottom-left"></span>
 
-                        <span
-                            class="corner top-right"
-                        ></span>
-
-
-                        <span
-                            class="corner bottom-left"
-                        ></span>
-
-
-                        <span
-                            class="corner bottom-right"
-                        ></span>
-
+                        <span class="corner bottom-right"></span>
 
                     </div>
 
                 </div>
 
-
-                <!-- MENSAGEM -->
 
                 <div
                     id="cameraMessage"
@@ -365,7 +347,6 @@
 
 
         </div>
-
 
 
         <!-- =================================================
@@ -392,8 +373,6 @@
             >
 
 
-            <!-- BOTÃO REGISTRAR -->
-
             <button
                 id="btnRegistrar"
                 class="btn-primary"
@@ -406,29 +385,22 @@
         </div>
 
 
-
         <!-- =================================================
              ÚLTIMA LEITURA
         ================================================= -->
 
         <div class="last-reading">
 
-
             <span>
                 Última leitura
             </span>
-
 
             <strong id="ultimaLeitura">
                 -
             </strong>
 
-
         </div>
 
-
-
-        <!-- STATUS -->
 
         <div
             id="collectionStatus"
@@ -444,7 +416,7 @@
 
 
 <!-- =====================================================
-     BIBLIOTECA ZXING
+     ZXING
 ===================================================== -->
 
 <script
@@ -452,24 +424,14 @@
 ></script>
 
 
+<!-- CONFIGURAÇÃO -->
 
-<!-- =====================================================
-     CONFIGURAÇÃO DA API
-===================================================== -->
-
-<script
-    src="config.js"
-></script>
+<script src="config.js"></script>
 
 
+<!-- SCRIPT PRINCIPAL -->
 
-<!-- =====================================================
-     SCRIPT PRINCIPAL
-===================================================== -->
-
-<script
-    src="script.js"
-></script>
+<script src="script.js"></script>
 
 
 </body>
