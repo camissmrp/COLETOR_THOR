@@ -120,9 +120,7 @@
 
 </head>
 
-
 <body>
-
 
 <div
     id="login"
@@ -141,9 +139,7 @@
 
     </div>
 
-
     <div class="card login-card">
-
 
         <label for="usuario">
             Usuário
@@ -156,7 +152,6 @@
             </option>
 
         </select>
-
 
         <label for="inventario">
             Inventário
@@ -172,7 +167,6 @@
             spellcheck="false"
         >
 
-
         <label for="tipoProduto">
             Tipo de produto
         </label>
@@ -184,7 +178,6 @@
             </option>
 
         </select>
-
 
         <label for="endereco">
             Endereço
@@ -200,6 +193,25 @@
             spellcheck="false"
         >
 
+        <label for="equipamento">
+            Equipamento de coleta
+        </label>
+
+        <select id="equipamento">
+
+            <option value="">
+                Selecione o equipamento
+            </option>
+
+            <option value="CELULAR">
+                Celular
+            </option>
+
+            <option value="HONEYWELL">
+                Coletor Honeywell
+            </option>
+
+        </select>
 
         <button
             id="btnEntrar"
@@ -209,24 +221,20 @@
             INICIAR COLETA
         </button>
 
-
         <div
             id="loginStatus"
             class="status"
             aria-live="polite"
         ></div>
 
-
     </div>
 
 </div>
-
 
 <div
     id="coleta"
     class="screen hidden"
 >
-
 
     <div class="brand collection-brand">
 
@@ -240,9 +248,7 @@
 
     </div>
 
-
     <div class="card collection-card">
-
 
         <div class="session-info">
 
@@ -258,7 +264,6 @@
 
             </div>
 
-
             <div>
 
                 <span>
@@ -271,7 +276,6 @@
 
             </div>
 
-
             <div>
 
                 <span>
@@ -283,7 +287,6 @@
                 </strong>
 
             </div>
-
 
             <div>
 
@@ -299,7 +302,6 @@
 
         </div>
 
-
         <button
             id="btnAlterarEndereco"
             class="btn-secondary"
@@ -309,12 +311,9 @@
             ALTERAR ENDEREÇO
         </button>
 
-
         <hr>
 
-
         <div class="counter-row">
-
 
             <div class="counter-box">
 
@@ -328,7 +327,6 @@
 
             </div>
 
-
             <div class="counter-box">
 
                 <span>
@@ -341,12 +339,9 @@
 
             </div>
 
-
         </div>
 
-
         <hr>
-
 
         <div
             id="cameraArea"
@@ -354,7 +349,6 @@
         >
 
             <div class="camera-container">
-
 
                 <video
                     id="camera"
@@ -365,7 +359,6 @@
                     disablepictureinpicture
                     aria-label="Câmera para leitura de código de barras"
                 ></video>
-
 
                 <div
                     class="scanner-overlay"
@@ -386,7 +379,6 @@
 
                 </div>
 
-
                 <div
                     id="cameraMessage"
                     class="camera-message"
@@ -394,25 +386,19 @@
                     Preparando câmera...
                 </div>
 
-
             </div>
-
 
             <p class="camera-help">
                 Aponte a câmera para o código de barras
             </p>
 
-
         </div>
 
-
         <div class="manual-area">
-
 
             <label for="codigo">
                 Ou digite o código:
             </label>
-
 
             <input
                 id="codigo"
@@ -425,7 +411,6 @@
                 enterkeyhint="done"
             >
 
-
             <button
                 id="btnRegistrar"
                 class="btn-primary"
@@ -434,9 +419,7 @@
                 REGISTRAR
             </button>
 
-
         </div>
-
 
         <div class="last-reading">
 
@@ -450,22 +433,15 @@
 
         </div>
 
-
         <div
             id="collectionStatus"
             class="status"
             aria-live="polite"
         ></div>
 
-
     </div>
 
 </div>
-
-
-<!-- =====================================================
-     TELA DE QUANTIDADE - COLETA EM LOTE
-===================================================== -->
 
 <div
     id="modalQuantidadeLote"
@@ -476,7 +452,6 @@
 
     <div class="quantidade-box">
 
-
         <div
             id="tituloQuantidadeLote"
             class="quantidade-titulo"
@@ -484,16 +459,13 @@
             COLETA EM LOTE
         </div>
 
-
         <span class="quantidade-label">
             Código capturado
         </span>
 
-
         <div id="codigoLoteCapturado">
             -
         </div>
-
 
         <label
             for="quantidadeLote"
@@ -501,7 +473,6 @@
         >
             Quantidade de peças
         </label>
-
 
         <input
             id="quantidadeLote"
@@ -513,15 +484,12 @@
             placeholder="Digite a quantidade"
         >
 
-
         <div
             id="erroQuantidadeLote"
             aria-live="polite"
         ></div>
 
-
         <div class="quantidade-botoes">
-
 
             <button
                 id="cancelarQuantidadeLote"
@@ -530,7 +498,6 @@
                 CANCELAR
             </button>
 
-
             <button
                 id="confirmarQuantidadeLote"
                 type="button"
@@ -538,25 +505,19 @@
                 CONFIRMAR
             </button>
 
-
         </div>
-
 
     </div>
 
 </div>
 
-
 <script
     src="https://unpkg.com/@zxing/browser@0.2.1"
 ></script>
 
-
 <script src="config.js"></script>
 
-
 <script src="script.js"></script>
-
 
 </body>
 
