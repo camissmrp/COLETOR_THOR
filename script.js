@@ -344,19 +344,52 @@ async function iniciarColeta(){
  atualizarBotaoEndereco();
  mostrarTelaColeta();
 
- /*
-  * Deixa o campo preparado para receber
-  * diretamente a leitura do Honeywell.
-  */
+ focarCampoCodigo();
+
  setTimeout(()=>{
-  const campo=document.getElementById("codigo");
-  if(campo){
-   campo.focus();
-   campo.select();
-  }
- },300);
+  focarCampoCodigo();
+ },500);
 
  await iniciarCamera();
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },1500);
+}
+
+function focarCampoCodigo(){
+ const campo=document.getElementById("codigo");
+
+ if(!campo)return;
+
+ const coleta=document.getElementById("coleta");
+
+ if(
+  !coleta||
+  coleta.classList.contains("hidden")
+ )return;
+
+ const modal=document.getElementById("modalQuantidadeLote");
+
+ if(
+  modal&&
+  modal.style.display==="flex"
+ )return;
+
+ try{
+  campo.focus();
+
+  const tamanho=campo.value.length;
+
+  campo.setSelectionRange(
+   tamanho,
+   tamanho
+  );
+ }catch(erro){
+  try{
+   campo.focus();
+  }catch(e){}
+ }
 }
 
 async function iniciarCamera(){
@@ -460,6 +493,11 @@ async function iniciarCamera(){
    "Use a digitação manual.",
    "error"
   );
+
+ }finally{
+  setTimeout(()=>{
+   focarCampoCodigo();
+  },300);
  }
 }
 
@@ -535,9 +573,7 @@ async function executarLeituraNativa(video){
   !cameraAtiva||
   !nativeDetector||
   nativeScanBusy
- ){
-  return;
- }
+ )return;
 
  nativeScanBusy=true;
 
@@ -772,9 +808,7 @@ function receberCodigoDaCamera(codigo){
  if(
   codigo===ultimoCodigoLido&&
   agora-ultimoCodigoTempo<250
- ){
-  return;
- }
+ )return;
 
  ultimoCodigoLido=codigo;
  ultimoCodigoTempo=agora;
@@ -785,6 +819,10 @@ function receberCodigoDaCamera(codigo){
   campo.value="";
 
  processarCodigo(codigo);
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },100);
 }
 
 
@@ -794,12 +832,16 @@ function receberCodigoDaCamera(codigo){
 
 function iniciarLeitorHoneywell(){
  const campo=document.getElementById("codigo");
+
  if(!campo)return;
 
- campo.setAttribute(
-  "inputmode",
-  "none"
- );
+ /*
+  * NÃO usar inputmode="none".
+  * O Honeywell precisa conseguir enviar
+  * os dados pelo Keyboard Wedge.
+  */
+
+ campo.type="text";
 
  campo.setAttribute(
   "autocomplete",
@@ -857,10 +899,13 @@ function processarCodigoHoneywell(){
  )return;
 
  const campo=document.getElementById("codigo");
+
  if(!campo)return;
 
  const codigo=normalizarCodigo(
-  campo.value||honeywellBuffer||""
+  campo.value||
+  honeywellBuffer||
+  ""
  );
 
  if(!codigo)return;
@@ -877,6 +922,10 @@ function processarCodigoHoneywell(){
  campo.value="";
 
  processarCodigo(codigo);
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },100);
 }
 
 function limparBufferHoneywell(){
@@ -895,9 +944,12 @@ function processarCodigoDigitado(){
  )return;
 
  const campo=document.getElementById("codigo");
+
  if(!campo)return;
 
- const codigo=normalizarCodigo(campo.value);
+ const codigo=normalizarCodigo(
+  campo.value
+ );
 
  if(!codigo)return;
 
@@ -990,6 +1042,10 @@ function processarCodigo(codigo){
 
  processandoCodigo=false;
  limparCampoCodigo();
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },100);
 }
 
 
@@ -1117,6 +1173,10 @@ function cancelarQuantidadeLote(){
  );
 
  reiniciarScanner();
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },150);
 }
 
 function confirmarQuantidadeLote(){
@@ -1193,6 +1253,10 @@ function confirmarQuantidadeLote(){
  );
 
  reiniciarScanner();
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },150);
 }
 
 function fecharQuantidadeLote(){
@@ -1218,10 +1282,15 @@ function reiniciarScanner(){
  )return;
 
  const video=document.getElementById("camera");
+
  if(!video)return;
 
  pararLeitorZXing();
  iniciarLeitorZXing(video);
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },100);
 }
 
 
@@ -1312,6 +1381,10 @@ function registrarProduto(
  });
 
  limparCampoCodigo();
+
+ setTimeout(()=>{
+  focarCampoCodigo();
+ },100);
 }
 
 function limparCampoCodigo(){
@@ -1348,7 +1421,7 @@ function ativarModoEndereco(){
  limparCampoCodigo();
 
  setTimeout(()=>{
-  document.getElementById("codigo")?.focus();
+  focarCampoCodigo();
  },100);
 }
 
@@ -1439,7 +1512,7 @@ function processarNovoEndereco(novoEndereco){
  limparCampoCodigo();
 
  setTimeout(()=>{
-  document.getElementById("codigo")?.focus();
+  focarCampoCodigo();
  },100);
 }
 
