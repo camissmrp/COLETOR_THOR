@@ -34,23 +34,63 @@ const sessao={
  equipamento:"CELULAR"
 };
 
+
 document.addEventListener("DOMContentLoaded",()=>{
- document.getElementById("btnEntrar")?.addEventListener("click",iniciarColeta);
- document.getElementById("btnRegistrar")?.addEventListener("click",processarCodigoDigitado);
- document.getElementById("btnAlterarEndereco")?.addEventListener("click",ativarModoEndereco);
- document.getElementById("equipamento")?.addEventListener("change",atualizarEquipamento);
+
+ document.getElementById("btnEntrar")?.addEventListener(
+  "click",
+  iniciarColeta
+ );
+
+ document.getElementById("btnRegistrar")?.addEventListener(
+  "click",
+  processarCodigoDigitado
+ );
+
+ document.getElementById("btnAlterarEndereco")?.addEventListener(
+  "click",
+  ativarModoEndereco
+ );
+
+ document.getElementById("equipamento")?.addEventListener(
+  "change",
+  atualizarEquipamento
+ );
+
+ // =====================================================
+ // CAPTURA GLOBAL DO HONEYWELL
+ // =====================================================
+ //
+ // O coletor Honeywell trabalha através do Keyboard Wedge.
+ // Em alguns casos no Android/Chrome os caracteres do leitor
+ // não são entregues diretamente ao campo #codigo.
+ //
+ // Por isso capturamos as teclas em nível de documento.
+ //
+ document.addEventListener(
+  "keydown",
+  capturarTeclasHoneywell,
+  true
+ );
 
  const campo=document.getElementById("codigo");
 
  if(campo){
+
   campo.addEventListener("keydown",e=>{
+
    if(e.key==="Enter"||e.key==="NumpadEnter"){
-    if(sessao.equipamento!=="HONEYWELL")return;
+
+    if(sessao.equipamento!=="HONEYWELL")
+     return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    const valor=normalizarCodigo(campo.value);
+    const valor=
+     normalizarCodigo(
+      campo.value
+     );
 
     if(valor)
      processarCodigoHoneywell(valor);
@@ -58,14 +98,24 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
  }
 
- document.getElementById("usuario")?.addEventListener("change",e=>{
-  atualizarConfiguracaoUsuario(e.target.value);
- });
+ document.getElementById("usuario")?.addEventListener(
+  "change",
+  e=>{
+   atualizarConfiguracaoUsuario(
+    e.target.value
+   );
+  }
+ );
 
- document.getElementById("tipoProduto")?.addEventListener("change",atualizarTipoProduto);
+ document.getElementById("tipoProduto")?.addEventListener(
+  "change",
+  atualizarTipoProduto
+ );
 
  atualizarEquipamento();
+
  mostrarTelaLogin();
+
  carregarConfiguracao();
 });
 
@@ -88,7 +138,10 @@ async function prepararAudio(){
 
  }catch(erro){
 
-  console.warn("Áudio:",erro);
+  console.warn(
+   "Áudio:",
+   erro
+  );
  }
 }
 
@@ -148,15 +201,23 @@ function emitirBip(){
 
  }catch(erro){
 
-  console.warn("Bip:",erro);
+  console.warn(
+   "Bip:",
+   erro
+  );
  }
 }
 
 
 function mostrarTelaLogin(){
 
- document.getElementById("login")?.classList.remove("hidden");
- document.getElementById("coleta")?.classList.add("hidden");
+ document.getElementById("login")?.classList.remove(
+  "hidden"
+ );
+
+ document.getElementById("coleta")?.classList.add(
+  "hidden"
+ );
 
  pararCamera();
 }
@@ -164,15 +225,25 @@ function mostrarTelaLogin(){
 
 function mostrarTelaColeta(){
 
- document.getElementById("login")?.classList.add("hidden");
- document.getElementById("coleta")?.classList.remove("hidden");
+ document.getElementById("login")?.classList.add(
+  "hidden"
+ );
+
+ document.getElementById("coleta")?.classList.remove(
+  "hidden"
+ );
 }
 
 
-function mostrarLoginStatus(mensagem,tipo=""){
+function mostrarLoginStatus(
+ mensagem,
+ tipo=""
+){
 
  const el=
-  document.getElementById("loginStatus");
+  document.getElementById(
+   "loginStatus"
+  );
 
  if(!el)return;
 
@@ -185,10 +256,15 @@ function mostrarLoginStatus(mensagem,tipo=""){
 }
 
 
-function mostrarCollectionStatus(mensagem,tipo=""){
+function mostrarCollectionStatus(
+ mensagem,
+ tipo=""
+){
 
  const el=
-  document.getElementById("collectionStatus");
+  document.getElementById(
+   "collectionStatus"
+  );
 
  if(!el)return;
 
@@ -201,10 +277,14 @@ function mostrarCollectionStatus(mensagem,tipo=""){
 }
 
 
-function mostrarCameraStatus(mensagem){
+function mostrarCameraStatus(
+ mensagem
+){
 
  const el=
-  document.getElementById("cameraMessage");
+  document.getElementById(
+   "cameraMessage"
+  );
 
  if(el)
   el.textContent=mensagem;
@@ -236,7 +316,9 @@ async function carregarConfiguracao(){
    await resposta.json();
 
   const selectUsuario=
-   document.getElementById("usuario");
+   document.getElementById(
+    "usuario"
+   );
 
   if(!selectUsuario)
    throw new Error(
@@ -246,7 +328,9 @@ async function carregarConfiguracao(){
   selectUsuario.innerHTML="";
 
   const usuarios=
-   Array.isArray(configuracao.Usuarios)
+   Array.isArray(
+    configuracao.Usuarios
+   )
     ?configuracao.Usuarios
     :[];
 
@@ -260,7 +344,9 @@ async function carregarConfiguracao(){
    option.textContent=
     "Nenhum usuário disponível";
 
-   selectUsuario.appendChild(option);
+   selectUsuario.appendChild(
+    option
+   );
 
    document.getElementById(
     "btnEntrar"
@@ -285,7 +371,9 @@ async function carregarConfiguracao(){
    option.textContent=
     usuario.nome;
 
-   selectUsuario.appendChild(option);
+   selectUsuario.appendChild(
+    option
+   );
   });
 
   carregarTiposProduto();
@@ -322,7 +410,9 @@ async function carregarConfiguracao(){
 function carregarTiposProduto(){
 
  const select=
-  document.getElementById("tipoProduto");
+  document.getElementById(
+   "tipoProduto"
+  );
 
  if(!select)return;
 
@@ -345,7 +435,9 @@ function carregarTiposProduto(){
   option.textContent=
    "Nenhum tipo disponível";
 
-  select.appendChild(option);
+  select.appendChild(
+   option
+  );
 
   return;
  }
@@ -367,7 +459,9 @@ function carregarTiposProduto(){
   option.dataset.tipoColeta=
    item.tipoColeta||"UNITARIA";
 
-  select.appendChild(option);
+  select.appendChild(
+   option
+  );
  });
 
  select.selectedIndex=0;
@@ -379,7 +473,9 @@ function carregarTiposProduto(){
 function atualizarTipoProduto(){
 
  const select=
-  document.getElementById("tipoProduto");
+  document.getElementById(
+   "tipoProduto"
+  );
 
  if(!select)return;
 
@@ -531,9 +627,37 @@ function atualizarEquipamento(){
    campo.placeholder=
     "LEIA O CÓDIGO NO COLETOR";
 
+   /*
+    * IMPORTANTE:
+    * Não usar inputmode="none".
+    *
+    * O Honeywell usa Keyboard Wedge.
+    * O Android precisa tratar o campo como
+    * entrada de texto para receber as teclas.
+    */
    campo.setAttribute(
     "inputmode",
-    "none"
+    "text"
+   );
+
+   campo.setAttribute(
+    "autocomplete",
+    "off"
+   );
+
+   campo.setAttribute(
+    "autocorrect",
+    "off"
+   );
+
+   campo.setAttribute(
+    "autocapitalize",
+    "characters"
+   );
+
+   campo.setAttribute(
+    "spellcheck",
+    "false"
    );
   }
 
@@ -1588,6 +1712,258 @@ function receberCodigoDaCamera(
    HONEYWELL
    ===================================================== */
 
+/*
+ * CAPTURA GLOBAL DO KEYBOARD WEDGE
+ *
+ * Esta é a alteração principal.
+ *
+ * O Honeywell não precisa mais preencher diretamente
+ * o campo #codigo.
+ *
+ * O coletor envia:
+ *
+ *   0
+ *   5
+ *   1
+ *   0
+ *   T
+ *   S
+ *   ...
+ *   ENTER
+ *
+ * Nós montamos o código no honeywellBuffer e,
+ * ao receber ENTER, enviamos para a mesma função
+ * usada pela câmera.
+ */
+
+function capturarTeclasHoneywell(e){
+
+ // Só captura quando o equipamento escolhido
+ // é realmente o Honeywell.
+ if(
+  sessao.equipamento!=="HONEYWELL"
+ )
+  return;
+
+ // Só captura na tela de coleta.
+ const coleta=
+  document.getElementById(
+   "coleta"
+  );
+
+ if(
+  !coleta||
+  coleta.classList.contains(
+   "hidden"
+  )
+ )
+  return;
+
+ // Se o modal de quantidade estiver aberto,
+ // o teclado pertence ao campo de quantidade.
+ const modal=
+  document.getElementById(
+   "modalQuantidadeLote"
+  );
+
+ if(
+  modal&&
+  modal.style.display==="flex"
+ )
+  return;
+
+ const agora=Date.now();
+
+ const tecla=
+  String(
+   e.key||""
+  );
+
+ /*
+  * Se houve uma pausa grande entre as teclas,
+  * entendemos que começou uma nova leitura.
+  */
+ if(
+  honeywellUltimaTecla&&
+  agora-honeywellUltimaTecla>250
+ ){
+
+  honeywellBuffer="";
+ }
+
+ honeywellUltimaTecla=agora;
+
+ /*
+  * ENTER encerra a leitura.
+  */
+ if(
+  tecla==="Enter"||
+  tecla==="NumpadEnter"
+ ){
+
+  const codigo=
+   normalizarCodigo(
+    honeywellBuffer
+   );
+
+  /*
+   * Se temos dados no buffer,
+   * trata como leitura do coletor.
+   */
+  if(
+   codigo.length>=2
+  ){
+
+   e.preventDefault();
+   e.stopPropagation();
+
+   if(
+    e.stopImmediatePropagation
+   )
+    e.stopImmediatePropagation();
+
+   processarCodigoHoneywell(
+    codigo
+   );
+
+   return;
+  }
+
+  /*
+   * Compatibilidade:
+   * alguns perfis do Honeywell podem preencher
+   * diretamente o campo.
+   */
+  const campo=
+   document.getElementById(
+    "codigo"
+   );
+
+  const valorCampo=
+   normalizarCodigo(
+    campo?.value||""
+   );
+
+  if(
+   valorCampo.length>=2
+  ){
+
+   e.preventDefault();
+   e.stopPropagation();
+
+   if(
+    e.stopImmediatePropagation
+   )
+    e.stopImmediatePropagation();
+
+   processarCodigoHoneywell(
+    valorCampo
+   );
+
+   return;
+  }
+
+  limparBufferHoneywell();
+
+  return;
+ }
+
+ /*
+  * Alguns perfis podem usar TAB como sufixo.
+  */
+ if(
+  tecla==="Tab"
+ ){
+
+  const codigo=
+   normalizarCodigo(
+    honeywellBuffer
+   );
+
+  if(
+   codigo.length>=2
+  ){
+
+   e.preventDefault();
+   e.stopPropagation();
+
+   if(
+    e.stopImmediatePropagation
+   )
+    e.stopImmediatePropagation();
+
+   processarCodigoHoneywell(
+    codigo
+   );
+  }
+
+  return;
+ }
+
+ /*
+  * Ignora teclas que não são caracteres.
+  */
+ if(
+  tecla.length!==1||
+  e.ctrlKey||
+  e.altKey||
+  e.metaKey
+ )
+  return;
+
+ /*
+  * Adiciona o caractere ao código.
+  */
+ honeywellBuffer+=tecla;
+
+ honeywellAtivo=true;
+
+ /*
+  * Reinicia o temporizador.
+  */
+ if(honeywellTimer){
+
+  clearTimeout(
+   honeywellTimer
+  );
+ }
+
+ /*
+  * Fallback para leitores que eventualmente
+  * não enviem ENTER.
+  */
+ honeywellTimer=
+  setTimeout(()=>{
+
+   const codigo=
+    normalizarCodigo(
+     honeywellBuffer
+    );
+
+   honeywellTimer=null;
+
+   if(
+    codigo.length>=4&&
+    sessao.equipamento==="HONEYWELL"&&
+    !scannerBloqueado&&
+    !processandoCodigo
+   ){
+
+    processarCodigoHoneywell(
+     codigo
+    );
+
+   }else{
+
+    honeywellBuffer="";
+    honeywellUltimaTecla=0;
+    honeywellAtivo=false;
+   }
+
+  },180);
+}
+
+
 function iniciarLeitorHoneywell(){
 
  const campo=
@@ -1619,9 +1995,15 @@ function iniciarLeitorHoneywell(){
   "false"
  );
 
+ /*
+  * Não usamos inputmode="none".
+  *
+  * O Keyboard Wedge do Honeywell precisa
+  * ser tratado como teclado.
+  */
  campo.setAttribute(
   "inputmode",
-  "none"
+  "text"
  );
 }
 
@@ -1632,12 +2014,14 @@ function processarCodigoHoneywell(
 
  if(
   sessao.equipamento!=="HONEYWELL"
- )return;
+ )
+  return;
 
  if(
   scannerBloqueado||
   processandoCodigo
- )return;
+ )
+  return;
 
  codigo=
   normalizarCodigo(
@@ -1647,7 +2031,28 @@ function processarCodigoHoneywell(
  if(
   !codigo||
   codigo.length<2
- )return;
+ )
+  return;
+
+ /*
+  * Evita duplicidade quando o mesmo código chega
+  * pelo keydown e também é inserido pelo
+  * Keyboard Wedge diretamente no campo.
+  */
+ const agora=Date.now();
+
+ if(
+  codigo===ultimoCodigoLido&&
+  agora-ultimoCodigoTempo<500
+ ){
+
+  limparBufferHoneywell();
+
+  return;
+ }
+
+ ultimoCodigoLido=codigo;
+ ultimoCodigoTempo=agora;
 
  const campo=
   document.getElementById(
@@ -1697,7 +2102,8 @@ function processarCodigoDigitado(){
  if(
   scannerBloqueado||
   processandoCodigo
- )return;
+ )
+  return;
 
  const campo=
   document.getElementById(
@@ -1723,7 +2129,9 @@ function processarCodigoDigitado(){
 }
 
 
-function normalizarCodigo(valor){
+function normalizarCodigo(
+ valor
+){
 
  return String(
   valor||""
@@ -1749,7 +2157,8 @@ function processarCodigo(
   !codigo||
   scannerBloqueado||
   processandoCodigo
- )return;
+ )
+  return;
 
  if(
   !sessao.usuario||
@@ -2156,10 +2565,19 @@ function fecharQuantidadeLote(){
 
 function reiniciarScanner(){
 
+ /*
+  * Honeywell não usa a câmera.
+  */
+ if(
+  sessao.equipamento==="HONEYWELL"
+ )
+  return;
+
  if(
   !cameraAtiva||
   scannerBloqueado
- )return;
+ )
+  return;
 
  const video=
   document.getElementById(
@@ -2549,6 +2967,7 @@ window.addEventListener(
  "pagehide",
  pararCamera
 );
+
 
 window.addEventListener(
  "beforeunload",
