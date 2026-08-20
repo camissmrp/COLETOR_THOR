@@ -14,6 +14,8 @@ let nativeScanBusy=false;
 let scanCanvas=null;
 let scanCtx=null;
 let scannerLoopAtivo=false;
+let honeywellBuffer="";
+let honeywellUltimaTecla=0;
 
 const sessao={
  usuario:"",
@@ -32,18 +34,6 @@ document.addEventListener("DOMContentLoaded",()=>{
  document.getElementById("btnEntrar")?.addEventListener("click",iniciarColeta);
  document.getElementById("btnRegistrar")?.addEventListener("click",processarCodigoDigitado);
  document.getElementById("btnAlterarEndereco")?.addEventListener("click",ativarModoEndereco);
-
- const campo=document.getElementById("codigo");
-
- if(campo){
-  campo.addEventListener("keydown",e=>{
-   if(e.key==="Enter"){
-    e.preventDefault();
-    e.stopPropagation();
-    processarCodigoHoneywell();
-   }
-  });
- }
 
  iniciarLeitorHoneywell();
 
@@ -332,6 +322,7 @@ async function iniciarColeta(){
  ultimoCodigoTempo=0;
  scannerBloqueado=false;
  processandoCodigo=false;
+ limparBufferHoneywell();
 
  document.getElementById("lblUsuario").textContent=sessao.nomeUsuario;
  document.getElementById("lblInventario").textContent=sessao.inventario;
@@ -835,45 +826,142 @@ function receberCodigoDaCamera(codigo){
 function iniciarLeitorHoneywell(){
  const campo=document.getElementById("codigo");
 
- if(!campo)return;
+ if(campo){
+  campo.type="text";
 
- campo.type="text";
+  campo.setAttribute(
+   "autocomplete",
+   "off"
+  );
 
- campo.setAttribute(
-  "autocomplete",
-  "off"
- );
+  campo.setAttribute(
+   "autocorrect",
+   "off"
+  );
 
- campo.setAttribute(
-  "autocorrect",
-  "off"
- );
+  campo.setAttribute(
+   "autocapitalize",
+   "characters"
+  );
 
- campo.setAttribute(
-  "autocapitalize",
-  "characters"
- );
+  campo.setAttribute(
+   "spellcheck",
+   "false"
+  );
 
- campo.setAttribute(
-  "spellcheck",
-  "false"
- );
+  campo.addEventListener(
+   "keydown",
+   e=>{
+    if(
+     e.key==="Enter"||
+     e.key==="NumpadEnter"
+    ){
+     if(honeywellBuffer.length>=2){
+      e.preventDefault();
+      e.stopPropagation();
+      processarCodigoHoneywell();
+     }
+    }
+   }
+  );
+ }
 
  /*
+  IMPORTANTE:
+
   O Honeywell está configurado como:
 
   Wedge = Enabled
   Wedge Method = Keyboard
   Suffix = \r
 
-  Portanto NÃO processamos o evento input.
+  O coletor funciona como um teclado Android.
 
-  O código é digitado normalmente no campo
-  pelo Keyboard Wedge.
+  Em vez de depender do foco do campo "codigo",
+  capturamos as teclas diretamente no documento.
 
-  Somente o ENTER enviado pelo Suffix \r
-  dispara o processamento.
-  */
+  Isso permite que o Honeywell funcione mesmo
+  quando o campo da coleta não estiver focado.
+ */
+ document.addEventListener(
+  "keydown",
+  capturarTecladoHoneywell,
+  true
+ );
+}
+
+function capturarTecladoHoneywell(e){
+ const coleta=document.getElementById("coleta");
+
+ if(
+  !coleta||
+  coleta.classList.contains("hidden")||
+  scannerBloqueado||
+  processandoCodigo
+ )return;
+
+ /*
+  ENTER enviado pelo Suffix do Honeywell.
+ */
+ if(
+  e.key==="Enter"||
+  e.key==="NumpadEnter"
+ ){
+  if(honeywellBuffer.length>=2){
+   e.preventDefault();
+   e.stopPropagation();
+
+   processarCodigoHoneywell();
+  }
+
+  return;
+ }
+
+ /*
+  Ignora teclas de controle.
+ */
+ if(e.key.length!==1)return;
+
+ /*
+  O Keyboard Wedge envia letras e números.
+ */
+ if(!/^[a-zA-Z0-9]$/.test(e.key))
+  return;
+
+ const agora=Date.now();
+
+ /*
+  O Honeywell envia os caracteres rapidamente.
+
+  Se passou mais de 500 ms entre caracteres,
+  consideramos que começou uma nova leitura.
+ */
+ if(
+  honeywellUltimaTecla&&
+  agora-honeywellUltimaTecla>500
+ ){
+  honeywellBuffer="";
+ }
+
+ honeywellUltimaTecla=agora;
+
+ honeywellBuffer+=e.key.toUpperCase();
+
+ /*
+  Se o campo não estiver focado, mostramos o código
+  temporariamente nele.
+
+  Se estiver focado, deixamos o navegador receber
+  normalmente os caracteres.
+ */
+ const campo=document.getElementById("codigo");
+
+ if(
+  campo&&
+  document.activeElement!==campo
+ ){
+  campo.value=honeywellBuffer;
+ }
 }
 
 function processarCodigoHoneywell(){
@@ -886,9 +974,18 @@ function processarCodigoHoneywell(){
 
  if(!campo)return;
 
- const codigo=normalizarCodigo(
-  campo.value||""
- );
+ /*
+  Primeiro usamos o buffer capturado pelo Keyboard Wedge.
+
+  Se por algum motivo o buffer estiver vazio,
+  usamos o conteúdo do campo.
+ */
+ let codigo=honeywellBuffer;
+
+ if(!codigo)
+  codigo=campo.value||"";
+
+ codigo=normalizarCodigo(codigo);
 
  if(!codigo)return;
 
@@ -899,6 +996,8 @@ function processarCodigoHoneywell(){
   codigo
  );
 
+ limparBufferHoneywell();
+
  campo.value="";
 
  processarCodigo(codigo);
@@ -906,6 +1005,11 @@ function processarCodigoHoneywell(){
  setTimeout(()=>{
   focarCampoCodigo();
  },100);
+}
+
+function limparBufferHoneywell(){
+ honeywellBuffer="";
+ honeywellUltimaTecla=0;
 }
 
 function processarCodigoDigitado(){
@@ -970,19 +1074,18 @@ function processarCodigo(codigo){
  }
 
  /*
-  A regra é determinada pela COLUNA REGRA_COLETA
+  A regra vem da coluna REGRA_COLETA
   da TB_TIPOS_PRODUTO.
-
-  Não é feita validação pelo nome do TipoProduto.
-  */
+ */
 
  if(
   sessao.regraColeta==="NUMERO_PRODUTO"
  ){
   /*
-   Para produtos cuja regra é NUMERO_PRODUTO,
-   códigos iniciados por letra são tratados
-   como endereço.
+   Para NUMERO_PRODUTO:
+
+   Começa com número = PRODUTO
+   Começa com letra = ENDEREÇO
    */
 
   if(/^[A-Z]/.test(codigo)){
@@ -1013,15 +1116,13 @@ function processarCodigo(codigo){
  emitirBip();
 
  /*
-  A coleta em lote é definida pela
-  coluna TipoColeta da TB_TIPOS_PRODUTO.
+  A coleta em lote vem da coluna TipoColeta.
 
-  Portanto:
   ALMOXARIFADO -> LOTE
-  CHAPAS_LOTE  -> LOTE
+  CHAPAS_LOTE -> LOTE
 
-  Não importa o nome do produto.
-  */
+  A regra NÃO depende do nome do produto.
+ */
 
  if(sessao.tipoColeta==="LOTE"){
   scannerBloqueado=true;
@@ -1385,9 +1486,10 @@ function registrarProduto(
 function limparCampoCodigo(){
  const campo=document.getElementById("codigo");
 
- if(campo){
+ if(campo)
   campo.value="";
- }
+
+ limparBufferHoneywell();
 }
 
 
@@ -1518,6 +1620,8 @@ function processarNovoEndereco(novoEndereco){
 function pararCamera(){
  scannerBloqueado=true;
  processandoCodigo=false;
+
+ limparBufferHoneywell();
 
  pararLeitorZXing();
 
