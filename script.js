@@ -1710,204 +1710,177 @@ function receberCodigoDaCamera(
 
 
 // =====================================================
-// LEITOR FÍSICO HONEYWELL
+// LEITOR FÍSICO HONEYWELL - KEYBOARD WEDGE
 // =====================================================
+
+let honeywellBuffer="";
+let honeywellTimer=null;
+let honeywellLastKey=0;
+let honeywellReceiving=false;
 
 function capturarLeitorHoneywell(e){
 
-    const coleta=
-        document.getElementById(
-            "coleta"
-        );
-
+    const coleta=document.getElementById("coleta");
 
     if(
-        coleta?.classList.contains(
-            "hidden"
-        )
+        !coleta ||
+        coleta.classList.contains("hidden")
     ){
-
         return;
-
     }
 
+    const modal=document.getElementById("modalQuantidadeLote");
 
-    const modal=
-        document.getElementById(
-            "modalQuantidadeLote"
-        );
-
-
+    /*
+     * Se a janela de quantidade estiver aberta,
+     * não capturamos o scanner como novo código.
+     */
     if(
-        modal&&
+        modal &&
         modal.style.display==="flex"
     ){
-
         return;
-
     }
 
-
     if(
-        scannerBloqueado||
+        scannerBloqueado ||
         processandoCodigo
     ){
-
         return;
-
     }
-
 
     if(
-        e.ctrlKey||
-        e.altKey||
+        e.ctrlKey ||
+        e.altKey ||
         e.metaKey
     ){
-
         return;
-
     }
 
+    const agora=performance.now();
 
-    const agora=
-        performance.now();
-
-
-    const campo=
-        document.getElementById(
-            "codigo"
-        );
-
-
-    // O Honeywell normalmente envia ENTER
-    // depois do código.
-
+    /*
+     * ENTER enviado pelo Honeywell.
+     * É o final da leitura.
+     */
     if(e.key==="Enter"){
 
         if(
-            honeywellBuffer.length>=4
+            honeywellBuffer &&
+            honeywellBuffer.length>=2
         ){
 
             e.preventDefault();
-
             e.stopPropagation();
-
 
             const codigo=
                 normalizarCodigo(
                     honeywellBuffer
                 );
 
-
             limparBufferHoneywell();
 
+            if(codigo){
 
-            if(codigo)
                 processarCodigo(codigo);
+
+            }
 
         }
 
         return;
-
     }
 
-
-    if(e.key.length!==1)
+    /*
+     * Ignora teclas que não são caracteres.
+     */
+    if(e.key.length!==1){
         return;
+    }
 
-
-    const intervalo=
-        agora-
-        honeywellLastKey;
-
-
-    // Sequência rápida típica do scanner.
-
+    /*
+     * Se demorou muito entre caracteres,
+     * começamos uma nova leitura.
+     *
+     * 500 ms deixa o coletor muito mais tolerante
+     * sem prejudicar a leitura.
+     */
     if(
-        intervalo>0&&
-        intervalo<=70
-    ){
-
-        honeywellRapid=true;
-
-        honeywellKeyCount++;
-
-    }else if(
-        intervalo>150
+        honeywellLastKey>0 &&
+        agora-honeywellLastKey>500
     ){
 
         honeywellBuffer="";
 
-        honeywellKeyCount=0;
-
-        honeywellRapid=false;
-
     }
-
 
     honeywellLastKey=agora;
 
+    /*
+     * Começou uma leitura.
+     */
+    honeywellReceiving=true;
 
     honeywellBuffer+=e.key;
 
+    /*
+     * Enquanto o scanner estiver enviando,
+     * impedimos que o código apareça no campo
+     * de digitação manual.
+     */
+    e.preventDefault();
+    e.stopPropagation();
 
-    if(honeywellTimer)
+    /*
+     * Reinicia o temporizador.
+     */
+    if(honeywellTimer){
+
         clearTimeout(
             honeywellTimer
         );
 
+    }
 
-    honeywellTimer=
-        setTimeout(()=>{
+    /*
+     * Segurança:
+     * alguns coletores podem não enviar ENTER.
+     *
+     * Se parar de receber caracteres por 250 ms,
+     * consideramos que a leitura terminou.
+     */
+    honeywellTimer=setTimeout(()=>{
 
-            if(
-                honeywellRapid&&
-                honeywellKeyCount>=3&&
-                honeywellBuffer.length>=4&&
-                !processandoCodigo&&
-                !scannerBloqueado
-            ){
+        if(
+            honeywellBuffer &&
+            honeywellBuffer.length>=4 &&
+            honeywellReceiving &&
+            !processandoCodigo &&
+            !scannerBloqueado
+        ){
 
-                const codigo=
-                    normalizarCodigo(
-                        honeywellBuffer
-                    );
+            const codigo=
+                normalizarCodigo(
+                    honeywellBuffer
+                );
 
+            limparBufferHoneywell();
 
-                limparBufferHoneywell();
+            if(codigo){
 
-
-                if(codigo)
-                    processarCodigo(
-                        codigo
-                    );
-
-            }else{
-
-                honeywellBuffer="";
-
-                honeywellKeyCount=0;
-
-                honeywellRapid=false;
+                processarCodigo(codigo);
 
             }
 
-        },120);
+        }else{
 
+            honeywellBuffer="";
+            honeywellReceiving=false;
+            honeywellLastKey=0;
 
-    // Caso o Honeywell esteja
-    // digitando dentro do campo,
-    // impedimos duplicação.
+        }
 
-    if(
-        honeywellRapid&&
-        campo&&
-        document.activeElement===campo
-    ){
-
-        e.preventDefault();
-
-    }
+    },250);
 
 }
 
@@ -1924,24 +1897,13 @@ function limparBufferHoneywell(){
 
     }
 
-
     honeywellBuffer="";
 
     honeywellLastKey=0;
 
-    honeywellRapid=false;
-
-    honeywellKeyCount=0;
-
-
-    limparCampoCodigo();
+    honeywellReceiving=false;
 
 }
-
-
-// =====================================================
-// DIGITAÇÃO MANUAL
-// =====================================================
 
 function processarCodigoDigitado(){
 
