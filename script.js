@@ -1,11 +1,10 @@
+const FILA_KEY="THOR_COLETAS_PENDENTES";
+const FILA_PROCESSANDO_KEY="THOR_SINCRONIZANDO";
+
 let configuracao={};
 let cameraStream=null;
-let scannerControls=null;
 let codeReader=null;
 let cameraAtiva=false;
-let ultimoCodigoLido="";
-let ultimoCodigoTempo=0;
-let audioContext=null;
 let scannerBloqueado=false;
 let processandoCodigo=false;
 let nativeDetector=null;
@@ -14,11 +13,13 @@ let nativeScanBusy=false;
 let scanCanvas=null;
 let scanCtx=null;
 let scannerLoopAtivo=false;
+let ultimoCodigoLido="";
+let ultimoCodigoTempo=0;
+let audioContext=null;
 
 let honeywellBuffer="";
 let honeywellTimer=null;
 let honeywellUltimaTecla=0;
-let honeywellAtivo=false;
 
 const sessao={
  usuario:"",
@@ -30,10 +31,15 @@ const sessao={
  tipoColeta:"UNITARIA",
  totalEndereco:0,
  totalColeta:0,
+ totalPendente:0,
  modoEndereco:false,
  equipamento:"CELULAR"
 };
 
+
+/* =====================================================
+   INICIALIZAÇÃO
+===================================================== */
 
 document.addEventListener("DOMContentLoaded",()=>{
 
@@ -57,54 +63,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   atualizarEquipamento
  );
 
- // =====================================================
- // CAPTURA GLOBAL DO HONEYWELL
- // =====================================================
- //
- // O coletor Honeywell trabalha através do Keyboard Wedge.
- // Em alguns casos no Android/Chrome os caracteres do leitor
- // não são entregues diretamente ao campo #codigo.
- //
- // Por isso capturamos as teclas em nível de documento.
- //
- document.addEventListener(
-  "keydown",
-  capturarTeclasHoneywell,
-  true
- );
-
- const campo=document.getElementById("codigo");
-
- if(campo){
-
-  campo.addEventListener("keydown",e=>{
-
-   if(e.key==="Enter"||e.key==="NumpadEnter"){
-
-    if(sessao.equipamento!=="HONEYWELL")
-     return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const valor=
-     normalizarCodigo(
-      campo.value
-     );
-
-    if(valor)
-     processarCodigoHoneywell(valor);
-   }
-  });
- }
-
  document.getElementById("usuario")?.addEventListener(
   "change",
-  e=>{
-   atualizarConfiguracaoUsuario(
-    e.target.value
-   );
-  }
+  e=>atualizarConfiguracaoUsuario(e.target.value)
  );
 
  document.getElementById("tipoProduto")?.addEventListener(
@@ -112,13 +73,50 @@ document.addEventListener("DOMContentLoaded",()=>{
   atualizarTipoProduto
  );
 
+ const codigo=document.getElementById("codigo");
+
+ if(codigo){
+
+  codigo.addEventListener("keydown",e=>{
+
+   if(
+    sessao.equipamento==="HONEYWELL"&&
+    (e.key==="Enter"||e.key==="NumpadEnter")
+   ){
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const valor=
+     normalizarCodigo(codigo.value);
+
+    if(valor)
+     processarCodigoHoneywell(valor);
+   }
+  });
+ }
+
+ document.addEventListener(
+  "keydown",
+  capturarTeclasHoneywell,
+  true
+ );
+
+ window.addEventListener(
+  "online",
+  sincronizarFila
+ );
+
  atualizarEquipamento();
-
  mostrarTelaLogin();
-
  carregarConfiguracao();
+ atualizarStatusFila();
 });
 
+
+/* =====================================================
+   ÁUDIO
+===================================================== */
 
 async function prepararAudio(){
 
@@ -136,13 +134,7 @@ async function prepararAudio(){
   if(audioContext.state==="suspended")
    await audioContext.resume();
 
- }catch(erro){
-
-  console.warn(
-   "Áudio:",
-   erro
-  );
- }
+ }catch(e){}
 }
 
 
@@ -165,15 +157,14 @@ function emitirBip(){
   const agora=
    audioContext.currentTime;
 
-  const oscilador=
+  const osc=
    audioContext.createOscillator();
 
   const ganho=
    audioContext.createGain();
 
-  oscilador.type="sine";
-
-  oscilador.frequency.setValueAtTime(
+  osc.type="sine";
+  osc.frequency.setValueAtTime(
    1800,
    agora
   );
@@ -184,7 +175,7 @@ function emitirBip(){
   );
 
   ganho.gain.exponentialRampToValueAtTime(
-   .30,
+   .3,
    agora+.01
   );
 
@@ -193,31 +184,24 @@ function emitirBip(){
    agora+.15
   );
 
-  oscilador.connect(ganho);
+  osc.connect(ganho);
   ganho.connect(audioContext.destination);
 
-  oscilador.start(agora);
-  oscilador.stop(agora+.15);
+  osc.start(agora);
+  osc.stop(agora+.15);
 
- }catch(erro){
-
-  console.warn(
-   "Bip:",
-   erro
-  );
- }
+ }catch(e){}
 }
 
 
+/* =====================================================
+   TELAS
+===================================================== */
+
 function mostrarTelaLogin(){
 
- document.getElementById("login")?.classList.remove(
-  "hidden"
- );
-
- document.getElementById("coleta")?.classList.add(
-  "hidden"
- );
+ document.getElementById("login")?.classList.remove("hidden");
+ document.getElementById("coleta")?.classList.add("hidden");
 
  pararCamera();
 }
@@ -225,71 +209,48 @@ function mostrarTelaLogin(){
 
 function mostrarTelaColeta(){
 
- document.getElementById("login")?.classList.add(
-  "hidden"
- );
-
- document.getElementById("coleta")?.classList.remove(
-  "hidden"
- );
+ document.getElementById("login")?.classList.add("hidden");
+ document.getElementById("coleta")?.classList.remove("hidden");
 }
 
 
-function mostrarLoginStatus(
- mensagem,
- tipo=""
-){
+function mostrarLoginStatus(msg,tipo=""){
 
  const el=
-  document.getElementById(
-   "loginStatus"
-  );
+  document.getElementById("loginStatus");
 
  if(!el)return;
 
- el.textContent=
-  mensagem||"";
-
- el.className=
-  "status"+
-  (tipo?" "+tipo:"");
+ el.textContent=msg||"";
+ el.className="status"+(tipo?" "+tipo:"");
 }
 
 
-function mostrarCollectionStatus(
- mensagem,
- tipo=""
-){
+function mostrarCollectionStatus(msg,tipo=""){
 
  const el=
-  document.getElementById(
-   "collectionStatus"
-  );
+  document.getElementById("collectionStatus");
 
  if(!el)return;
 
- el.textContent=
-  mensagem||"";
-
- el.className=
-  "status"+
-  (tipo?" "+tipo:"");
+ el.textContent=msg||"";
+ el.className="status"+(tipo?" "+tipo:"");
 }
 
 
-function mostrarCameraStatus(
- mensagem
-){
+function mostrarCameraStatus(msg){
 
  const el=
-  document.getElementById(
-   "cameraMessage"
-  );
+  document.getElementById("cameraMessage");
 
  if(el)
-  el.textContent=mensagem;
+  el.textContent=msg;
 }
 
+
+/* =====================================================
+   CONFIGURAÇÃO
+===================================================== */
 
 async function carregarConfiguracao(){
 
@@ -315,38 +276,31 @@ async function carregarConfiguracao(){
   configuracao=
    await resposta.json();
 
-  const selectUsuario=
-   document.getElementById(
-    "usuario"
-   );
+  const select=
+   document.getElementById("usuario");
 
-  if(!selectUsuario)
+  if(!select)
    throw new Error(
-    "Campo usuario não encontrado."
+    "Campo usuário não encontrado."
    );
 
-  selectUsuario.innerHTML="";
+  select.innerHTML="";
 
   const usuarios=
-   Array.isArray(
-    configuracao.Usuarios
-   )
+   Array.isArray(configuracao.Usuarios)
     ?configuracao.Usuarios
     :[];
 
   if(!usuarios.length){
 
-   const option=
+   const op=
     document.createElement("option");
 
-   option.value="";
-
-   option.textContent=
+   op.value="";
+   op.textContent=
     "Nenhum usuário disponível";
 
-   selectUsuario.appendChild(
-    option
-   );
+   select.appendChild(op);
 
    document.getElementById(
     "btnEntrar"
@@ -362,18 +316,13 @@ async function carregarConfiguracao(){
 
   usuarios.forEach(usuario=>{
 
-   const option=
+   const op=
     document.createElement("option");
 
-   option.value=
-    usuario.id;
+   op.value=usuario.id;
+   op.textContent=usuario.nome;
 
-   option.textContent=
-    usuario.nome;
-
-   selectUsuario.appendChild(
-    option
-   );
+   select.appendChild(op);
   });
 
   carregarTiposProduto();
@@ -388,12 +337,9 @@ async function carregarConfiguracao(){
 
   mostrarLoginStatus("");
 
- }catch(erro){
+ }catch(e){
 
-  console.error(
-   "Erro configuração:",
-   erro
-  );
+  console.error(e);
 
   mostrarLoginStatus(
    "Não foi possível carregar a configuração.",
@@ -410,61 +356,39 @@ async function carregarConfiguracao(){
 function carregarTiposProduto(){
 
  const select=
-  document.getElementById(
-   "tipoProduto"
-  );
+  document.getElementById("tipoProduto");
 
  if(!select)return;
 
  select.innerHTML="";
 
  const tipos=
-  Array.isArray(
-   configuracao.TiposProduto
-  )
+  Array.isArray(configuracao.TiposProduto)
    ?configuracao.TiposProduto
    :[];
 
- if(!tipos.length){
-
-  const option=
-   document.createElement("option");
-
-  option.value="";
-
-  option.textContent=
-   "Nenhum tipo disponível";
-
-  select.appendChild(
-   option
-  );
-
-  return;
- }
-
  tipos.forEach(item=>{
 
-  const option=
+  const op=
    document.createElement("option");
 
-  option.value=
+  op.value=
    item.tipoProduto;
 
-  option.textContent=
+  op.textContent=
    item.tipoProduto;
 
-  option.dataset.regra=
+  op.dataset.regra=
    item.regraColeta||"";
 
-  option.dataset.tipoColeta=
+  op.dataset.tipoColeta=
    item.tipoColeta||"UNITARIA";
 
-  select.appendChild(
-   option
-  );
+  select.appendChild(op);
  });
 
- select.selectedIndex=0;
+ if(tipos.length)
+  select.selectedIndex=0;
 
  atualizarTipoProduto();
 }
@@ -473,59 +397,43 @@ function carregarTiposProduto(){
 function atualizarTipoProduto(){
 
  const select=
-  document.getElementById(
-   "tipoProduto"
-  );
+  document.getElementById("tipoProduto");
 
  if(!select)return;
 
- const opcao=
+ const op=
   select.options[
    select.selectedIndex
   ];
 
- if(!opcao)return;
+ if(!op)return;
 
  sessao.tipoProduto=
-  String(
-   opcao.value||""
-  )
-  .trim()
-  .toUpperCase();
+  normalizarCodigo(
+   op.value
+  );
 
  sessao.regraColeta=
-  String(
-   opcao.dataset.regra||""
-  )
-  .trim()
-  .toUpperCase();
+  normalizarCodigo(
+   op.dataset.regra||""
+  );
 
  sessao.tipoColeta=
-  String(
-   opcao.dataset.tipoColeta||
-   "UNITARIA"
-  )
-  .trim()
-  .toUpperCase();
+  normalizarCodigo(
+   op.dataset.tipoColeta||"UNITARIA"
+  );
 
  const botao=
   document.getElementById(
    "btnAlterarEndereco"
   );
 
- if(!botao)return;
+ if(botao){
 
- if(
-  sessao.tipoProduto==="BLOCOS"
- ){
-
-  botao.style.display="block";
-
- }else{
-
-  botao.style.display="none";
-
-  sessao.modoEndereco=false;
+  botao.style.display=
+   sessao.tipoProduto==="BLOCOS"
+    ?"block"
+    :"none";
  }
 }
 
@@ -535,16 +443,12 @@ function atualizarConfiguracaoUsuario(
 ){
 
  const inventario=
-  document.getElementById(
-   "inventario"
-  );
+  document.getElementById("inventario");
 
  const endereco=
-  document.getElementById(
-   "endereco"
-  );
+  document.getElementById("endereco");
 
- let configUsuario=null;
+ let item=null;
 
  if(
   Array.isArray(
@@ -552,129 +456,88 @@ function atualizarConfiguracaoUsuario(
   )
  ){
 
-  configUsuario=
+  item=
    configuracao.Configuracoes.find(
-    item=>
-     String(item.usuario).trim()===
+    x=>
+     String(x.usuario).trim()===
      String(usuarioId).trim()
    );
  }
 
  if(inventario)
   inventario.value=
-   configUsuario?.inventario||"";
+   item?.inventario||"";
 
  if(endereco)
   endereco.value=
-   configUsuario?.enderecoAtual||"";
+   item?.enderecoAtual||"";
 }
 
 
 /* =====================================================
    EQUIPAMENTO
-   ===================================================== */
+===================================================== */
 
 function atualizarEquipamento(){
 
  const select=
-  document.getElementById(
-   "equipamento"
-  );
+  document.getElementById("equipamento");
 
  if(!select)return;
 
  sessao.equipamento=
-  String(
+  normalizarCodigo(
    select.value||"CELULAR"
-  )
-  .trim()
-  .toUpperCase();
-
- const cameraArea=
-  document.getElementById(
-   "cameraArea"
   );
+
+ const camera=
+  document.getElementById("cameraArea");
 
  const campo=
-  document.getElementById(
-   "codigo"
-  );
-
- const cameraMessage=
-  document.getElementById(
-   "cameraMessage"
-  );
+  document.getElementById("codigo");
 
  const label=
   document.querySelector(
    'label[for="codigo"]'
   );
 
- const btnRegistrar=
-  document.getElementById(
-   "btnRegistrar"
-  );
+ const botao=
+  document.getElementById("btnRegistrar");
 
  if(
   sessao.equipamento==="HONEYWELL"
  ){
 
-  if(cameraArea)
-   cameraArea.style.display="none";
+  if(camera)
+   camera.style.display="none";
 
   if(campo){
 
    campo.placeholder=
     "LEIA O CÓDIGO NO COLETOR";
 
-   /*
-    * IMPORTANTE:
-    * Não usar inputmode="none".
-    *
-    * O Honeywell usa Keyboard Wedge.
-    * O Android precisa tratar o campo como
-    * entrada de texto para receber as teclas.
-    */
    campo.setAttribute(
     "inputmode",
     "text"
    );
 
-   campo.setAttribute(
-    "autocomplete",
-    "off"
-   );
-
-   campo.setAttribute(
-    "autocorrect",
-    "off"
-   );
-
-   campo.setAttribute(
-    "autocapitalize",
-    "characters"
-   );
-
-   campo.setAttribute(
-    "spellcheck",
-    "false"
-   );
+   campo.autocomplete="off";
+   campo.autocorrect="off";
+   campo.autocapitalize="characters";
+   campo.spellcheck=false;
   }
 
   if(label)
    label.textContent=
     "Leitura pelo coletor:";
 
-  if(btnRegistrar)
-   btnRegistrar.style.display="none";
-
-  if(cameraMessage)
-   cameraMessage.textContent="";
+  if(botao)
+   botao.style.display="none";
 
  }else{
 
-  if(cameraArea)
-   cameraArea.style.display="";
+  if(camera)
+   camera.style.display="";
 
   if(campo){
 
@@ -691,133 +554,48 @@ function atualizarEquipamento(){
    label.textContent=
     "Ou digite o código:";
 
-  if(btnRegistrar)
-   btnRegistrar.style.display="";
- }
-}
-
-
-function prepararModoColeta(){
-
- atualizarEquipamento();
-
- const campo=
-  document.getElementById(
-   "codigo"
-  );
-
- if(
-  sessao.equipamento==="HONEYWELL"
- ){
-
-  pararLeitorZXing();
-
-  if(cameraStream){
-
-   cameraStream
-    .getTracks()
-    .forEach(track=>{
-
-     try{
-      track.stop();
-     }catch(e){}
-    });
-  }
-
-  cameraStream=null;
-
-  cameraAtiva=false;
-
-  const video=
-   document.getElementById(
-    "camera"
-   );
-
-  if(video){
-
-   try{
-    video.pause();
-   }catch(e){}
-
-   video.srcObject=null;
-  }
-
-  if(campo){
-
-   campo.value="";
-   campo.readOnly=false;
-   campo.disabled=false;
-
-   campo.removeAttribute(
-    "readonly"
-   );
-  }
-
-  iniciarLeitorHoneywell();
-
-  setTimeout(()=>{
-   focarCampoCodigo();
-  },100);
-
- }else{
-
-  if(campo)
-   campo.setAttribute(
-    "inputmode",
-    "text"
-   );
-
-  iniciarCamera();
+  if(botao)
+   botao.style.display="";
  }
 }
 
 
 /* =====================================================
-   INICIAR COLETA
-   ===================================================== */
+   INICIAR SESSÃO
+===================================================== */
 
 async function iniciarColeta(){
 
- const usuario=
-  document.getElementById(
-   "usuario"
-  );
-
- const inventario=
-  document.getElementById(
-   "inventario"
-  );
-
- const endereco=
-  document.getElementById(
-   "endereco"
-  );
-
- const tipoProduto=
-  document.getElementById(
-   "tipoProduto"
-  );
-
- const equipamento=
-  document.getElementById(
-   "equipamento"
-  );
-
  await prepararAudio();
 
- const opcaoUsuario=
+ const usuario=
+  document.getElementById("usuario");
+
+ const inventario=
+  document.getElementById("inventario");
+
+ const endereco=
+  document.getElementById("endereco");
+
+ const tipoProduto=
+  document.getElementById("tipoProduto");
+
+ const equipamento=
+  document.getElementById("equipamento");
+
+ const usuarioOp=
   usuario.options[
    usuario.selectedIndex
   ];
 
  sessao.usuario=
-  String(
-   usuario.value||""
-  ).trim();
+  normalizarCodigo(
+   usuario.value
+  );
 
  sessao.nomeUsuario=
-  opcaoUsuario
-   ?opcaoUsuario.textContent.trim()
+  usuarioOp
+   ?usuarioOp.textContent.trim()
    :"";
 
  sessao.inventario=
@@ -826,45 +604,35 @@ async function iniciarColeta(){
   ).trim();
 
  sessao.endereco=
-  String(
-   endereco.value||""
-  )
-  .trim()
-  .toUpperCase();
+  normalizarCodigo(
+   endereco.value
+  );
 
  sessao.tipoProduto=
-  String(
-   tipoProduto.value||""
-  )
-  .trim()
-  .toUpperCase();
+  normalizarCodigo(
+   tipoProduto.value
+  );
 
  sessao.equipamento=
-  String(
-   equipamento?.value||""
-  )
-  .trim()
-  .toUpperCase();
+  normalizarCodigo(
+   equipamento?.value
+  );
 
- const opcaoTipo=
+ const tipoOp=
   tipoProduto.options[
    tipoProduto.selectedIndex
   ];
 
  sessao.regraColeta=
-  String(
-   opcaoTipo?.dataset.regra||""
-  )
-  .trim()
-  .toUpperCase();
+  normalizarCodigo(
+   tipoOp?.dataset.regra||""
+  );
 
  sessao.tipoColeta=
-  String(
-   opcaoTipo?.dataset.tipoColeta||
+  normalizarCodigo(
+   tipoOp?.dataset.tipoColeta||
    "UNITARIA"
-  )
-  .trim()
-  .toUpperCase();
+  );
 
  if(!sessao.usuario){
 
@@ -895,19 +663,15 @@ async function iniciarColeta(){
    "error"
   );
 
-  tipoProduto.focus();
-
   return;
  }
 
  if(!sessao.equipamento){
 
   mostrarLoginStatus(
-   "Selecione o equipamento de coleta.",
+   "Selecione o equipamento.",
    "error"
   );
-
-  equipamento?.focus();
 
   return;
  }
@@ -934,7 +698,24 @@ async function iniciarColeta(){
  scannerBloqueado=false;
  processandoCodigo=false;
 
- limparBufferHoneywell();
+ atualizarLabels();
+
+ mostrarTelaColeta();
+
+ atualizarEquipamento();
+
+ prepararModoColeta();
+
+ atualizarStatusFila();
+
+ setTimeout(
+  focarCampoCodigo,
+  300
+ );
+}
+
+
+function atualizarLabels(){
 
  document.getElementById(
   "lblUsuario"
@@ -958,65 +739,55 @@ async function iniciarColeta(){
 
  document.getElementById(
   "contadorEndereco"
- ).textContent="0";
+ ).textContent=
+  sessao.totalEndereco;
 
  document.getElementById(
   "contadorTotal"
- ).textContent="0";
+ ).textContent=
+  sessao.totalColeta;
+}
 
- document.getElementById(
-  "ultimaLeitura"
- ).textContent="-";
 
- mostrarCollectionStatus("");
+function prepararModoColeta(){
 
- atualizarBotaoEndereco();
-
- mostrarTelaColeta();
-
- prepararModoColeta();
-
- focarCampoCodigo();
-
- setTimeout(()=>{
-  focarCampoCodigo();
- },500);
+ atualizarEquipamento();
 
  if(
-  sessao.equipamento==="CELULAR"
+  sessao.equipamento==="HONEYWELL"
  ){
 
-  setTimeout(()=>{
-   focarCampoCodigo();
-  },1500);
+  pararCamera();
+
+  iniciarLeitorHoneywell();
+
+  setTimeout(
+   focarCampoCodigo,
+   200
+  );
+
+ }else{
+
+  iniciarCamera();
  }
 }
 
 
 /* =====================================================
-   FOCO DO CAMPO
-   ===================================================== */
+   FOCO
+===================================================== */
 
 function focarCampoCodigo(){
 
+ if(
+  sessao.equipamento!=="HONEYWELL"
+ )
+  return;
+
  const campo=
-  document.getElementById(
-   "codigo"
-  );
+  document.getElementById("codigo");
 
  if(!campo)return;
-
- const coleta=
-  document.getElementById(
-   "coleta"
-  );
-
- if(
-  !coleta||
-  coleta.classList.contains(
-   "hidden"
-  )
- )return;
 
  const modal=
   document.getElementById(
@@ -1026,41 +797,35 @@ function focarCampoCodigo(){
  if(
   modal&&
   modal.style.display==="flex"
- )return;
+ )
+  return;
 
  try{
 
   campo.focus();
 
-  const tamanho=
+  const n=
    campo.value.length;
 
   campo.setSelectionRange(
-   tamanho,
-   tamanho
+   n,
+   n
   );
 
- }catch(erro){
-
-  try{
-   campo.focus();
-  }catch(e){}
- }
+ }catch(e){}
 }
 
 
 /* =====================================================
    CÂMERA
-   ===================================================== */
+===================================================== */
 
 async function iniciarCamera(){
 
  if(cameraAtiva)return;
 
  const video=
-  document.getElementById(
-   "camera"
-  );
+  document.getElementById("camera");
 
  if(!video)return;
 
@@ -1069,7 +834,7 @@ async function iniciarCamera(){
  ){
 
   mostrarCameraStatus(
-   "Câmera não disponível neste navegador."
+   "Câmera não disponível."
   );
 
   return;
@@ -1114,42 +879,31 @@ async function iniciarCamera(){
 
    try{
 
-    const capabilities=
+    const cap=
      track.getCapabilities
       ?track.getCapabilities()
       :{};
 
     if(
-     capabilities.width?.max&&
-     capabilities.height?.max
+     cap.width?.max&&
+     cap.height?.max
     ){
 
      await track.applyConstraints({
 
       width:{
-       exact:
-        capabilities.width.max
+       exact:cap.width.max
       },
 
       height:{
-       exact:
-        capabilities.height.max
+       exact:cap.height.max
       }
      });
-
-     console.log(
-      "Resolução máxima:",
-      capabilities.width.max+
-      " x "+
-      capabilities.height.max
-     );
     }
 
     if(
-     Array.isArray(
-      capabilities.focusMode
-     )&&
-     capabilities.focusMode.includes(
+     Array.isArray(cap.focusMode)&&
+     cap.focusMode.includes(
       "continuous"
      )
     ){
@@ -1161,19 +915,9 @@ async function iniciarCamera(){
        }
       ]
      });
-
-     console.log(
-      "Foco contínuo ativado."
-     );
     }
 
-   }catch(erroCamera){
-
-    console.warn(
-     "Configuração da câmera:",
-     erroCamera
-    );
-   }
+   }catch(e){}
   }
 
   video.srcObject=
@@ -1183,26 +927,9 @@ async function iniciarCamera(){
   video.muted=true;
   video.playsInline=true;
 
-  video.setAttribute(
-   "playsinline",
-   "true"
-  );
-
-  video.setAttribute(
-   "webkit-playsinline",
-   "true"
-  );
-
   await video.play();
 
   cameraAtiva=true;
-
-  console.log(
-   "Resolução real:",
-   video.videoWidth+
-   " x "+
-   video.videoHeight
-  );
 
   mostrarCameraStatus(
    "Aponte a câmera para o código de barras"
@@ -1210,12 +937,9 @@ async function iniciarCamera(){
 
   iniciarLeitorZXing(video);
 
- }catch(erro){
+ }catch(e){
 
-  console.error(
-   "Erro câmera:",
-   erro
-  );
+  console.error(e);
 
   cameraAtiva=false;
 
@@ -1223,30 +947,27 @@ async function iniciarCamera(){
    "Não foi possível abrir a câmera."
   );
 
-  mostrarCollectionStatus(
-   "Use a digitação manual.",
-   "error"
-  );
-
  }finally{
 
-  setTimeout(()=>{
-   focarCampoCodigo();
-  },300);
+  setTimeout(
+   focarCampoCodigo,
+   300
+  );
  }
 }
 
 
 /* =====================================================
-   LEITOR DA CÂMERA
-   ===================================================== */
+   LEITOR CÂMERA
+===================================================== */
 
 function iniciarLeitorZXing(video){
 
  if(
   scannerBloqueado||
   !video
- )return;
+ )
+  return;
 
  pararLeitorZXing();
 
@@ -1297,10 +1018,7 @@ async function iniciarLeitorNativo(video){
 
    formatos=
     desejados.filter(
-     formato=>
-      suportados.includes(
-       formato
-      )
+     x=>suportados.includes(x)
     );
   }
 
@@ -1311,20 +1029,9 @@ async function iniciarLeitorNativo(video){
      })
     :new BarcodeDetector();
 
-  mostrarCameraStatus(
-   "Aponte a câmera para o código de barras"
-  );
+  loopNativo(video);
 
-  iniciarLoopLeituraNativa(
-   video
-  );
-
- }catch(erro){
-
-  console.warn(
-   "BarcodeDetector indisponível. Usando ZXing:",
-   erro
-  );
+ }catch(e){
 
   nativeDetector=null;
 
@@ -1335,129 +1042,75 @@ async function iniciarLeitorNativo(video){
 }
 
 
-async function executarLeituraNativa(
- video
-){
-
- if(
-  !scannerLoopAtivo||
-  scannerBloqueado||
-  !cameraAtiva||
-  !nativeDetector||
-  nativeScanBusy
- )return;
-
- nativeScanBusy=true;
-
- try{
-
-  const resultados=
-   await nativeDetector.detect(
-    video
-   );
-
-  if(
-   resultados?.length&&
-   !scannerBloqueado&&
-   !processandoCodigo
-  ){
-
-   const item=
-    resultados[0];
-
-   const codigo=
-    normalizarCodigo(
-     item.rawValue||
-     item.displayValue||
-     ""
-    );
-
-   if(codigo)
-    receberCodigoDaCamera(
-     codigo
-    );
-  }
-
- }catch(erro){
-
-  console.warn(
-   "Leitura nativa:",
-   erro
-  );
-
- }finally{
-
-  nativeScanBusy=false;
- }
-}
-
-
-function iniciarLoopLeituraNativa(
- video
-){
+async function loopNativo(video){
 
  if(
   !scannerLoopAtivo||
   scannerBloqueado||
   !cameraAtiva
- )return;
+ )
+  return;
 
- executarLeituraNativa(
-  video
- ).finally(()=>{
+ if(!nativeScanBusy){
 
-  if(
-   scannerLoopAtivo&&
-   !scannerBloqueado&&
-   cameraAtiva
-  ){
+  nativeScanBusy=true;
 
-   nativeScanTimer=
-    setTimeout(
-     ()=>{
-      iniciarLoopLeituraNativa(
-       video
-      );
-     },
-     35
+  try{
+
+   const resultados=
+    await nativeDetector.detect(
+     video
     );
+
+   if(
+    resultados?.length&&
+    !processandoCodigo
+   ){
+
+    const codigo=
+     normalizarCodigo(
+      resultados[0].rawValue||
+      resultados[0].displayValue||
+      ""
+     );
+
+    if(codigo)
+     receberCodigoDaCamera(
+      codigo
+     );
+   }
+
+  }catch(e){
+
+  }finally{
+
+   nativeScanBusy=false;
   }
- });
+ }
+
+ nativeScanTimer=
+  setTimeout(
+   ()=>loopNativo(video),
+   35
+  );
 }
 
 
-function iniciarLeitorZXingCanvas(
- video
-){
+function iniciarLeitorZXingCanvas(video){
 
  if(
   typeof ZXingBrowser==="undefined"
- ){
-
-  mostrarCameraStatus(
-   "Leitor não carregado."
-  );
-
-  console.error(
-   "ZXingBrowser não encontrado."
-  );
-
+ )
   return;
- }
 
  try{
 
   codeReader=
    new ZXingBrowser.BrowserMultiFormatReader();
 
-  if(!scanCanvas)
-   scanCanvas=
-    document.createElement(
-     "canvas"
-    );
-
-  scanCanvas.width=1280;
-  scanCanvas.height=720;
+  scanCanvas=
+   scanCanvas||
+   document.createElement("canvas");
 
   scanCtx=
    scanCanvas.getContext(
@@ -1467,56 +1120,36 @@ function iniciarLeitorZXingCanvas(
     }
    );
 
-  if(!scanCtx)
-   throw new Error(
-    "Canvas não disponível."
-   );
+  loopCanvas(video);
 
-  mostrarCameraStatus(
-   "Aponte a câmera para o código de barras"
-  );
-
-  loopZXingCanvas(video);
-
- }catch(erro){
-
-  console.error(
-   "Erro criando leitor:",
-   erro
-  );
-
-  mostrarCameraStatus(
-   "Erro ao iniciar leitor."
-  );
- }
+ }catch(e){}
 }
 
 
-function loopZXingCanvas(
- video
-){
+function loopCanvas(video){
 
  if(
   !scannerLoopAtivo||
   scannerBloqueado||
   !cameraAtiva
- )return;
-
- if(
-  video.readyState<
-  HTMLMediaElement.HAVE_CURRENT_DATA
- ){
-
-  nativeScanTimer=
-   setTimeout(
-    ()=>loopZXingCanvas(video),
-    80
-   );
-
+ )
   return;
- }
 
  try{
+
+  if(
+   video.readyState<
+   HTMLMediaElement.HAVE_CURRENT_DATA
+  ){
+
+   nativeScanTimer=
+    setTimeout(
+     ()=>loopCanvas(video),
+     80
+    );
+
+   return;
+  }
 
   const largura=
    video.videoWidth;
@@ -1524,14 +1157,11 @@ function loopZXingCanvas(
   const altura=
    video.videoHeight;
 
-  if(
-   !largura||
-   !altura
-  ){
+  if(!largura||!altura){
 
    nativeScanTimer=
     setTimeout(
-     ()=>loopZXingCanvas(video),
+     ()=>loopCanvas(video),
      80
     );
 
@@ -1561,14 +1191,8 @@ function loopZXingCanvas(
     )
    );
 
-  if(
-   scanCanvas.width!==w||
-   scanCanvas.height!==h
-  ){
-
-   scanCanvas.width=w;
-   scanCanvas.height=h;
-  }
+  scanCanvas.width=w;
+  scanCanvas.height=h;
 
   scanCtx.drawImage(
    video,
@@ -1598,13 +1222,49 @@ function loopZXingCanvas(
     );
   }
 
- }catch(erro){}
+ }catch(e){}
 
  nativeScanTimer=
   setTimeout(
-   ()=>loopZXingCanvas(video),
+   ()=>loopCanvas(video),
    45
   );
+}
+
+
+function receberCodigoDaCamera(codigo){
+
+ if(
+  scannerBloqueado||
+  processandoCodigo
+ )
+  return;
+
+ codigo=
+  normalizarCodigo(codigo);
+
+ if(!codigo)return;
+
+ const agora=Date.now();
+
+ if(
+  codigo===ultimoCodigoLido&&
+  agora-ultimoCodigoTempo<500
+ )
+  return;
+
+ ultimoCodigoLido=codigo;
+ ultimoCodigoTempo=agora;
+
+ const campo=
+  document.getElementById("codigo");
+
+ if(campo)
+  campo.value="";
+
+ emitirBip();
+
+ processarCodigo(codigo);
 }
 
 
@@ -1627,140 +1287,60 @@ function pararLeitorZXing(){
  try{
 
   if(
-   scannerControls&&
-   typeof scannerControls.stop===
-   "function"
-  ){
-
-   scannerControls.stop();
-  }
-
- }catch(erro){
-
-  console.warn(
-   "Erro parando scanner:",
-   erro
-  );
- }
-
- scannerControls=null;
-
- try{
-
-  if(
    codeReader&&
-   typeof codeReader.reset===
-   "function"
-  ){
-
+   codeReader.reset
+  )
    codeReader.reset();
-  }
 
- }catch(erro){
-
-  console.warn(
-   "Erro resetando ZXing:",
-   erro
-  );
- }
+ }catch(e){}
 
  codeReader=null;
 }
 
 
-function receberCodigoDaCamera(
- codigo
-){
+/* =====================================================
+   HONEYWELL
+===================================================== */
 
- if(
-  scannerBloqueado||
-  processandoCodigo
- )return;
-
- const agora=Date.now();
-
- codigo=
-  normalizarCodigo(codigo);
-
- if(!codigo)return;
-
- if(
-  codigo===ultimoCodigoLido&&
-  agora-ultimoCodigoTempo<250
- )return;
-
- ultimoCodigoLido=codigo;
- ultimoCodigoTempo=agora;
+function iniciarLeitorHoneywell(){
 
  const campo=
-  document.getElementById(
-   "codigo"
-  );
+  document.getElementById("codigo");
 
- if(campo)
-  campo.value="";
+ if(!campo)return;
 
- processarCodigo(codigo);
+ campo.type="text";
+ campo.inputMode="text";
+ campo.autocomplete="off";
+ campo.autocorrect="off";
+ campo.autocapitalize="characters";
+ campo.spellcheck=false;
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },100);
+ limparBufferHoneywell();
+
+ setTimeout(
+  focarCampoCodigo,
+  100
+ );
 }
 
 
-/* =====================================================
-   HONEYWELL
-   ===================================================== */
-
-/*
- * CAPTURA GLOBAL DO KEYBOARD WEDGE
- *
- * Esta é a alteração principal.
- *
- * O Honeywell não precisa mais preencher diretamente
- * o campo #codigo.
- *
- * O coletor envia:
- *
- *   0
- *   5
- *   1
- *   0
- *   T
- *   S
- *   ...
- *   ENTER
- *
- * Nós montamos o código no honeywellBuffer e,
- * ao receber ENTER, enviamos para a mesma função
- * usada pela câmera.
- */
-
 function capturarTeclasHoneywell(e){
 
- // Só captura quando o equipamento escolhido
- // é realmente o Honeywell.
  if(
   sessao.equipamento!=="HONEYWELL"
  )
   return;
 
- // Só captura na tela de coleta.
  const coleta=
-  document.getElementById(
-   "coleta"
-  );
+  document.getElementById("coleta");
 
  if(
   !coleta||
-  coleta.classList.contains(
-   "hidden"
-  )
+  coleta.classList.contains("hidden")
  )
   return;
 
- // Se o modal de quantidade estiver aberto,
- // o teclado pertence ao campo de quantidade.
  const modal=
   document.getElementById(
    "modalQuantidadeLote"
@@ -1773,19 +1353,11 @@ function capturarTeclasHoneywell(e){
   return;
 
  const agora=Date.now();
+ const tecla=String(e.key||"");
 
- const tecla=
-  String(
-   e.key||""
-  );
-
- /*
-  * Se houve uma pausa grande entre as teclas,
-  * entendemos que começou uma nova leitura.
-  */
  if(
   honeywellUltimaTecla&&
-  agora-honeywellUltimaTecla>250
+  agora-honeywellUltimaTecla>500
  ){
 
   honeywellBuffer="";
@@ -1793,9 +1365,6 @@ function capturarTeclasHoneywell(e){
 
  honeywellUltimaTecla=agora;
 
- /*
-  * ENTER encerra a leitura.
-  */
  if(
   tecla==="Enter"||
   tecla==="NumpadEnter"
@@ -1806,20 +1375,12 @@ function capturarTeclasHoneywell(e){
     honeywellBuffer
    );
 
-  /*
-   * Se temos dados no buffer,
-   * trata como leitura do coletor.
-   */
-  if(
-   codigo.length>=2
-  ){
+  if(codigo.length>=2){
 
    e.preventDefault();
    e.stopPropagation();
 
-   if(
-    e.stopImmediatePropagation
-   )
+   if(e.stopImmediatePropagation)
     e.stopImmediatePropagation();
 
    processarCodigoHoneywell(
@@ -1829,35 +1390,21 @@ function capturarTeclasHoneywell(e){
    return;
   }
 
-  /*
-   * Compatibilidade:
-   * alguns perfis do Honeywell podem preencher
-   * diretamente o campo.
-   */
   const campo=
-   document.getElementById(
-    "codigo"
-   );
+   document.getElementById("codigo");
 
-  const valorCampo=
+  const valor=
    normalizarCodigo(
     campo?.value||""
    );
 
-  if(
-   valorCampo.length>=2
-  ){
+  if(valor.length>=2){
 
    e.preventDefault();
    e.stopPropagation();
 
-   if(
-    e.stopImmediatePropagation
-   )
-    e.stopImmediatePropagation();
-
    processarCodigoHoneywell(
-    valorCampo
+    valor
    );
 
    return;
@@ -1868,9 +1415,6 @@ function capturarTeclasHoneywell(e){
   return;
  }
 
- /*
-  * Alguns perfis podem usar TAB como sufixo.
-  */
  if(
   tecla==="Tab"
  ){
@@ -1880,17 +1424,10 @@ function capturarTeclasHoneywell(e){
     honeywellBuffer
    );
 
-  if(
-   codigo.length>=2
-  ){
+  if(codigo.length>=2){
 
    e.preventDefault();
    e.stopPropagation();
-
-   if(
-    e.stopImmediatePropagation
-   )
-    e.stopImmediatePropagation();
 
    processarCodigoHoneywell(
     codigo
@@ -1900,9 +1437,6 @@ function capturarTeclasHoneywell(e){
   return;
  }
 
- /*
-  * Ignora teclas que não são caracteres.
-  */
  if(
   tecla.length!==1||
   e.ctrlKey||
@@ -1911,134 +1445,44 @@ function capturarTeclasHoneywell(e){
  )
   return;
 
- /*
-  * Adiciona o caractere ao código.
-  */
  honeywellBuffer+=tecla;
 
- honeywellAtivo=true;
-
- /*
-  * Reinicia o temporizador.
-  */
- if(honeywellTimer){
-
+ if(honeywellTimer)
   clearTimeout(
    honeywellTimer
   );
- }
 
  /*
-  * Fallback para leitores que eventualmente
-  * não enviem ENTER.
+  * Somente limpa o buffer por inatividade.
+  * Não registra automaticamente.
+  *
+  * O ENTER do Honeywell é o encerramento
+  * da leitura.
   */
  honeywellTimer=
   setTimeout(()=>{
 
-   const codigo=
-    normalizarCodigo(
-     honeywellBuffer
-    );
+   honeywellBuffer="";
+   honeywellUltimaTecla=0;
 
-   honeywellTimer=null;
-
-   if(
-    codigo.length>=4&&
-    sessao.equipamento==="HONEYWELL"&&
-    !scannerBloqueado&&
-    !processandoCodigo
-   ){
-
-    processarCodigoHoneywell(
-     codigo
-    );
-
-   }else{
-
-    honeywellBuffer="";
-    honeywellUltimaTecla=0;
-    honeywellAtivo=false;
-   }
-
-  },180);
+  },700);
 }
 
 
-function iniciarLeitorHoneywell(){
-
- const campo=
-  document.getElementById(
-   "codigo"
-  );
-
- if(!campo)return;
-
- campo.type="text";
-
- campo.setAttribute(
-  "autocomplete",
-  "off"
- );
-
- campo.setAttribute(
-  "autocorrect",
-  "off"
- );
-
- campo.setAttribute(
-  "autocapitalize",
-  "characters"
- );
-
- campo.setAttribute(
-  "spellcheck",
-  "false"
- );
-
- /*
-  * Não usamos inputmode="none".
-  *
-  * O Keyboard Wedge do Honeywell precisa
-  * ser tratado como teclado.
-  */
- campo.setAttribute(
-  "inputmode",
-  "text"
- );
-}
-
-
-function processarCodigoHoneywell(
- codigo
-){
+function processarCodigoHoneywell(codigo){
 
  if(
-  sessao.equipamento!=="HONEYWELL"
- )
-  return;
-
- if(
+  sessao.equipamento!=="HONEYWELL"||
   scannerBloqueado||
   processandoCodigo
  )
   return;
 
  codigo=
-  normalizarCodigo(
-   codigo
-  );
+  normalizarCodigo(codigo);
 
- if(
-  !codigo||
-  codigo.length<2
- )
-  return;
+ if(!codigo)return;
 
- /*
-  * Evita duplicidade quando o mesmo código chega
-  * pelo keydown e também é inserido pelo
-  * Keyboard Wedge diretamente no campo.
-  */
  const agora=Date.now();
 
  if(
@@ -2054,25 +1498,22 @@ function processarCodigoHoneywell(
  ultimoCodigoLido=codigo;
  ultimoCodigoTempo=agora;
 
+ limparBufferHoneywell();
+
  const campo=
-  document.getElementById(
-   "codigo"
-  );
+  document.getElementById("codigo");
 
  if(campo)
-  campo.value="";
-
- limparBufferHoneywell();
+  campo.value=codigo;
 
  emitirBip();
 
- processarCodigo(
-  codigo
- );
+ processarCodigo(codigo);
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },150);
+ setTimeout(
+  focarCampoCodigo,
+  150
+ );
 }
 
 
@@ -2089,13 +1530,12 @@ function limparBufferHoneywell(){
 
  honeywellBuffer="";
  honeywellUltimaTecla=0;
- honeywellAtivo=false;
 }
 
 
 /* =====================================================
-   DIGITAÇÃO MANUAL
-   ===================================================== */
+   CÓDIGO MANUAL
+===================================================== */
 
 function processarCodigoDigitado(){
 
@@ -2106,9 +1546,7 @@ function processarCodigoDigitado(){
   return;
 
  const campo=
-  document.getElementById(
-   "codigo"
-  );
+  document.getElementById("codigo");
 
  if(!campo)return;
 
@@ -2119,39 +1557,29 @@ function processarCodigoDigitado(){
 
  if(!codigo)return;
 
- limparBufferHoneywell();
-
  campo.value="";
 
- processarCodigo(
-  codigo
- );
+ processarCodigo(codigo);
 }
 
 
-function normalizarCodigo(
- valor
-){
+function normalizarCodigo(valor){
 
- return String(
-  valor||""
- )
- .replace(
-  /[\r\n\t]/g,
-  ""
- )
- .trim()
- .toUpperCase();
+ return String(valor||"")
+  .replace(
+   /[\r\n\t]/g,
+   ""
+  )
+  .trim()
+  .toUpperCase();
 }
 
 
 /* =====================================================
    PROCESSAMENTO
-   ===================================================== */
+===================================================== */
 
-function processarCodigo(
- codigo
-){
+function processarCodigo(codigo){
 
  if(
   !codigo||
@@ -2177,15 +1605,9 @@ function processarCodigo(
 
  processandoCodigo=true;
 
- if(
-  sessao.modoEndereco
- ){
+ if(sessao.modoEndereco){
 
-  processarNovoEndereco(
-   codigo
-  );
-
-  emitirBip();
+  processarNovoEndereco(codigo);
 
   processandoCodigo=false;
 
@@ -2195,8 +1617,7 @@ function processarCodigo(
  }
 
  if(
-  sessao.regraColeta===
-  "NUMERO_PRODUTO"
+  sessao.regraColeta==="NUMERO_PRODUTO"
  ){
 
   if(
@@ -2207,24 +1628,18 @@ function processarCodigo(
     codigo
    );
 
-   emitirBip();
-
    processandoCodigo=false;
-
    limparCampoCodigo();
 
    return;
   }
 
-  if(
-   !/^\d/.test(codigo)
-  ){
+  if(!/^\d/.test(codigo)){
 
    document.getElementById(
     "ultimaLeitura"
    ).textContent=
-    codigo+
-    " - INVÁLIDO";
+    codigo+" - INVÁLIDO";
 
    mostrarCollectionStatus(
     "Código inválido.",
@@ -2232,14 +1647,11 @@ function processarCodigo(
    );
 
    processandoCodigo=false;
-
    limparCampoCodigo();
 
    return;
   }
  }
-
- emitirBip();
 
  if(
   sessao.tipoColeta==="LOTE"
@@ -2267,19 +1679,14 @@ function processarCodigo(
 
  limparCampoCodigo();
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },100);
 }
 
 
 /* =====================================================
-   MODAL DE QUANTIDADE
-   ===================================================== */
+   MODAL LOTE
+===================================================== */
 
-function solicitarQuantidadeLote(
- codigo
-){
+function solicitarQuantidadeLote(codigo){
 
  const modal=
   document.getElementById(
@@ -2301,16 +1708,6 @@ function solicitarQuantidadeLote(
    "erroQuantidadeLote"
   );
 
- const btnCancelar=
-  document.getElementById(
-   "cancelarQuantidadeLote"
-  );
-
- const btnConfirmar=
-  document.getElementById(
-   "confirmarQuantidadeLote"
-  );
-
  if(
   !modal||
   !campo||
@@ -2318,103 +1715,67 @@ function solicitarQuantidadeLote(
   !erro
  ){
 
-  console.error(
-   "Modal de lote não encontrado."
-  );
-
   scannerBloqueado=false;
-
   processandoCodigo=false;
 
-  reiniciarScanner();
+  mostrarCollectionStatus(
+   "Erro na tela de quantidade.",
+   "error"
+  );
 
   return;
  }
 
- modal.dataset.codigo=
-  codigo;
+ modal.dataset.codigo=codigo;
 
- codigoCapturado.textContent=
-  codigo;
+ codigoCapturado.textContent=codigo;
 
  campo.value="";
-
  erro.textContent="";
 
  modal.style.display="flex";
 
- if(btnCancelar){
+ const cancelar=
+  document.getElementById(
+   "cancelarQuantidadeLote"
+  );
 
-  btnCancelar.onclick=e=>{
+ const confirmar=
+  document.getElementById(
+   "confirmarQuantidadeLote"
+  );
 
-   e.preventDefault();
-   e.stopPropagation();
+ if(cancelar)
+  cancelar.onclick=
+   cancelarQuantidadeLote;
 
-   cancelarQuantidadeLote();
-  };
- }
-
- if(btnConfirmar){
-
-  btnConfirmar.onclick=e=>{
-
-   e.preventDefault();
-   e.stopPropagation();
-
-   confirmarQuantidadeLote();
-  };
- }
+ if(confirmar)
+  confirmar.onclick=
+   confirmarQuantidadeLote;
 
  campo.onkeydown=e=>{
 
   if(e.key==="Enter"){
 
    e.preventDefault();
-   e.stopPropagation();
 
    confirmarQuantidadeLote();
   }
  };
 
- setTimeout(()=>{
-  campo.focus();
- },150);
+ setTimeout(
+  ()=>campo.focus(),
+  100
+ );
 }
 
 
 function cancelarQuantidadeLote(){
 
- const modal=
-  document.getElementById(
-   "modalQuantidadeLote"
-  );
-
- if(modal){
-
-  modal.style.display="none";
-
-  modal.dataset.codigo="";
- }
-
- const campo=
-  document.getElementById(
-   "quantidadeLote"
-  );
-
- if(campo)
-  campo.value="";
-
- const erro=
-  document.getElementById(
-   "erroQuantidadeLote"
-  );
-
- if(erro)
-  erro.textContent="";
-
- processandoCodigo=false;
+ fecharModalQuantidade();
 
  scannerBloqueado=false;
+ processandoCodigo=false;
 
  ultimoCodigoLido="";
  ultimoCodigoTempo=0;
@@ -2426,15 +1787,15 @@ function cancelarQuantidadeLote(){
   "error"
  );
 
- mostrarCameraStatus(
-  "Aponte a câmera para o código de barras"
- );
-
- reiniciarScanner();
-
- setTimeout(()=>{
-  focarCampoCodigo();
- },150);
+ if(
+  sessao.equipamento==="HONEYWELL"
+ )
+  setTimeout(
+   focarCampoCodigo,
+   100
+  );
+ else
+  reiniciarScanner();
 }
 
 
@@ -2455,49 +1816,23 @@ function confirmarQuantidadeLote(){
    "erroQuantidadeLote"
   );
 
- if(
-  !modal||
-  !campo||
-  !erro
- ){
-
-  console.error(
-   "Campos da coleta em lote não encontrados."
-  );
-
+ if(!modal||!campo||!erro)
   return;
- }
 
  const codigo=
   normalizarCodigo(
-   modal.dataset.codigo||
-   ""
+   modal.dataset.codigo
   );
-
- if(!codigo){
-
-  erro.textContent=
-   "Código não encontrado.";
-
-  return;
- }
 
  const quantidade=
   Number(
    String(
     campo.value||""
-   )
-   .replace(
-    ",",
-    "."
-   )
-   .trim()
+   ).trim()
   );
 
  if(
-  !Number.isInteger(
-   quantidade
-  )||
+  !Number.isInteger(quantidade)||
   quantidade<=0
  ){
 
@@ -2509,41 +1844,38 @@ function confirmarQuantidadeLote(){
   return;
  }
 
- modal.style.display="none";
-
- modal.dataset.codigo="";
-
- campo.value="";
-
- erro.textContent="";
+ fecharModalQuantidade();
 
  registrarProduto(
   codigo,
   quantidade
  );
 
- processandoCodigo=false;
-
  scannerBloqueado=false;
+ processandoCodigo=false;
 
  ultimoCodigoLido="";
  ultimoCodigoTempo=0;
 
  limparCampoCodigo();
 
- mostrarCameraStatus(
-  "Aponte a câmera para o código de barras"
- );
+ if(
+  sessao.equipamento==="HONEYWELL"
+ ){
 
- reiniciarScanner();
+  setTimeout(
+   focarCampoCodigo,
+   150
+  );
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },150);
+ }else{
+
+  reiniciarScanner();
+ }
 }
 
 
-function fecharQuantidadeLote(){
+function fecharModalQuantidade(){
 
  const modal=
   document.getElementById(
@@ -2553,59 +1885,447 @@ function fecharQuantidadeLote(){
  if(modal){
 
   modal.style.display="none";
-
   modal.dataset.codigo="";
+ }
+
+ const campo=
+  document.getElementById(
+   "quantidadeLote"
+  );
+
+ const erro=
+  document.getElementById(
+   "erroQuantidadeLote"
+  );
+
+ if(campo)
+  campo.value="";
+
+ if(erro)
+  erro.textContent="";
+}
+
+
+/* =====================================================
+   FILA LOCAL
+===================================================== */
+
+function obterFila(){
+
+ try{
+
+  const dados=
+   localStorage.getItem(
+    FILA_KEY
+   );
+
+  if(!dados)
+   return [];
+
+  const fila=
+   JSON.parse(dados);
+
+  return Array.isArray(fila)
+   ?fila
+   :[];
+
+ }catch(e){
+
+  console.error(
+   "Erro lendo fila:",
+   e
+  );
+
+  return [];
+ }
+}
+
+
+function salvarFila(fila){
+
+ try{
+
+  localStorage.setItem(
+   FILA_KEY,
+   JSON.stringify(fila)
+  );
+
+  return true;
+
+ }catch(e){
+
+  console.error(
+   "Erro salvando fila:",
+   e
+  );
+
+  mostrarCollectionStatus(
+   "ERRO: não foi possível salvar a coleta no aparelho.",
+   "error"
+  );
+
+  return false;
+ }
+}
+
+
+function gerarIdColeta(){
+
+ return "COL-"+Date.now()+"-"+
+
+  Math.random()
+   .toString(36)
+   .substring(2,10)
+   .toUpperCase();
+}
+
+
+function adicionarNaFila(
+ codigo,
+ quantidade
+){
+
+ const item={
+
+  idColetaApp:
+   gerarIdColeta(),
+
+  usuario:
+   sessao.usuario,
+
+  nomeUsuario:
+   sessao.nomeUsuario,
+
+  inventario:
+   sessao.inventario,
+
+  endereco:
+   sessao.endereco,
+
+  codigo:
+   codigo,
+
+  tipoLeitura:
+   "PRODUTO",
+
+  tipoProduto:
+   sessao.tipoProduto,
+
+  quantidade:
+   quantidade,
+
+  criadoEm:
+   new Date().toISOString(),
+
+  tentativas:0
+ };
+
+ const fila=
+  obterFila();
+
+ fila.push(item);
+
+ if(!salvarFila(fila))
+  return null;
+
+ atualizarStatusFila();
+
+ sincronizarFila();
+
+ return item;
+}
+
+
+function removerDaFila(id){
+
+ const fila=
+  obterFila();
+
+ const nova=
+  fila.filter(
+   item=>
+    item.idColetaApp!==id
+  );
+
+ salvarFila(nova);
+
+ atualizarStatusFila();
+}
+
+
+function atualizarStatusFila(){
+
+ const fila=
+  obterFila();
+
+ sessao.totalPendente=
+  fila.length;
+
+ const status=
+  document.getElementById(
+   "collectionStatus"
+  );
+
+ if(
+  sessao.equipamento==="HONEYWELL"||
+  !cameraAtiva
+ ){
+
+  if(
+   fila.length>0
+  ){
+
+   if(status){
+
+    status.textContent=
+     "Pendentes de sincronização: "+
+     fila.length;
+
+    status.className=
+     "status warning";
+   }
+
+  }
  }
 }
 
 
 /* =====================================================
-   REINICIAR SCANNER
-   ===================================================== */
+   SINCRONIZAÇÃO
+===================================================== */
 
-function reiniciarScanner(){
+let sincronizando=false;
 
- /*
-  * Honeywell não usa a câmera.
-  */
- if(
-  sessao.equipamento==="HONEYWELL"
- )
+
+async function sincronizarFila(){
+
+ if(sincronizando)
   return;
 
- if(
-  !cameraAtiva||
-  scannerBloqueado
- )
+ if(!navigator.onLine)
   return;
 
- const video=
-  document.getElementById(
-   "camera"
-  );
+ const fila=
+  obterFila();
 
- if(!video)return;
+ if(!fila.length){
 
- pararLeitorZXing();
+  atualizarStatusFila();
 
- iniciarLeitorZXing(
-  video
+  return;
+ }
+
+ sincronizando=true;
+
+ mostrarCollectionStatus(
+  "Sincronizando "+
+  fila.length+
+  " coleta(s)...",
+  "warning"
  );
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },100);
+ try{
+
+  /*
+   * Trabalhamos sempre com a primeira da fila.
+   * Só passamos para a próxima depois de
+   * receber uma resposta positiva da API.
+   */
+  while(navigator.onLine){
+
+   const atual=
+    obterFila();
+
+   if(!atual.length)
+    break;
+
+   const item=
+    atual[0];
+
+   item.tentativas=
+    Number(
+     item.tentativas||0
+    )+1;
+
+   salvarFila(atual);
+
+   try{
+
+    const resposta=
+     await enviarColetaAPI(
+      item
+     );
+
+    if(
+     resposta &&
+     (
+      resposta.sucesso===true||
+      resposta.status==="OK"
+     )
+    ){
+
+     removerDaFila(
+      item.idColetaApp
+     );
+
+     continue;
+    }
+
+    /*
+     * Se a API respondeu erro, não removemos.
+     */
+    throw new Error(
+     resposta?.erro||
+     "API não confirmou a gravação."
+    );
+
+   }catch(erro){
+
+    console.error(
+     "Falha sincronização:",
+     erro
+    );
+
+    /*
+     * Mantém a coleta na fila.
+     * Não perde.
+     */
+    mostrarCollectionStatus(
+     "Sincronização interrompida. "+
+     "Coletas permanecem salvas no aparelho.",
+     "error"
+    );
+
+    break;
+   }
+  }
+
+ }finally{
+
+  sincronizando=false;
+
+  const restante=
+   obterFila();
+
+  if(restante.length){
+
+   mostrarCollectionStatus(
+    restante.length+
+    " coleta(s) aguardando sincronização.",
+    "warning"
+   );
+
+  }else{
+
+   mostrarCollectionStatus(
+    "Todas as coletas foram sincronizadas.",
+    "success"
+   );
+  }
+
+  atualizarStatusFila();
+ }
+}
+
+
+async function enviarColetaAPI(item){
+
+ const resposta=
+  await fetch(
+   API,
+   {
+    method:"POST",
+
+    headers:{
+     "Content-Type":
+      "text/plain;charset=utf-8"
+    },
+
+    body:JSON.stringify({
+
+     idColetaApp:
+      item.idColetaApp,
+
+     usuario:
+      item.usuario,
+
+     nomeUsuario:
+      item.nomeUsuario,
+
+     inventario:
+      item.inventario,
+
+     endereco:
+      item.endereco,
+
+     codigo:
+      item.codigo,
+
+     tipoLeitura:
+      item.tipoLeitura,
+
+     tipoProduto:
+      item.tipoProduto,
+
+     quantidade:
+      item.quantidade
+    })
+   }
+  );
+
+ if(!resposta.ok)
+  throw new Error(
+   "HTTP "+resposta.status
+  );
+
+ const texto=
+  await resposta.text();
+
+ if(!texto)
+  throw new Error(
+   "API retornou resposta vazia."
+  );
+
+ try{
+
+  return JSON.parse(
+   texto
+  );
+
+ }catch(e){
+
+  throw new Error(
+   "Resposta inválida da API: "+
+   texto
+  );
+ }
 }
 
 
 /* =====================================================
-   REGISTRAR PRODUTO
-   ===================================================== */
+   REGISTRO LOCAL
+===================================================== */
 
 function registrarProduto(
  codigo,
  quantidade=1
 ){
+
+ const item=
+  adicionarNaFila(
+   codigo,
+   quantidade
+  );
+
+ if(!item){
+
+  mostrarCollectionStatus(
+   "ERRO: a coleta NÃO foi salva.",
+   "error"
+  );
+
+  return;
+ }
 
  const ultima=
   document.getElementById(
@@ -2616,145 +2336,55 @@ function registrarProduto(
   ultima.textContent=
    codigo;
 
- const mensagem=
-  sessao.tipoColeta==="LOTE"
-   ?
-    "Lote enviado: "+
-    quantidade+
-    " peças."
-   :
-    "Coleta enviada.";
-
- mostrarCollectionStatus(
-  mensagem,
-  "success"
- );
-
  sessao.totalEndereco+=
   quantidade;
 
  sessao.totalColeta+=
   quantidade;
 
- const contadorEndereco=
-  document.getElementById(
-   "contadorEndereco"
+ document.getElementById(
+  "contadorEndereco"
+ ).textContent=
+  sessao.totalEndereco;
+
+ document.getElementById(
+  "contadorTotal"
+ ).textContent=
+  sessao.totalColeta;
+
+ if(navigator.onLine){
+
+  mostrarCollectionStatus(
+   "Coleta salva. Sincronizando...",
+   "success"
   );
 
- const contadorTotal=
-  document.getElementById(
-   "contadorTotal"
+ }else{
+
+  mostrarCollectionStatus(
+   "Coleta salva no aparelho. "+
+   "Sem internet; será sincronizada depois.",
+   "warning"
   );
-
- if(contadorEndereco)
-  contadorEndereco.textContent=
-   sessao.totalEndereco;
-
- if(contadorTotal)
-  contadorTotal.textContent=
-   sessao.totalColeta;
-
- fetch(
-  API,
-  {
-   method:"POST",
-
-   mode:"no-cors",
-
-   headers:{
-    "Content-Type":
-     "text/plain;charset=utf-8"
-   },
-
-   body:JSON.stringify({
-
-    usuario:
-     sessao.usuario,
-
-    nomeUsuario:
-     sessao.nomeUsuario,
-
-    inventario:
-     sessao.inventario,
-
-    endereco:
-     sessao.endereco,
-
-    codigo:
-     codigo,
-
-    tipoLeitura:
-     "PRODUTO",
-
-    tipoProduto:
-     sessao.tipoProduto,
-
-    quantidade:
-     quantidade
-   })
-  }
- )
- .then(()=>{
-
-  console.log(
-   "Coleta enviada:",
-   codigo
-  );
-
-  console.log(
-   "Tipo:",
-   sessao.tipoProduto
-  );
-
-  console.log(
-   "Regra:",
-   sessao.regraColeta
-  );
-
-  console.log(
-   "Coleta:",
-   sessao.tipoColeta
-  );
-
-  console.log(
-   "Quantidade:",
-   quantidade
-  );
-
- })
- .catch(erro=>{
-
-  console.error(
-   "Erro enviando:",
-   erro
-  );
- });
+ }
 
  limparCampoCodigo();
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },100);
-}
+ if(
+  sessao.equipamento==="HONEYWELL"
+ ){
 
-
-function limparCampoCodigo(){
-
- const campo=
-  document.getElementById(
-   "codigo"
+  setTimeout(
+   focarCampoCodigo,
+   100
   );
-
- if(campo)
-  campo.value="";
-
- limparBufferHoneywell();
+ }
 }
 
 
 /* =====================================================
-   MODO ENDEREÇO
-   ===================================================== */
+   ENDEREÇO
+===================================================== */
 
 function ativarModoEndereco(){
 
@@ -2765,67 +2395,32 @@ function ativarModoEndereco(){
 
  sessao.modoEndereco=true;
 
- atualizarBotaoEndereco();
+ const botao=
+  document.getElementById(
+   "btnAlterarEndereco"
+  );
+
+ if(botao){
+
+  botao.textContent=
+   "LENDO NOVO ENDEREÇO";
+
+  botao.disabled=true;
+ }
 
  mostrarCollectionStatus(
   "Leia o código do novo endereço.",
   "success"
  );
 
- mostrarCameraStatus(
-  "LEIA O CÓDIGO DO NOVO ENDEREÇO"
- );
-
  limparCampoCodigo();
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },100);
+ setTimeout(
+  focarCampoCodigo,
+  100
+ );
 }
 
-
-function atualizarBotaoEndereco(){
-
- const botao=
-  document.getElementById(
-   "btnAlterarEndereco"
-  );
-
- if(!botao)return;
-
- if(
-  sessao.tipoProduto!=="BLOCOS"
- ){
-
-  botao.style.display="none";
-
-  return;
- }
-
- botao.style.display="block";
-
- if(
-  sessao.modoEndereco
- ){
-
-  botao.textContent=
-   "LENDO NOVO ENDEREÇO";
-
-  botao.disabled=true;
-
- }else{
-
-  botao.textContent=
-   "ALTERAR ENDEREÇO";
-
-  botao.disabled=false;
- }
-}
-
-
-/* =====================================================
-   NOVO ENDEREÇO
-   ===================================================== */
 
 function processarNovoEndereco(
  novoEndereco
@@ -2836,13 +2431,13 @@ function processarNovoEndereco(
    novoEndereco
   );
 
- if(!novoEndereco)return;
+ if(!novoEndereco)
+  return;
 
  sessao.endereco=
   novoEndereco;
 
  sessao.totalEndereco=0;
-
  sessao.modoEndereco=false;
 
  document.getElementById(
@@ -2860,23 +2455,34 @@ function processarNovoEndereco(
  ).textContent=
   novoEndereco;
 
+ const botao=
+  document.getElementById(
+   "btnAlterarEndereco"
+  );
+
+ if(botao){
+
+  botao.textContent=
+   "ALTERAR ENDEREÇO";
+
+  botao.disabled=false;
+ }
+
  mostrarCollectionStatus(
   "Endereço alterado.",
   "success"
  );
 
- mostrarCameraStatus(
-  "Aponte a câmera para o código de barras"
- );
+ limparCampoCodigo();
 
- atualizarBotaoEndereco();
-
+ /*
+  * O endereço também é enviado para a API.
+  * Se falhar, não interfere na fila de produtos.
+  */
  fetch(
   API,
   {
    method:"POST",
-
-   mode:"no-cors",
 
    headers:{
     "Content-Type":
@@ -2899,33 +2505,69 @@ function processarNovoEndereco(
    })
   }
  )
- .catch(erro=>{
-
-  console.error(
-   "Erro endereço:",
-   erro
+ .catch(e=>{
+  console.warn(
+   "Endereço não sincronizado:",
+   e
   );
  });
 
- limparCampoCodigo();
+ setTimeout(
+  focarCampoCodigo,
+  100
+ );
+}
 
- setTimeout(()=>{
-  focarCampoCodigo();
- },100);
+
+/* =====================================================
+   LIMPEZA
+===================================================== */
+
+function limparCampoCodigo(){
+
+ const campo=
+  document.getElementById("codigo");
+
+ if(campo)
+  campo.value="";
+
+ limparBufferHoneywell();
+}
+
+
+/* =====================================================
+   REINICIAR CÂMERA
+===================================================== */
+
+function reiniciarScanner(){
+
+ if(
+  sessao.equipamento==="HONEYWELL"
+ )
+  return;
+
+ if(
+  !cameraAtiva||
+  scannerBloqueado
+ )
+  return;
+
+ const video=
+  document.getElementById("camera");
+
+ if(!video)return;
+
+ pararLeitorZXing();
+
+ iniciarLeitorZXing(video);
 }
 
 
 /* =====================================================
    PARAR CÂMERA
-   ===================================================== */
+===================================================== */
 
 function pararCamera(){
-
- scannerBloqueado=true;
-
- processandoCodigo=false;
-
- limparBufferHoneywell();
 
  pararLeitorZXing();
 
@@ -2937,18 +2579,15 @@ function pararCamera(){
 
     try{
      track.stop();
-    }catch(erro){}
+    }catch(e){}
    });
  }
 
  cameraStream=null;
-
  cameraAtiva=false;
 
  const video=
-  document.getElementById(
-   "camera"
-  );
+  document.getElementById("camera");
 
  if(video){
 
@@ -2958,18 +2597,56 @@ function pararCamera(){
 
   video.srcObject=null;
  }
-
- scannerBloqueado=false;
 }
+
+
+/* =====================================================
+   INICIALIZAÇÃO DA FILA
+===================================================== */
+
+function iniciarSincronizacaoAutomatica(){
+
+ sincronizarFila();
+
+ setInterval(
+  ()=>{
+   if(
+    navigator.onLine
+   )
+    sincronizarFila();
+  },
+  5000
+ );
+}
+
+
+iniciarSincronizacaoAutomatica();
+
+
+window.addEventListener(
+ "online",
+ ()=>{
+  mostrarCollectionStatus(
+   "Internet recuperada. Sincronizando...",
+   "success"
+  );
+
+  sincronizarFila();
+ }
+);
 
 
 window.addEventListener(
  "pagehide",
- pararCamera
+ ()=>{
+  pararCamera();
+ }
 );
 
 
 window.addEventListener(
  "beforeunload",
- pararCamera
+ ()=>{
+  pararCamera();
+ }
 );
